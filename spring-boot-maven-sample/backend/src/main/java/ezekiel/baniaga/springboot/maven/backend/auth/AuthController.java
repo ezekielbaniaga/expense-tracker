@@ -6,6 +6,7 @@ import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
+import ezekiel.baniaga.springboot.maven.backend.session.RefreshTokenResult;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
@@ -65,11 +66,11 @@ public class AuthController {
     public LoginResponse refresh(
         @Valid @RequestBody RefreshTokenRequest request){
 
-        UserSession session =
-            userSessionService.validateRefreshToken(
+        RefreshTokenResult result =
+            userSessionService.rotateRefreshToken(
                 request.refreshToken());
 
-        User user = session.getUser();
+        User user = result.user();
 
         CustomUserDetails userDetails =
             customUserDetailsMapper.toCustomUserDetails(user);
@@ -78,6 +79,6 @@ public class AuthController {
             jwtService.generateToken(userDetails);
 
         return new LoginResponse(
-            accessToken, request.refreshToken());
+            accessToken, result.newRawRefreshToken());
     }
 }

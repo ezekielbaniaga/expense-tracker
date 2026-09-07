@@ -8,6 +8,17 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+/**
+ * These are important meaning of date fields:
+ *
+        | Field        | Meaning                                           |
+        | ------------ | ------------------------------------------------- |
+        | `createdAt`  | When this login/session was created               |
+        | `lastUsedAt` | Last time the refresh token was successfully used |
+        | `expiresAt`  | Absolute expiration of the session                |
+        | `revokedAt`  | Whether the session was explicitly revoked        |
+*/
+
 @Entity
 @Table(name = "user_sessions")
 @Getter @Setter @NoArgsConstructor

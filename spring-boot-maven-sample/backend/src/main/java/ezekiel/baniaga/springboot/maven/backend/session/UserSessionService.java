@@ -57,11 +57,11 @@ public class UserSessionService {
         return rawRefreshToken;
     }
 
-    public UserSession validateRefreshToken(String rawRefreshToken) {
+    public RefreshTokenResult rotateRefreshToken(String rawRefreshToken) {
 
-        String hash = refreshTokenHasher.hash(rawRefreshToken);
+        String oldHash = refreshTokenHasher.hash(rawRefreshToken);
 
-        UserSession userSession = repository.findByRefreshTokenHash(hash)
+        UserSession userSession = repository.findByRefreshTokenHash(oldHash)
             .orElseThrow(()->new BadCredentialsException("Invalid Refresh Token"));
 
         if (userSession.getRevokedAt() != null) {
@@ -72,6 +72,18 @@ public class UserSessionService {
             throw new BadCredentialsException("Refresh token has expired");
         }
 
-        return userSession;
+        String newRawRefreshToken = refreshTokenGenerator.generate();
+        String newHash = refreshTokenHasher.hash(newRawRefreshToken);
+
+        userSession.setRefreshTokenHash(newHash);
+        userSession.setLastUsedAt(LocalDateTime.now());
+
+        repository.save(userSession);
+
+        return new RefreshTokenResult(
+            userSession.getUser(),
+            newRawRefreshToken
+        );
     }
+
 }
