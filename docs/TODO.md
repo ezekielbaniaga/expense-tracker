@@ -10,9 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Deployment
 
-- [ ] **The app can start before Postgres is ready.** `docker_compose/docker-compose.yml` uses `depends_on`
-      without a Postgres healthcheck and `condition: service_healthy`, so on a fresh `up` Flyway can fail to
-      connect and the app only recovers via `restart: unless-stopped`.
 - [ ] **The container runs as root.** `backend/Dockerfile` has no `USER`, so the JVM runs as root inside the
       container. Run as an unprivileged user.
 
@@ -50,3 +47,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] `X-API-Version` accepts `v`/`V` prefixes (`v1.0`, `V1.1`, `v1`) (2557e9a)
 - [x] Nightly job deletes sessions ended over 7 days ago, with their used token hashes (610162f)
 - [x] Startup rejects a `JWT_SECRET` shorter than 32 bytes instead of failing every login (65e4816)
+- [x] Docker Compose starts the app only after Postgres passes a `pg_isready` healthcheck (78d0beb)
