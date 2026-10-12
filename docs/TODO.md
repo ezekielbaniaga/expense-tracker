@@ -10,9 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Errors and validation
 
-- [ ] **Amounts too large for the column give 500.** `expense.amount` is `NUMERIC(10,2)` but the DTOs have no
-      `@Digits(integer = 8, fraction = 2)`. 123456789.00 fails in Postgres with "numeric field overflow"
-      (500), and extra decimals are silently rounded. (`expense/dto/`)
 - [ ] **404 body is plain text.** `handleNotFound` in `common/GlobalExceptionHandler.java` returns the bare
       message as `text/plain` (`EXPENSE_NOT_FOUND`), while every other error is an `ErrorResponse` JSON.
 
@@ -75,3 +72,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] JWT filter parses each token once and the signing key is cached (b2c8648)
 - [x] Error responses keep their real status (400/500) instead of turning into 401 (08409d5)
 - [x] Expense amount and date are required; v1.1 total skips legacy rows without amount (b2084ff)
+- [x] Expense amount is validated against `NUMERIC(10,2)`; overflow and extra decimals give 400 (cd83e05)
