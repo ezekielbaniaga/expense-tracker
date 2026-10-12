@@ -130,6 +130,15 @@ class ExpenseOwnershipTests {
             .andExpect(jsonPath("$.code").value("MODIFY_ARCHIVED"));
     }
 
+    @Test
+    void invalidBearerTokenIsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/expense").header(HttpHeaders.AUTHORIZATION, "Bearer not-a-jwt"))
+            .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/expense").header(HttpHeaders.AUTHORIZATION, alice + "tampered"))
+            .andExpect(status().isUnauthorized());
+    }
+
     private String createExpense(String token) throws Exception {
         String body = mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
                 .contentType(MediaType.APPLICATION_JSON)

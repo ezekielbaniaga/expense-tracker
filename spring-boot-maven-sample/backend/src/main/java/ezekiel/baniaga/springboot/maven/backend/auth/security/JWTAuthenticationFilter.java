@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -39,8 +40,9 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(HEADER_WITHOUT_BEARER_IDX);
 
-        // When invalid, skip updating security context
-        if (!jwtService.isTokenValid(token)) {
+        // Verify and read the token in one parse. When invalid, skip updating security context
+        Optional<JWTPrincipal> parsed = jwtService.parsePrincipal(token);
+        if (parsed.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -53,8 +55,7 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         // UserDetails userDetails = databaseUserDetailsService.loadUserByUsername(username);
 
         // Update security context for later use on @PreAuthorize or @AuthenticationPrincipal
-        JWTPrincipal principal = jwtService.extractPrincipal(token);
-        CustomUserDetails userDetails = mapper.toCustomUserDetails(principal);
+        CustomUserDetails userDetails = mapper.toCustomUserDetails(parsed.get());
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
             userDetails, null, userDetails.getAuthorities());

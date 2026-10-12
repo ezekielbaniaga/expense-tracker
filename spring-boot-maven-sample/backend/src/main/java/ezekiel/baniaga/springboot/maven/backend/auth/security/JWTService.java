@@ -3,6 +3,7 @@ package ezekiel.baniaga.springboot.maven.backend.auth.security;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.props.JWTProperties;
@@ -21,6 +22,9 @@ public class JWTService {
 
     private final JWTProperties jwtProperties;
 
+    // Built on first use, not at startup: the test profile runs without a JWT secret
+    private volatile SecretKey signingKey;
+
     public String generateToken(CustomUserDetails user) {
         Instant now = Instant.now();
 
@@ -34,15 +38,20 @@ public class JWTService {
             .compact();
     }
 
+    /**
+     * Verifies signature and expiration once and returns the principal,
+     * or empty when the token is invalid, tampered with, or expired.
+     */
+    public Optional<JWTPrincipal> parsePrincipal(String token) {
+        try {
+            return Optional.of(toPrincipal(extractAllClaims(token)));
+        } catch (JwtException | IllegalArgumentException ex) {
+            return Optional.empty();
+        }
+    }
+
     public JWTPrincipal extractPrincipal(String token) {
-
-        Claims claims = extractAllClaims(token);
-
-        return new JWTPrincipal(
-            UUID.fromString(claims.get("uid", String.class)),
-            claims.getSubject(),
-            claims.get("role", String.class)
-        );
+        return toPrincipal(extractAllClaims(token));
     }
 
     public String extractUsername(String token) {
@@ -50,11 +59,7 @@ public class JWTService {
     }
 
     public boolean isTokenValid(String token) {
-        try {
-            return !isTokenExpired(token);
-        } catch (JwtException ex) {
-            return false;
-        }
+        return parsePrincipal(token).isPresent();
     }
 
     public boolean isTokenExpired(String token) {
@@ -65,6 +70,15 @@ public class JWTService {
         return extractAllClaims(token).getExpiration().toInstant();
     }
 
+    private JWTPrincipal toPrincipal(Claims claims) {
+        return new JWTPrincipal(
+            UUID.fromString(claims.get("uid", String.class)),
+            claims.getSubject(),
+            claims.get("role", String.class)
+        );
+    }
+
+    // parseSignedClaims also rejects expired tokens (ExpiredJwtException)
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
             .verifyWith(signingKey())
@@ -74,8 +88,13 @@ public class JWTService {
     }
 
     private SecretKey signingKey() {
-        return Keys.hmacShaKeyFor(
-            jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8)
-        );
+        SecretKey key = signingKey;
+        if (key == null) {
+            key = Keys.hmacShaKeyFor(
+                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8)
+            );
+            signingKey = key;
+        }
+        return key;
     }
 }
