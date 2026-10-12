@@ -6,11 +6,6 @@ Findings from the project review on 2026-10-12. Paths are relative to
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Expenses
-
-- [ ] **`deleteExpense` is inconsistent with update/patch.** It isn't `@Transactional`, skips the version
-      check, and can archive an already-archived expense. (`expense/ExpenseService.java`)
-
 ## Build
 
 - [ ] **`spring-boot-starter-flyway-test` has no `test` scope** in `pom.xml`, so test libraries ship in the
@@ -37,3 +32,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Disabled users can no longer refresh; their session is revoked (f74c6aa)
 - [x] `POST /auth/logout` revokes the session of the given refresh token (22d3bc2)
 - [x] Expenses are scoped to their owner; other users' expenses return 404 (7a70240)
+- [x] Expense delete is transactional, checks `?version=`, and rejects archived expenses (4e9e344)
