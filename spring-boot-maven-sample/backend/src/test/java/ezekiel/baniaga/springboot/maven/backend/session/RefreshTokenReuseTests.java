@@ -17,7 +17,15 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -87,6 +95,43 @@ class RefreshTokenReuseTests {
             .isNotInstanceOf(RefreshTokenReuseException.class);
 
         assertThat(sessionFor(current).getRevokedAt()).isNull();
+    }
+
+    @Test
+    void concurrentRefreshesWithSameTokenLetOnlyOneSucceed() throws Exception {
+        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
+        int threads = 8;
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+
+        try {
+            List<Future<String>> results = new ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                results.add(pool.submit(() -> {
+                    start.await();
+                    return userSessionService.rotateRefreshToken(token).newRawRefreshToken();
+                }));
+            }
+            start.countDown();
+
+            List<String> winners = new ArrayList<>();
+            int rejected = 0;
+            for (Future<String> result : results) {
+                try {
+                    winners.add(result.get(30, TimeUnit.SECONDS));
+                } catch (ExecutionException ex) {
+                    // Losers must be treated as reuse, not fail with a DB error
+                    assertThat(ex.getCause()).isInstanceOf(RefreshTokenReuseException.class);
+                    rejected++;
+                }
+            }
+
+            assertThat(winners).hasSize(1);
+            assertThat(rejected).isEqualTo(threads - 1);
+            assertThat(sessionFor(winners.get(0)).getRevokedAt()).isNotNull();
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test

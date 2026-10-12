@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -70,12 +71,18 @@ public class UserSessionService {
            ├──▶ revoke the whole session (attacker AND real user are logged out)
            │
            └──▶ 401, real user must log in again
+     *
+     * Runs in one transaction with the session row locked, so two concurrent
+     * refreshes with the same token can't both succeed: the second one waits,
+     * then sees the token as already used. The reuse exception must not roll
+     * back the session revoke, hence noRollbackFor.
      */
+    @Transactional(noRollbackFor = RefreshTokenReuseException.class)
     public RefreshTokenResult rotateRefreshToken(String rawRefreshToken) {
 
         String oldHash = refreshTokenHasher.hash(rawRefreshToken);
 
-        UserSession userSession = repository.findByRefreshTokenHash(oldHash)
+        UserSession userSession = repository.findForUpdateByRefreshTokenHash(oldHash)
             .orElseThrow(() -> handleUnknownToken(oldHash));
 
         if (userSession.getRevokedAt() != null) {
