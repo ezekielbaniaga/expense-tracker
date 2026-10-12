@@ -41,7 +41,7 @@ items:
       seq: 6
     http:
       method: DELETE
-      url: http://localhost:8080/api/expense/019e08ec-4049-7161-8238-a20bed2618db
+      url: http://localhost:8080/api/expense/019e08ec-4049-7161-8238-a20bed2618db?version=0
       headers:
         - name: X-API-Version
           value: '1.1'

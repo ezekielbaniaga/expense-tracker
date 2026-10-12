@@ -55,8 +55,8 @@ public class ExpenseController {
     }
 
     @DeleteMapping(value = "/{uniqueId}")
-    public ResponseEntity<Void> deleteByUniqueId(@PathVariable UUID uniqueId, @AuthenticationPrincipal CustomUserDetails user) {
-        service.deleteExpense(uniqueId, user.getUniqueId());
+    public ResponseEntity<Void> deleteByUniqueId(@PathVariable UUID uniqueId, @RequestParam Long version, @AuthenticationPrincipal CustomUserDetails user) {
+        service.deleteExpense(uniqueId, user.getUniqueId(), version);
         return ResponseEntity.noContent().build();
     }
 

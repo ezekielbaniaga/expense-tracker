@@ -56,8 +56,14 @@ public class ExpenseService {
         return expenseMapper.toResponse(repository.saveAndFlush(expense));
     }
 
-    public void deleteExpense(UUID uniqueId, UUID ownerId) {
+    // Same rules as update/patch: matching version, and archived expenses are read-only
+    @Transactional
+    public void deleteExpense(UUID uniqueId, UUID ownerId, Long version) {
         Expense expense = findExpenseOrThrow(uniqueId, ownerId);
+
+        checkVersion(expense, version);
+        checkIfArchived(expense);
+
         // repository.delete(expense); --> hard delete
         expense.setArchived(true);
         expense.setArchivedAt(LocalDateTime.now());

@@ -80,7 +80,7 @@ class ExpenseOwnershipTests {
                 .content("{\"version\":0,\"description\":\"Hijacked\"}"))
             .andExpect(status().isNotFound());
 
-        mockMvc.perform(delete("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, bob))
+        mockMvc.perform(delete("/api/expense/" + id + "?version=0").header(HttpHeaders.AUTHORIZATION, bob))
             .andExpect(status().isNotFound());
 
         // Untouched for the owner
@@ -92,7 +92,7 @@ class ExpenseOwnershipTests {
     @Test
     void archivedListIsScopedToOwner() throws Exception {
         String id = createExpense(alice);
-        mockMvc.perform(delete("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice))
+        mockMvc.perform(delete("/api/expense/" + id + "?version=0").header(HttpHeaders.AUTHORIZATION, alice))
             .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/expense/archived").header(HttpHeaders.AUTHORIZATION, alice))
@@ -100,6 +100,34 @@ class ExpenseOwnershipTests {
 
         mockMvc.perform(get("/api/expense/archived").header(HttpHeaders.AUTHORIZATION, bob))
             .andExpect(jsonPath("$.expenses", hasSize(0)));
+    }
+
+    @Test
+    void deleteRequiresCurrentVersion() throws Exception {
+        String id = createExpense(alice);
+
+        mockMvc.perform(delete("/api/expense/" + id + "?version=7").header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
+
+        mockMvc.perform(delete("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(status().isBadRequest());
+
+        // Still active after the rejected deletes
+        mockMvc.perform(get("/api/expense/archived").header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(jsonPath("$.expenses", hasSize(0)));
+    }
+
+    @Test
+    void deletingArchivedExpenseIsRejected() throws Exception {
+        String id = createExpense(alice);
+        mockMvc.perform(delete("/api/expense/" + id + "?version=0").header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(status().isNoContent());
+
+        // Archiving bumped the version to 1; even with the right version it stays archived once
+        mockMvc.perform(delete("/api/expense/" + id + "?version=1").header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("MODIFY_ARCHIVED"));
     }
 
     private String createExpense(String token) throws Exception {
