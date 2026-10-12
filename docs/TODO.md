@@ -8,11 +8,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Refresh tokens and sessions
 
-- [ ] **Concurrent refresh race.** `rotateRefreshToken` is not `@Transactional` and `UserSession`
-      has no `@Version`, so two refreshes with the same token can both succeed (last write wins).
-      Careful: if the method becomes `@Transactional`, throwing `RefreshTokenReuseException` would
-      roll back the session revoke. Revoke in its own transaction (`REQUIRES_NEW`) or use
-      `noRollbackFor`, and keep `RefreshTokenReuseTests` passing.
 - [ ] **Lazy `User` used outside the service.** `rotateRefreshToken` returns a lazy `User` proxy that
       `AuthController` reads later. It only works because `spring.jpa.open-in-view` is on by default.
       Map to `CustomUserDetails` inside a transaction instead.
@@ -48,3 +43,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] `.env` with secrets was tracked; replaced with `.env.example` (3a188fd)
 - [x] Context test needed a live local Postgres; now uses Testcontainers (8111665)
 - [x] Refresh token reuse now revokes the whole session (5b27672)
+- [x] Concurrent refreshes with the same token are serialized by a row lock; losers count as reuse (09c4ed0)
