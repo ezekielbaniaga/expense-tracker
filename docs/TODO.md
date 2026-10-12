@@ -10,12 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Errors and validation
 
-- [ ] **Most error responses turn into 401.** `/error` isn't permitted in `auth/config/SecurityConfig.java`, so
-      any error that goes through Spring's error page (malformed JSON, missing `?version=`, unsupported
-      `X-API-Version`, every uncaught 500) is re-dispatched to `/error`, rejected as unauthenticated, and the
-      client gets 401 instead of the real 400/500. Verified against the running jar, even with a valid token.
-      MockMvc tests can't see this (no error dispatch); the test needs a real server
-      (`@SpringBootTest(webEnvironment = RANDOM_PORT)`).
 - [ ] **Expense amount, date and category may be null.** `CreateExpenseRequest`/`UpdateExpenseRequest` use
       `@Positive`/`@PastOrPresent` without `@NotNull`, so `{"description":"x","category":"FOOD"}` saves an
       expense with no amount. After that, the v1.1 list (`ExpenseService.getAllExpensesV1_1`) throws
@@ -84,3 +78,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Expense delete is transactional, checks `?version=`, and rejects archived expenses (4e9e344)
 - [x] `spring-boot-starter-flyway-test` is test-scoped; 26 test jars no longer ship in the production jar (58d7ead)
 - [x] JWT filter parses each token once and the signing key is cached (b2c8648)
+- [x] Error responses keep their real status (400/500) instead of turning into 401 (08409d5)
