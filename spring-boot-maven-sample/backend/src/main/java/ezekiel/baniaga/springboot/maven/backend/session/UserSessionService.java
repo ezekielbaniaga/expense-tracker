@@ -135,6 +135,16 @@ public class UserSessionService {
     }
 
     /**
+     * Deletes sessions that expired or were revoked more than retentionDays ago,
+     * together with their used token hashes. Active sessions are never touched.
+     */
+    @Transactional
+    public int cleanupEndedSessions(int retentionDays, int limit) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+        return repository.deleteEndedBefore(cutoff, limit);
+    }
+
+    /**
      * Token is not the current one of any session. If it was rotated out
      * before, someone is replaying it, so revoke the session it belonged to.
      */

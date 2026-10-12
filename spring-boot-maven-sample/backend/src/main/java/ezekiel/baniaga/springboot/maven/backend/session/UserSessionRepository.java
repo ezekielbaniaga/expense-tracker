@@ -29,4 +29,17 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
         WHERE s.id = :id AND s.revokedAt IS NULL
     """)
     int revoke(@Param("id") Long id, @Param("revokedAt") LocalDateTime revokedAt);
+
+    // Native Query as JPQL does not support LIMIT in DELETE.
+    // used_refresh_tokens rows go with their session (ON DELETE CASCADE).
+    @Modifying
+    @Query(value = """
+        DELETE FROM user_sessions
+        WHERE id IN (
+            SELECT id FROM user_sessions
+            WHERE expires_at < :cutoff OR revoked_at < :cutoff
+            LIMIT :limit
+        )
+    """, nativeQuery = true)
+    int deleteEndedBefore(@Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
 }
