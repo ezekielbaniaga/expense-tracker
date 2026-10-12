@@ -8,8 +8,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Refresh tokens and sessions
 
-- [ ] **Disabled users can still refresh.** Refresh doesn't check `user.enabled`, so a disabled user
-      keeps getting access tokens for up to 30 days.
 - [ ] **Logout endpoint.** `revoked_at` exists and the README diagram shows logout, but no endpoint sets it.
 
 ## Expenses
@@ -42,3 +40,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Refresh token reuse now revokes the whole session (5b27672)
 - [x] Concurrent refreshes with the same token are serialized by a row lock; losers count as reuse (09c4ed0)
 - [x] Refresh rotation returns `CustomUserDetails` mapped inside the transaction, not a lazy `User` (81eaf15)
+- [x] Disabled users can no longer refresh; their session is revoked (f74c6aa)
