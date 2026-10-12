@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -81,8 +82,10 @@ public class ExpenseService {
         List<ExpenseListItemResponse> expensesResponse = findAllExpensesAndMapToListItem(ownerId);
 
         int count = expensesResponse.size();
+        // Expenses saved before amount was required can have no amount; skip them in the total
         BigDecimal total_amount = expensesResponse.stream()
                 .map(ExpenseListItemResponse::amount)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new ExpenseListResponseV1_1(

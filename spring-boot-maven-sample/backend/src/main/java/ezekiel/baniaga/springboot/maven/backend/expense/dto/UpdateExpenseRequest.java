@@ -14,12 +14,14 @@ public record UpdateExpenseRequest (
     @Size(max=250)
     String description,
 
+    @NotNull
     @Positive
     BigDecimal amount,
 
     @NotBlank
     String category,
 
+    @NotNull
     @PastOrPresent
     LocalDate date
 
