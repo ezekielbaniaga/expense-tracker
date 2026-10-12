@@ -8,8 +8,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Expenses
 
-- [ ] **Expenses aren't scoped per user.** The `expense` table has no `user_id`, so every logged-in user
-      sees and edits all expenses. Needs a migration plus filtering by the authenticated user.
 - [ ] **`deleteExpense` is inconsistent with update/patch.** It isn't `@Transactional`, skips the version
       check, and can archive an already-archived expense. (`expense/ExpenseService.java`)
 
@@ -38,3 +36,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Refresh rotation returns `CustomUserDetails` mapped inside the transaction, not a lazy `User` (81eaf15)
 - [x] Disabled users can no longer refresh; their session is revoked (f74c6aa)
 - [x] `POST /auth/logout` revokes the session of the given refresh token (22d3bc2)
+- [x] Expenses are scoped to their owner; other users' expenses return 404 (7a70240)
