@@ -6,10 +6,6 @@ Findings from the project review on 2026-10-12. Paths are relative to
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Refresh tokens and sessions
-
-- [ ] **Logout endpoint.** `revoked_at` exists and the README diagram shows logout, but no endpoint sets it.
-
 ## Expenses
 
 - [ ] **Expenses aren't scoped per user.** The `expense` table has no `user_id`, so every logged-in user
@@ -41,3 +37,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Concurrent refreshes with the same token are serialized by a row lock; losers count as reuse (09c4ed0)
 - [x] Refresh rotation returns `CustomUserDetails` mapped inside the transaction, not a lazy `User` (81eaf15)
 - [x] Disabled users can no longer refresh; their session is revoked (f74c6aa)
+- [x] `POST /auth/logout` revokes the session of the given refresh token (22d3bc2)
