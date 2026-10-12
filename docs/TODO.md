@@ -10,11 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Errors and validation
 
-- [ ] **Expense amount, date and category may be null.** `CreateExpenseRequest`/`UpdateExpenseRequest` use
-      `@Positive`/`@PastOrPresent` without `@NotNull`, so `{"description":"x","category":"FOOD"}` saves an
-      expense with no amount. After that, the v1.1 list (`ExpenseService.getAllExpensesV1_1`) throws
-      NullPointerException summing amounts: a permanent 500 for that user. Needs `@NotNull`, plus a null-safe
-      sum or a migration for rows already saved without an amount.
 - [ ] **Amounts too large for the column give 500.** `expense.amount` is `NUMERIC(10,2)` but the DTOs have no
       `@Digits(integer = 8, fraction = 2)`. 123456789.00 fails in Postgres with "numeric field overflow"
       (500), and extra decimals are silently rounded. (`expense/dto/`)
@@ -79,3 +74,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] `spring-boot-starter-flyway-test` is test-scoped; 26 test jars no longer ship in the production jar (58d7ead)
 - [x] JWT filter parses each token once and the signing key is cached (b2c8648)
 - [x] Error responses keep their real status (400/500) instead of turning into 401 (08409d5)
+- [x] Expense amount and date are required; v1.1 total skips legacy rows without amount (b2084ff)
