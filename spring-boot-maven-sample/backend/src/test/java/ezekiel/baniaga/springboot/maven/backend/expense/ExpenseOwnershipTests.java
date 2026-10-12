@@ -146,6 +146,15 @@ class ExpenseOwnershipTests {
     }
 
     @Test
+    void apiVersionHeaderAcceptsVPrefix() throws Exception {
+        for (String version : List.of("1.0", "v1.0", "V1.1", "v1")) {
+            mockMvc.perform(get("/api/expense").header(HttpHeaders.AUTHORIZATION, alice)
+                    .header("X-API-Version", version))
+                .andExpect(status().isOk());
+        }
+    }
+
+    @Test
     void invalidBearerTokenIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/expense").header(HttpHeaders.AUTHORIZATION, "Bearer not-a-jwt"))
             .andExpect(status().isUnauthorized());
