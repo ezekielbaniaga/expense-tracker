@@ -8,11 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Deployment
-
-- [ ] **The container runs as root.** `backend/Dockerfile` has no `USER`, so the JVM runs as root inside the
-      container. Run as an unprivileged user.
-
 ## Tests
 
 - [ ] **`/auth/login` has no tests.** Nothing covers a correct login (tokens returned, session row with user
@@ -48,3 +43,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Nightly job deletes sessions ended over 7 days ago, with their used token hashes (610162f)
 - [x] Startup rejects a `JWT_SECRET` shorter than 32 bytes instead of failing every login (65e4816)
 - [x] Docker Compose starts the app only after Postgres passes a `pg_isready` healthcheck (78d0beb)
+- [x] App container runs as an unprivileged `app` user instead of root (8a401f1)
