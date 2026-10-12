@@ -8,11 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Errors and validation
-
-- [ ] **404 body is plain text.** `handleNotFound` in `common/GlobalExceptionHandler.java` returns the bare
-      message as `text/plain` (`EXPENSE_NOT_FOUND`), while every other error is an `ErrorResponse` JSON.
-
 ## API
 
 - [ ] **`v`-prefixed API versions are rejected.** `config/DefaultApiVersionParser.java` uses
@@ -73,3 +68,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Error responses keep their real status (400/500) instead of turning into 401 (08409d5)
 - [x] Expense amount and date are required; v1.1 total skips legacy rows without amount (b2084ff)
 - [x] Expense amount is validated against `NUMERIC(10,2)`; overflow and extra decimals give 400 (cd83e05)
+- [x] 404 responses are `ErrorResponse` JSON like every other error (199601c)
