@@ -96,6 +96,23 @@ class ExpenseValidationTests {
     }
 
     @Test
+    void amountMustFitTheColumn() throws Exception {
+        // NUMERIC(10,2): at most 8 digits before the point and 2 after
+        createWithAmount("123456789.00").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        createWithAmount("12.345").andExpect(status().isBadRequest());
+
+        createWithAmount("99999999.99").andExpect(status().isOk())
+            .andExpect(jsonPath("$.amount").value(99999999.99));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions createWithAmount(String amount) throws Exception {
+        return mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"description\":\"x\",\"amount\":" + amount + ",\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"));
+    }
+
+    @Test
     void v1_1TotalSkipsLegacyExpensesWithoutAmount() throws Exception {
         saveDirectly(null);
         saveDirectly(new BigDecimal("12.50"));

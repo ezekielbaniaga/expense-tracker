@@ -1,5 +1,6 @@
 package ezekiel.baniaga.springboot.maven.backend.expense.dto;
 
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -17,6 +18,8 @@ public record CreateExpenseRequest (
 
     @NotNull
     @Positive
+    // Matches the NUMERIC(10,2) column: larger values overflow, extra decimals would be rounded
+    @Digits(integer = 8, fraction = 2)
     BigDecimal amount,
 
     @NotBlank

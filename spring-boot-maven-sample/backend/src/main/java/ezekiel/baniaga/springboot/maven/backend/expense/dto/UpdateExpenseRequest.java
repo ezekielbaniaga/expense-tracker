@@ -16,6 +16,8 @@ public record UpdateExpenseRequest (
 
     @NotNull
     @Positive
+    // Matches the NUMERIC(10,2) column: larger values overflow, extra decimals would be rounded
+    @Digits(integer = 8, fraction = 2)
     BigDecimal amount,
 
     @NotBlank
