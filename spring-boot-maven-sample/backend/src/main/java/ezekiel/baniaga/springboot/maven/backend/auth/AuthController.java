@@ -3,14 +3,12 @@ package ezekiel.baniaga.springboot.maven.backend.auth;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.LoginRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.LoginResponse;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
-import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
 import ezekiel.baniaga.springboot.maven.backend.session.RefreshTokenResult;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
-import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +31,6 @@ public class AuthController {
     private final JWTService jwtService;
 
     private final UserSessionService userSessionService;
-
-    private final CustomUserDetailsMapper customUserDetailsMapper;
 
     @PostMapping("/login")
     public LoginResponse login(
@@ -70,13 +66,8 @@ public class AuthController {
             userSessionService.rotateRefreshToken(
                 request.refreshToken());
 
-        User user = result.user();
-
-        CustomUserDetails userDetails =
-            customUserDetailsMapper.toCustomUserDetails(user);
-
         String accessToken =
-            jwtService.generateToken(userDetails);
+            jwtService.generateToken(result.userDetails());
 
         return new LoginResponse(
             accessToken, result.newRawRefreshToken());

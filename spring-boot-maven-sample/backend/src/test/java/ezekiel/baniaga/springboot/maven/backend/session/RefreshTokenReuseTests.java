@@ -59,6 +59,18 @@ class RefreshTokenReuseTests {
     }
 
     @Test
+    void rotationResultIsUsableOutsideTransaction() {
+        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
+
+        // No web request here, so no open-session-in-view to rescue a lazy proxy
+        RefreshTokenResult result = userSessionService.rotateRefreshToken(token);
+
+        assertThat(result.userDetails().getUsername()).isEqualTo(user.getUsername());
+        assertThat(result.userDetails().getUniqueId()).isEqualTo(user.getUniqueId());
+        assertThat(result.userDetails().getRole()).isEqualTo(Role.USER.name());
+    }
+
+    @Test
     void reusingRotatedTokenRevokesSession() {
         String first = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
         String second = userSessionService.rotateRefreshToken(first).newRawRefreshToken();

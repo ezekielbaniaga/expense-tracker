@@ -1,9 +1,13 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
-import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
+import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 
+/**
+ * Holds plain user details instead of the User entity, so callers never
+ * touch a lazy proxy after the rotation transaction has closed.
+ */
 public record RefreshTokenResult(
-        User user,
+        CustomUserDetails userDetails,
         String newRawRefreshToken
 ) {
 }

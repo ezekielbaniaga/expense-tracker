@@ -1,5 +1,6 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
+import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UsedRefreshToken;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
@@ -20,6 +21,7 @@ public class UserSessionService {
     private final UserRepository userRepository;
     private final UserSessionRepository repository;
     private final UsedRefreshTokenRepository usedRefreshTokenRepository;
+    private final CustomUserDetailsMapper customUserDetailsMapper;
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHasher refreshTokenHasher;
 
@@ -105,8 +107,9 @@ public class UserSessionService {
 
         repository.save(userSession);
 
+        // Map while the transaction is open; the User is a lazy proxy
         return new RefreshTokenResult(
-            userSession.getUser(),
+            customUserDetailsMapper.toCustomUserDetails(userSession.getUser()),
             newRawRefreshToken
         );
     }
