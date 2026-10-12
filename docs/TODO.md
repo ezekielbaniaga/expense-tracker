@@ -8,14 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Auth
-
-- [ ] **A short `JWT_SECRET` passes the startup check but breaks every login.** `auth/service/JWTBootstrapService.java`
-      only rejects a blank secret. HS256 needs at least 32 bytes, so `Keys.hmacShaKeyFor` throws
-      `WeakKeyException` on the first login (500, shown as 401). Validate the length at startup. The
-      `JWTProperties` javadoc also tells people to generate the secret on a third-party website; point to
-      `openssl rand -base64 32` instead.
-
 ## Deployment
 
 - [ ] **The app can start before Postgres is ready.** `docker_compose/docker-compose.yml` uses `depends_on`
@@ -57,3 +49,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] 404 responses are `ErrorResponse` JSON like every other error (199601c)
 - [x] `X-API-Version` accepts `v`/`V` prefixes (`v1.0`, `V1.1`, `v1`) (2557e9a)
 - [x] Nightly job deletes sessions ended over 7 days ago, with their used token hashes (610162f)
+- [x] Startup rejects a `JWT_SECRET` shorter than 32 bytes instead of failing every login (65e4816)
