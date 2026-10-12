@@ -8,11 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Tests
-
-- [ ] **`/auth/login` has no tests.** Nothing covers a correct login (tokens returned, session row with user
-      agent and IP), a wrong password, an unknown user, or a disabled user. All should be 401 except the first.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -44,3 +39,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Startup rejects a `JWT_SECRET` shorter than 32 bytes instead of failing every login (65e4816)
 - [x] Docker Compose starts the app only after Postgres passes a `pg_isready` healthcheck (78d0beb)
 - [x] App container runs as an unprivileged `app` user instead of root (8a401f1)
+- [x] `/auth/login` is covered by tests: success, wrong password, unknown and disabled user, blank input (83182ea)
