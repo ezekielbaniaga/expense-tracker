@@ -1,6 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.auth.config;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -30,7 +31,10 @@ public class SecurityConfig {
             .sessionManagement(session->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth ->
-                auth.requestMatchers(
+                // Let Spring's internal forward to /error through, otherwise every 400/500
+                // rendered there is replaced by 401. Requesting /error directly stays protected.
+                auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                    .requestMatchers(
                         "/auth/login","/auth/refresh","/auth/logout").permitAll()
                     .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
