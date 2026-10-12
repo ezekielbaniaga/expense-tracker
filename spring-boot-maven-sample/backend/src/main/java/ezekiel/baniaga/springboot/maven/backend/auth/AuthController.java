@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -71,5 +72,18 @@ public class AuthController {
 
         return new LoginResponse(
             accessToken, result.newRawRefreshToken());
+    }
+
+    /**
+     * Revokes the session of the given refresh token. Always 204, even for
+     * unknown tokens. The access token stays valid until it expires.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+        @Valid @RequestBody RefreshTokenRequest request) {
+
+        userSessionService.revokeSession(request.refreshToken());
+
+        return ResponseEntity.noContent().build();
     }
 }

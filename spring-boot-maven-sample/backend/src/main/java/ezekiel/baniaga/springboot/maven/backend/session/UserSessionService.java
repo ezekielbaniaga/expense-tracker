@@ -123,6 +123,18 @@ public class UserSessionService {
     }
 
     /**
+     * Logout: revokes the session the refresh token belongs to.
+     * Unknown or already-rotated tokens are ignored, so the caller can't
+     * tell valid tokens from invalid ones.
+     */
+    public void revokeSession(String rawRefreshToken) {
+        String hash = refreshTokenHasher.hash(rawRefreshToken);
+
+        repository.findByRefreshTokenHash(hash)
+            .ifPresent(session -> repository.revoke(session.getId(), LocalDateTime.now()));
+    }
+
+    /**
      * Token is not the current one of any session. If it was rotated out
      * before, someone is replaying it, so revoke the session it belonged to.
      */

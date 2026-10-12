@@ -614,6 +614,22 @@ WHERE id = 1;
 
 The refresh token associated with that session can no longer be used.
 
+Clients log out by sending their refresh token:
+
+```http
+POST /auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "..."
+}
+```
+
+This revokes only that session (other devices stay logged in) and always returns
+`204 No Content`, even for unknown tokens, so the endpoint can't be used to probe tokens.
+No access token is required, so a client can still log out after its JWT has expired.
+The access token itself stays valid until it expires (at most 15 minutes).
+
 ```text
 Refresh Token
       │
@@ -909,12 +925,12 @@ The authentication system is being developed incrementally.
 * [x] Session-level revocation
 * [x] `/auth/refresh`
 * [x] Refresh-token rotation
+* [x] Refresh-token reuse detection
+* [x] Rotation/concurrency hardening
+* [x] `/auth/logout`
 
 ### Next
 
-* [ ] Refresh-token reuse detection
-* [ ] Rotation/concurrency hardening
-* [ ] Logout endpoint
 * [ ] Revoke individual sessions
 * [ ] Revoke all sessions
 * [ ] Session management API

@@ -173,6 +173,40 @@ class RefreshTokenReuseTests {
         refresh(first).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void logoutRevokesSessionSoRefreshFails() throws Exception {
+        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
+
+        // No access token needed: logout must work after the JWT expired
+        logout(token).andExpect(status().isNoContent());
+
+        assertThat(sessionFor(token).getRevokedAt()).isNotNull();
+        refresh(token).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void logoutOnlyRevokesThatSession() throws Exception {
+        String laptop = userSessionService.createSession(user.getId(), "laptop", "127.0.0.1");
+        String phone = userSessionService.createSession(user.getId(), "phone", "127.0.0.1");
+
+        logout(laptop).andExpect(status().isNoContent());
+
+        assertThat(sessionFor(phone).getRevokedAt()).isNull();
+        refresh(phone).andExpect(status().isOk());
+    }
+
+    @Test
+    void logoutWithUnknownTokenStillReturns204() throws Exception {
+        // Same answer either way, so the endpoint can't be used to probe tokens
+        logout("never-issued").andExpect(status().isNoContent());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions logout(String token) throws Exception {
+        return mockMvc.perform(post("/auth/logout")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"refreshToken\":\"" + token + "\"}"));
+    }
+
     private org.springframework.test.web.servlet.ResultActions refresh(String token) throws Exception {
         return mockMvc.perform(post("/auth/refresh")
             .contentType(MediaType.APPLICATION_JSON)
