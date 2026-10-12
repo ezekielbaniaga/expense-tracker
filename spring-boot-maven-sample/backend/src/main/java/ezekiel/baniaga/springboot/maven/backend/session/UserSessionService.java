@@ -8,6 +8,7 @@ import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,10 +77,10 @@ public class UserSessionService {
      *
      * Runs in one transaction with the session row locked, so two concurrent
      * refreshes with the same token can't both succeed: the second one waits,
-     * then sees the token as already used. The reuse exception must not roll
-     * back the session revoke, hence noRollbackFor.
+     * then sees the token as already used. The reuse and disabled exceptions
+     * must not roll back the session revoke, hence noRollbackFor.
      */
-    @Transactional(noRollbackFor = RefreshTokenReuseException.class)
+    @Transactional(noRollbackFor = {RefreshTokenReuseException.class, DisabledException.class})
     public RefreshTokenResult rotateRefreshToken(String rawRefreshToken) {
 
         String oldHash = refreshTokenHasher.hash(rawRefreshToken);
@@ -93,6 +94,13 @@ public class UserSessionService {
 
         if (userSession.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new BadCredentialsException("Refresh token has expired");
+        }
+
+        // Access tokens can't be recalled, but a disabled user must not get new ones.
+        // Revoke so re-enabling the account doesn't bring this session back.
+        if (!userSession.getUser().isEnabled()) {
+            repository.revoke(userSession.getId(), LocalDateTime.now());
+            throw new DisabledException("User account is disabled");
         }
 
         String newRawRefreshToken = refreshTokenGenerator.generate();

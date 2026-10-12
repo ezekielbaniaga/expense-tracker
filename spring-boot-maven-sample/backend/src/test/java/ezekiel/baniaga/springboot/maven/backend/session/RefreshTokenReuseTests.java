@@ -13,6 +13,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -68,6 +69,24 @@ class RefreshTokenReuseTests {
         assertThat(result.userDetails().getUsername()).isEqualTo(user.getUsername());
         assertThat(result.userDetails().getUniqueId()).isEqualTo(user.getUniqueId());
         assertThat(result.userDetails().getRole()).isEqualTo(Role.USER.name());
+    }
+
+    @Test
+    void disabledUserCannotRefreshAndSessionIsRevoked() throws Exception {
+        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
+
+        user.setEnabled(false);
+        user = userRepository.save(user);
+
+        assertThatThrownBy(() -> userSessionService.rotateRefreshToken(token))
+            .isInstanceOf(DisabledException.class);
+
+        // Revoked, so re-enabling the account does not bring the old token back
+        assertThat(sessionFor(token).getRevokedAt()).isNotNull();
+
+        user.setEnabled(true);
+        user = userRepository.save(user);
+        refresh(token).andExpect(status().isUnauthorized());
     }
 
     @Test
