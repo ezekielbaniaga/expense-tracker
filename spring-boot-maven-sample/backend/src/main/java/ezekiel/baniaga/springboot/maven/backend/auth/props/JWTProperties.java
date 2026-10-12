@@ -11,8 +11,8 @@ import java.time.Duration;
 public class JWTProperties {
 
     /**
-     * At least 256 bits (32 bytes) for HS256.
-     * Generate secret from https://jwtgenerator.com/tools/jwt-generator
+     * At least 256 bits (32 bytes) for HS256; checked at startup.
+     * Generate it locally (never on a website): openssl rand -base64 32
      */
     private String secret;
 
