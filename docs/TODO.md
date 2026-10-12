@@ -6,11 +6,6 @@ Findings from the project review on 2026-10-12. Paths are relative to
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Minor
-
-- [ ] `JWTAuthenticationFilter` parses each token twice (`isTokenValid`, then `extractPrincipal`), and
-      `JWTService` rebuilds the signing key on every call.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -29,3 +24,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Expenses are scoped to their owner; other users' expenses return 404 (7a70240)
 - [x] Expense delete is transactional, checks `?version=`, and rejects archived expenses (4e9e344)
 - [x] `spring-boot-starter-flyway-test` is test-scoped; 26 test jars no longer ship in the production jar (58d7ead)
+- [x] JWT filter parses each token once and the signing key is cached (b2c8648)
