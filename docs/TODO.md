@@ -3,11 +3,11 @@
 Findings from the project review on 2026-10-12. Paths are relative to
 `spring-boot-maven-sample/backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
 
+Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
+commit hash. Items that need a human decision or action outside the code go in **Needs you**.
+
 ## Refresh tokens and sessions
 
-- [x] **Refresh token reuse detection.** Presenting an already-rotated token just returns 401.
-      It should be treated as theft and revoke the whole session, so a stolen token can't keep
-      a session alive. (`session/UserSessionService.java`, `rotateRefreshToken`) (5b27672)
 - [ ] **Concurrent refresh race.** `rotateRefreshToken` is not `@Transactional` and `UserSession`
       has no `@Version`, so two refreshes with the same token can both succeed (last write wins).
       Careful: if the method becomes `@Transactional`, throwing `RefreshTokenReuseException` would
@@ -36,6 +36,9 @@ Findings from the project review on 2026-10-12. Paths are relative to
 
 - [ ] `JWTAuthenticationFilter` parses each token twice (`isTokenValid`, then `extractPrincipal`), and
       `JWTService` rebuilds the signing key on every call.
+
+## Needs you
+
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
 
 ## Done
@@ -44,3 +47,4 @@ Findings from the project review on 2026-10-12. Paths are relative to
 - [x] `logging` was nested under `spring` in `application.yml`, so it was ignored (ef0a319)
 - [x] `.env` with secrets was tracked; replaced with `.env.example` (3a188fd)
 - [x] Context test needed a live local Postgres; now uses Testcontainers (8111665)
+- [x] Refresh token reuse now revokes the whole session (5b27672)
