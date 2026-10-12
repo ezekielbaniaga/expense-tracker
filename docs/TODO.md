@@ -8,13 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Sessions
-
-- [ ] **Sessions and used token hashes are never cleaned up.** Expired and revoked rows stay in
-      `user_sessions` forever, and `used_refresh_tokens` gains a row on every refresh (about 96 a day per
-      active client at 15-minute access tokens). Add a scheduled cleanup like `expense/job/ExpenseCleanup.java`
-      (deleting old sessions cascades to their used hashes).
-
 ## Auth
 
 - [ ] **A short `JWT_SECRET` passes the startup check but breaks every login.** `auth/service/JWTBootstrapService.java`
@@ -63,3 +56,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Expense amount is validated against `NUMERIC(10,2)`; overflow and extra decimals give 400 (cd83e05)
 - [x] 404 responses are `ErrorResponse` JSON like every other error (199601c)
 - [x] `X-API-Version` accepts `v`/`V` prefixes (`v1.0`, `V1.1`, `v1`) (2557e9a)
+- [x] Nightly job deletes sessions ended over 7 days ago, with their used token hashes (610162f)
