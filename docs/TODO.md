@@ -8,13 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## API
-
-- [ ] **`v`-prefixed API versions are rejected.** `config/DefaultApiVersionParser.java` uses
-      `version.matches("^[vV]")`, but `String.matches` must match the whole string, so `v1.0` is never
-      stripped. Verified: `X-API-Version: 1.0` gives 200, `v1.0`/`V1.0`/`v1` are rejected. The second `if` also
-      has a redundant condition.
-
 ## Sessions
 
 - [ ] **Sessions and used token hashes are never cleaned up.** Expired and revoked rows stay in
@@ -69,3 +62,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Expense amount and date are required; v1.1 total skips legacy rows without amount (b2084ff)
 - [x] Expense amount is validated against `NUMERIC(10,2)`; overflow and extra decimals give 400 (cd83e05)
 - [x] 404 responses are `ErrorResponse` JSON like every other error (199601c)
+- [x] `X-API-Version` accepts `v`/`V` prefixes (`v1.0`, `V1.1`, `v1`) (2557e9a)
