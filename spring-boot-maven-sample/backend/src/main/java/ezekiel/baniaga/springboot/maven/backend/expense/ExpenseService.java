@@ -24,14 +24,14 @@ public class ExpenseService {
     private final ExpenseMapper expenseMapper;
     private final DefaultUUIDGenerator uuidGenerator;
 
-    public ExpenseResponse getExpenseByUniqueId(UUID uniqueId) {
-        Expense expense = findExpenseOrThrow(uniqueId);
+    public ExpenseResponse getExpenseByUniqueId(UUID uniqueId, UUID ownerId) {
+        Expense expense = findExpenseOrThrow(uniqueId, ownerId);
         return expenseMapper.toResponse(expense);
     }
 
     @Transactional
-    public ExpenseResponse updateExpense(UUID uniqueId, UpdateExpenseRequest request) {
-        Expense expense = findExpenseOrThrow(uniqueId);
+    public ExpenseResponse updateExpense(UUID uniqueId, UUID ownerId, UpdateExpenseRequest request) {
+        Expense expense = findExpenseOrThrow(uniqueId, ownerId);
 
         checkVersion(expense, request.version());
         checkIfArchived(expense);
@@ -44,8 +44,8 @@ public class ExpenseService {
     }
 
     @Transactional
-    public ExpenseResponse patchExpenseDescription(UUID uniqueId, PatchExpenseDescriptionRequest request) {
-        Expense expense = findExpenseOrThrow(uniqueId);
+    public ExpenseResponse patchExpenseDescription(UUID uniqueId, UUID ownerId, PatchExpenseDescriptionRequest request) {
+        Expense expense = findExpenseOrThrow(uniqueId, ownerId);
 
         checkVersion(expense, request.version());
         checkIfArchived(expense);
@@ -56,23 +56,23 @@ public class ExpenseService {
         return expenseMapper.toResponse(repository.saveAndFlush(expense));
     }
 
-    public void deleteExpense(UUID uniqueId) {
-        Expense expense = findExpenseOrThrow(uniqueId);
+    public void deleteExpense(UUID uniqueId, UUID ownerId) {
+        Expense expense = findExpenseOrThrow(uniqueId, ownerId);
         // repository.delete(expense); --> hard delete
         expense.setArchived(true);
         expense.setArchivedAt(LocalDateTime.now());
         repository.save(expense);
     }
 
-    public ExpenseListResponse getAllExpenses() {
-        List<ExpenseListItemResponse> expensesResponse = findAllExpensesAndMapToListItem();
+    public ExpenseListResponse getAllExpenses(UUID ownerId) {
+        List<ExpenseListItemResponse> expensesResponse = findAllExpensesAndMapToListItem(ownerId);
 
         return new ExpenseListResponse(
             expensesResponse, expensesResponse.size());
     }
 
-    public ExpenseListResponseV1_1 getAllExpensesV1_1() {
-        List<ExpenseListItemResponse> expensesResponse = findAllExpensesAndMapToListItem();
+    public ExpenseListResponseV1_1 getAllExpensesV1_1(UUID ownerId) {
+        List<ExpenseListItemResponse> expensesResponse = findAllExpensesAndMapToListItem(ownerId);
 
         int count = expensesResponse.size();
         BigDecimal total_amount = expensesResponse.stream()
@@ -83,15 +83,16 @@ public class ExpenseService {
                 expensesResponse, count, total_amount);
     }
 
-    public ArchivedExpenseListResponse getArchivedExpenses() {
-        List<ArchivedExpenseListItemResponse> expensesResponse = repository.findAllByArchivedIsTrue()
+    public ArchivedExpenseListResponse getArchivedExpenses(UUID ownerId) {
+        List<ArchivedExpenseListItemResponse> expensesResponse = repository.findAllByOwnerIdAndArchivedIsTrue(ownerId)
                 .stream().map(expenseMapper::toArchivedListItem).toList();
 
         return new ArchivedExpenseListResponse(expensesResponse, expensesResponse.size());
     }
 
-    public ExpenseResponse addExpense(CreateExpenseRequest request) {
+    public ExpenseResponse addExpense(CreateExpenseRequest request, UUID ownerId) {
         Expense expense = expenseMapper.toEntity(request);
+        expense.setOwnerId(ownerId);
 
         UUID uuid = uuidGenerator.generate();
         expense.setUniqueId(uuid);
@@ -116,13 +117,14 @@ public class ExpenseService {
         }
     }
 
-    private List<ExpenseListItemResponse> findAllExpensesAndMapToListItem() {
-        return repository.findAllByArchivedIsNullOrArchivedIsFalse()
+    private List<ExpenseListItemResponse> findAllExpensesAndMapToListItem(UUID ownerId) {
+        return repository.findActiveByOwnerId(ownerId)
             .stream().map(expenseMapper::toListItem).toList();
     }
 
-    private Expense findExpenseOrThrow(UUID uniqueId) {
-        return repository.findByUniqueId(uniqueId)
+    // Someone else's expense looks exactly like a missing one (404), so ids can't be probed
+    private Expense findExpenseOrThrow(UUID uniqueId, UUID ownerId) {
+        return repository.findByUniqueIdAndOwnerId(uniqueId, ownerId)
                 .orElseThrow(()->new ResourceNotFoundException("EXPENSE_NOT_FOUND"));
     }
 

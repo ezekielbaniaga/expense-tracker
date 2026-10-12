@@ -14,11 +14,13 @@ import java.util.UUID;
 
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
-    List<Expense> findAllByArchivedIsNullOrArchivedIsFalse();
+    // Every lookup is scoped to the owner, so users only ever see their own expenses
+    @Query("SELECT e FROM Expense e WHERE e.ownerId = :ownerId AND (e.archived IS NULL OR e.archived = FALSE)")
+    List<Expense> findActiveByOwnerId(@Param("ownerId") UUID ownerId);
 
-    Optional<Expense> findByUniqueId(UUID uniqueId);
+    Optional<Expense> findByUniqueIdAndOwnerId(UUID uniqueId, UUID ownerId);
 
-    List<Expense> findAllByArchivedIsTrue();
+    List<Expense> findAllByOwnerIdAndArchivedIsTrue(UUID ownerId);
 
     // Using Native Query as JPQL does not support LIMIT in DELETE
     @Modifying

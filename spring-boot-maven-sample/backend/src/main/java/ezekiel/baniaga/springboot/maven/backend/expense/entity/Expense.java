@@ -23,6 +23,11 @@ public class Expense {
     private Long version;
 
     private UUID uniqueId;
+
+    // users.unique_id of the owner, as carried in the JWT
+    @Column(nullable = false, updatable = false)
+    private UUID ownerId;
+
     private String description;
     private BigDecimal amount;
 
