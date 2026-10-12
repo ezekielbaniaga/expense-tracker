@@ -134,7 +134,7 @@ public class ExpenseService {
     // Someone else's expense looks exactly like a missing one (404), so ids can't be probed
     private Expense findExpenseOrThrow(UUID uniqueId, UUID ownerId) {
         return repository.findByUniqueIdAndOwnerId(uniqueId, ownerId)
-                .orElseThrow(()->new ResourceNotFoundException("EXPENSE_NOT_FOUND"));
+                .orElseThrow(()->new ResourceNotFoundException("EXPENSE_NOT_FOUND", "Expense not found"));
     }
 
     @Transactional

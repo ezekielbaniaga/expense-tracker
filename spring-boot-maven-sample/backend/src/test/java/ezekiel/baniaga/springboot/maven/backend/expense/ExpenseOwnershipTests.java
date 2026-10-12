@@ -19,10 +19,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -128,6 +130,19 @@ class ExpenseOwnershipTests {
         mockMvc.perform(delete("/api/expense/" + id + "?version=1").header(HttpHeaders.AUTHORIZATION, alice))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.code").value("MODIFY_ARCHIVED"));
+    }
+
+    @Test
+    void notFoundIsJsonAndSameForMissingAndForeignExpense() throws Exception {
+        String foreign = createExpense(alice);
+
+        for (String id : List.of(foreign, UUID.randomUUID().toString())) {
+            mockMvc.perform(get("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, bob))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value("EXPENSE_NOT_FOUND"))
+                .andExpect(jsonPath("$.messages[0]").value("Expense not found"));
+        }
     }
 
     @Test
