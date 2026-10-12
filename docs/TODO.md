@@ -5,11 +5,14 @@ Findings from the project review on 2026-10-12. Paths are relative to
 
 ## Refresh tokens and sessions
 
-- [ ] **Refresh token reuse detection.** Presenting an already-rotated token just returns 401.
+- [x] **Refresh token reuse detection.** Presenting an already-rotated token just returns 401.
       It should be treated as theft and revoke the whole session, so a stolen token can't keep
-      a session alive. (`session/UserSessionService.java`, `rotateRefreshToken`)
+      a session alive. (`session/UserSessionService.java`, `rotateRefreshToken`) (5b27672)
 - [ ] **Concurrent refresh race.** `rotateRefreshToken` is not `@Transactional` and `UserSession`
       has no `@Version`, so two refreshes with the same token can both succeed (last write wins).
+      Careful: if the method becomes `@Transactional`, throwing `RefreshTokenReuseException` would
+      roll back the session revoke. Revoke in its own transaction (`REQUIRES_NEW`) or use
+      `noRollbackFor`, and keep `RefreshTokenReuseTests` passing.
 - [ ] **Lazy `User` used outside the service.** `rotateRefreshToken` returns a lazy `User` proxy that
       `AuthController` reads later. It only works because `spring.jpa.open-in-view` is on by default.
       Map to `CustomUserDetails` inside a transaction instead.
