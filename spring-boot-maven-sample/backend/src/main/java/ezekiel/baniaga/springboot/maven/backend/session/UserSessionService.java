@@ -1,9 +1,11 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
+import ezekiel.baniaga.springboot.maven.backend.session.entity.UsedRefreshToken;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 
@@ -11,10 +13,12 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserSessionService {
 
     private final UserRepository userRepository;
     private final UserSessionRepository repository;
+    private final UsedRefreshTokenRepository usedRefreshTokenRepository;
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHasher refreshTokenHasher;
 
@@ -57,12 +61,22 @@ public class UserSessionService {
         return rawRefreshToken;
     }
 
+    /**
+     * Swaps the refresh token for a new one. The old hash is remembered
+     * so presenting it again can be detected as token theft.
+     *
+        old token reused?
+           │
+           ├──▶ revoke the whole session (attacker AND real user are logged out)
+           │
+           └──▶ 401, real user must log in again
+     */
     public RefreshTokenResult rotateRefreshToken(String rawRefreshToken) {
 
         String oldHash = refreshTokenHasher.hash(rawRefreshToken);
 
         UserSession userSession = repository.findByRefreshTokenHash(oldHash)
-            .orElseThrow(()->new BadCredentialsException("Invalid Refresh Token"));
+            .orElseThrow(() -> handleUnknownToken(oldHash));
 
         if (userSession.getRevokedAt() != null) {
             throw new BadCredentialsException("Refresh token has been revoked");
@@ -74,9 +88,13 @@ public class UserSessionService {
 
         String newRawRefreshToken = refreshTokenGenerator.generate();
         String newHash = refreshTokenHasher.hash(newRawRefreshToken);
+        LocalDateTime now = LocalDateTime.now();
+
+        usedRefreshTokenRepository.save(
+            new UsedRefreshToken(oldHash, userSession, now));
 
         userSession.setRefreshTokenHash(newHash);
-        userSession.setLastUsedAt(LocalDateTime.now());
+        userSession.setLastUsedAt(now);
 
         repository.save(userSession);
 
@@ -84,6 +102,23 @@ public class UserSessionService {
             userSession.getUser(),
             newRawRefreshToken
         );
+    }
+
+    /**
+     * Token is not the current one of any session. If it was rotated out
+     * before, someone is replaying it, so revoke the session it belonged to.
+     */
+    private BadCredentialsException handleUnknownToken(String hash) {
+        return usedRefreshTokenRepository.findById(hash)
+            .<BadCredentialsException>map(used -> {
+                // Reading the id of a lazy proxy does not hit the database
+                Long sessionId = used.getSession().getId();
+                repository.revoke(sessionId, LocalDateTime.now());
+
+                log.warn("Refresh token reuse detected, revoked session {}", sessionId);
+                return new RefreshTokenReuseException("Refresh token reuse detected");
+            })
+            .orElseGet(() -> new BadCredentialsException("Invalid Refresh Token"));
     }
 
 }
