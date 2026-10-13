@@ -26,6 +26,9 @@ public class AdminBootstrapService {
     // BCrypt only hashes the first 72 bytes; BCryptPasswordEncoder rejects longer input
     private static final int MAX_PASSWORD_BYTES = 72;
 
+    // Spring's ${ADMIN_USERNAME:admin} default only covers an unset variable, not an empty one
+    private static final String DEFAULT_USERNAME = "admin";
+
     public void createInitialAdminUser() {
         if (adminBootstrapProperties.getPassword().isBlank()) {
             throw new IllegalStateException(
@@ -40,13 +43,18 @@ public class AdminBootstrapService {
             );
         }
 
-        if (userRepository.findByUsername(adminBootstrapProperties.getUsername()).isPresent()) {
+        String username = adminBootstrapProperties.getUsername();
+        if (username == null || username.isBlank()) {
+            username = DEFAULT_USERNAME;
+        }
+
+        if (userRepository.findByUsername(username).isPresent()) {
             return;
         }
 
         User admin = new User();
         admin.setUniqueId(uuidGenerator.generate());
-        admin.setUsername(adminBootstrapProperties.getUsername());
+        admin.setUsername(username);
         admin.setPassword(passwordEncoder.encode(adminBootstrapProperties.getPassword()));
         admin.setRole(Role.ADMIN);
         admin.setEnabled(true);

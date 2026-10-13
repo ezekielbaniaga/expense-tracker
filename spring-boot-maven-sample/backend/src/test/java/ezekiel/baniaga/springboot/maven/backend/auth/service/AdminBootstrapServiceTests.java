@@ -5,6 +5,9 @@ import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,9 +56,36 @@ class AdminBootstrapServiceTests {
         assertThat(passwordEncoder.matches(password, saved.getValue().getPassword())).isTrue();
     }
 
+    // Compose passes an empty ADMIN_USERNAME when .env doesn't set it, and Spring's
+    // ${ADMIN_USERNAME:admin} default doesn't apply to an empty value
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   ", "\t"})
+    void blankUsernameFallsBackToAdmin(String username) {
+        create(username, "change-me");
+
+        verify(userRepository).findByUsername("admin");
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(saved.capture());
+        assertThat(saved.getValue().getUsername()).isEqualTo("admin");
+    }
+
+    @Test
+    void nonBlankUsernameIsUsedAsGiven() {
+        create("alice", "change-me");
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(saved.capture());
+        assertThat(saved.getValue().getUsername()).isEqualTo("alice");
+    }
+
     private void create(String password) {
+        create("admin", password);
+    }
+
+    private void create(String username, String password) {
         AdminBootstrapProperties properties = new AdminBootstrapProperties();
-        properties.setUsername("admin");
+        properties.setUsername(username);
         properties.setPassword(password);
 
         new AdminBootstrapService(userRepository, passwordEncoder, properties, new DefaultUUIDGenerator())
