@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 @Service
@@ -22,10 +23,20 @@ public class AdminBootstrapService {
     private final AdminBootstrapProperties adminBootstrapProperties;
     private final DefaultUUIDGenerator uuidGenerator;
 
+    // BCrypt only hashes the first 72 bytes; BCryptPasswordEncoder rejects longer input
+    private static final int MAX_PASSWORD_BYTES = 72;
+
     public void createInitialAdminUser() {
         if (adminBootstrapProperties.getPassword().isBlank()) {
             throw new IllegalStateException(
                 "ADMIN_PASSWORD environment variable is required."
+            );
+        }
+
+        int bytes = adminBootstrapProperties.getPassword().getBytes(StandardCharsets.UTF_8).length;
+        if (bytes > MAX_PASSWORD_BYTES) {
+            throw new IllegalStateException(
+                "ADMIN_PASSWORD must be at most " + MAX_PASSWORD_BYTES + " bytes (got " + bytes + ")."
             );
         }
 
