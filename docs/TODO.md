@@ -10,12 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **A User-Agent over 500 characters makes `/auth/login` fail with 500.** `AuthController.login` passes the
-      raw header to `UserSessionService.createSession`, and `user_sessions.user_agent` is `VARCHAR(500)` (V7). The
-      insert throws `DataIntegrityViolationException`, which nothing handles, so a client with a long User-Agent
-      can never log in. Verified with a throwaway MockMvc test (600-char User-Agent: unhandled exception from the insert).
-      Careful: truncate in the service (the header is client-controlled metadata), don't reject the login, and
-      don't edit V7. Add a regression test in `LoginTests`.
 - [ ] **PUT/PATCH without `version` returns 409 "modified by another user" instead of 400.** `version` in
       `expense/dto/UpdateExpenseRequest.java` and `PatchExpenseDescriptionRequest.java` has only `@PositiveOrZero`,
       so null passes validation and `ExpenseService.checkVersion` reports a conflict that never happened. Verified
@@ -93,3 +87,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Docker Compose starts the app only after Postgres passes a `pg_isready` healthcheck (78d0beb)
 - [x] App container runs as an unprivileged `app` user instead of root (8a401f1)
 - [x] `/auth/login` is covered by tests: success, wrong password, unknown and disabled user, blank input (83182ea)
+- [x] Login truncates a User-Agent over 500 characters instead of failing with 500 (077aedb)
