@@ -129,6 +129,45 @@ class RefreshTokenReuseTests {
     }
 
     @Test
+    void expiredSessionCannotRefresh() throws Exception {
+        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
+        UserSession session = sessionFor(token);
+        session.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        userSessionRepository.save(session);
+
+        assertThatThrownBy(() -> userSessionService.rotateRefreshToken(token))
+            .isInstanceOf(BadCredentialsException.class)
+            .isNotInstanceOf(RefreshTokenReuseException.class)
+            .hasMessageContaining("expired");
+        refresh(token).andExpect(status().isUnauthorized());
+
+        // Not rotated and not revoked: expiry alone ends it, cleanup removes the row later
+        UserSession after = sessionFor(token);
+        assertThat(after.getRevokedAt()).isNull();
+        assertThat(after.getLastUsedAt()).isEqualTo(session.getLastUsedAt());
+    }
+
+    @Test
+    void revokedSessionCannotRefresh() throws Exception {
+        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
+        LocalDateTime revokedAt = LocalDateTime.now().minusMinutes(5);
+        UserSession session = sessionFor(token);
+        session.setRevokedAt(revokedAt);
+        userSessionRepository.save(session);
+
+        assertThatThrownBy(() -> userSessionService.rotateRefreshToken(token))
+            .isInstanceOf(BadCredentialsException.class)
+            .isNotInstanceOf(RefreshTokenReuseException.class)
+            .hasMessageContaining("revoked");
+        refresh(token).andExpect(status().isUnauthorized());
+
+        // Still findable by the same token (not rotated), first revocation time kept
+        UserSession after = sessionFor(token);
+        assertThat(after.getRevokedAt()).isEqualToIgnoringNanos(revokedAt);
+        assertThat(after.getLastUsedAt()).isEqualTo(session.getLastUsedAt());
+    }
+
+    @Test
     void concurrentRefreshesWithSameTokenLetOnlyOneSucceed() throws Exception {
         String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1");
         int threads = 8;

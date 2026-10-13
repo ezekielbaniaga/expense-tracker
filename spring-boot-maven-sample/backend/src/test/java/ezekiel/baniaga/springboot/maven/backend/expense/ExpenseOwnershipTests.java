@@ -133,6 +133,102 @@ class ExpenseOwnershipTests {
     }
 
     @Test
+    void updateReplacesFieldsAndBumpsVersion() throws Exception {
+        String id = createExpense(alice);
+
+        mockMvc.perform(put("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"version":0,"description":"Taxi","amount":20.75,"category":"TRANSPORT","date":"2026-10-02"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(id))
+            .andExpect(jsonPath("$.version").value(1))
+            .andExpect(jsonPath("$.description").value("Taxi"))
+            .andExpect(jsonPath("$.amount").value(20.75))
+            .andExpect(jsonPath("$.category").value("TRANSPORT"))
+            .andExpect(jsonPath("$.date").value("2026-10-02"));
+
+        // Persisted, not just echoed back
+        mockMvc.perform(get("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(jsonPath("$.version").value(1))
+            .andExpect(jsonPath("$.description").value("Taxi"));
+    }
+
+    @Test
+    void patchDescriptionChangesOnlyDescriptionAndBumpsVersion() throws Exception {
+        String id = createExpense(alice);
+
+        mockMvc.perform(patch("/api/expense/" + id + "/description").header(HttpHeaders.AUTHORIZATION, alice)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":0,\"description\":\"Team lunch\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.version").value(1))
+            .andExpect(jsonPath("$.description").value("Team lunch"))
+            .andExpect(jsonPath("$.amount").value(12.50))
+            .andExpect(jsonPath("$.category").value("FOOD"));
+
+        mockMvc.perform(get("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(jsonPath("$.version").value(1))
+            .andExpect(jsonPath("$.description").value("Team lunch"));
+    }
+
+    @Test
+    void updateAndPatchWithStaleVersionAreRejected() throws Exception {
+        String id = createExpense(alice);
+        mockMvc.perform(patch("/api/expense/" + id + "/description").header(HttpHeaders.AUTHORIZATION, alice)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":0,\"description\":\"First edit\"}"))
+            .andExpect(status().isOk());
+
+        // Version is now 1; a client still holding version 0 must not overwrite
+        mockMvc.perform(put("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"version":0,"description":"Stale","amount":1,"category":"FOOD","date":"2026-10-01"}
+                    """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
+
+        mockMvc.perform(patch("/api/expense/" + id + "/description").header(HttpHeaders.AUTHORIZATION, alice)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":0,\"description\":\"Stale\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("CONCURRENT_MODIFICATION"));
+
+        mockMvc.perform(get("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(jsonPath("$.version").value(1))
+            .andExpect(jsonPath("$.description").value("First edit"))
+            .andExpect(jsonPath("$.amount").value(12.50));
+    }
+
+    @Test
+    void updatingOrPatchingArchivedExpenseIsRejected() throws Exception {
+        String id = createExpense(alice);
+        mockMvc.perform(delete("/api/expense/" + id + "?version=0").header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(status().isNoContent());
+
+        // Archiving bumped the version to 1, so the version check passes and the archived check answers
+        mockMvc.perform(put("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"version":1,"description":"Revived","amount":1,"category":"FOOD","date":"2026-10-01"}
+                    """))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("MODIFY_ARCHIVED"));
+
+        mockMvc.perform(patch("/api/expense/" + id + "/description").header(HttpHeaders.AUTHORIZATION, alice)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":1,\"description\":\"Revived\"}"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("MODIFY_ARCHIVED"));
+
+        mockMvc.perform(get("/api/expense/archived").header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(jsonPath("$.expenses", hasSize(1)))
+            .andExpect(jsonPath("$.expenses[0].description").value("Lunch"));
+    }
+
+    @Test
     void deletedExpenseIsNotFoundById() throws Exception {
         String id = createExpense(alice);
         mockMvc.perform(delete("/api/expense/" + id + "?version=0").header(HttpHeaders.AUTHORIZATION, alice))
