@@ -572,27 +572,43 @@ Refresh A
 Server
    │
    ▼
-hash(A) no longer exists
+hash(A) is not the current token of any session
    │
    ▼
-401 Unauthorized
+hash(A) found in used_refresh_tokens
+   │
+   ▼
+Refresh token reuse detected
 ```
 
-This can eventually become **refresh-token reuse detection**.
+Every time a token is rotated, the hash of the old token is saved in `used_refresh_tokens`, linked to its session.
 
-A previously valid token being presented again can indicate that a token was stolen.
-
-The next security enhancement is therefore:
+A previously valid token being presented again can indicate that a token was stolen, so the server:
 
 ```text
-Refresh Token Reuse Detection
+Refresh Token Reuse Detected
             │
             ▼
 Possible Token Theft
             │
             ▼
-Revoke Session / Token Family
+Revoke the Session
+            │
+            ▼
+401 Unauthorized
 ```
+
+The whole session is revoked, so both the attacker and the legitimate client are logged out and the real user must log in again.
+A token the server has never issued is simply rejected with `401 Unauthorized`.
+
+Other details of `UserSessionService.rotateRefreshToken`:
+
+- The session row is locked (`findForUpdateByRefreshTokenHash`) inside one transaction, so two concurrent refreshes with the same token cannot both succeed. The second one waits, then sees the token as already used.
+- The session revoke is not rolled back when the reuse is rejected (`noRollbackFor`).
+- A revoked or expired session is rejected with `401`.
+- If the user has been disabled, the session is revoked and the refresh is rejected, so re-enabling the account does not bring the session back.
+- `POST /auth/logout` revokes the session of the given refresh token. It always returns `204`, even for unknown tokens, and the access token stays valid until it expires.
+- A nightly job (`UserSessionCleanup`, from 3AM) deletes sessions that expired or were revoked more than 7 days ago, together with their used token hashes. Active sessions are never deleted.
 
 ---
 
@@ -864,19 +880,28 @@ auth/
 │
 ├── config/
 │   ├── SecurityConfig
-│   ├── AdminBootstrapConfiguration
+│   └── PasswordConfig
+│
+├── props/
+│   ├── JWTProperties
 │   └── AdminBootstrapProperties
+│
+├── mapper/
+│   └── CustomUserDetailsMapper
 │
 └── security/
     ├── JWTAuthenticationFilter
     ├── JWTService
     ├── JWTPrincipal
     ├── CustomUserDetails
-    ├── CustomUserDetailsMapper
-    ├── DatabaseUserDetailsService
-    ├── RefreshTokenGenerator
-    ├── RefreshTokenHasher
-    └── UserSessionService
+    └── DatabaseUserDetailsService
+
+session/
+├── UserSessionService
+├── RefreshTokenGenerator
+├── RefreshTokenHasher
+└── job/
+    └── UserSessionCleanup
 ```
 
 ---
