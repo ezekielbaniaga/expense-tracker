@@ -27,6 +27,10 @@ public class ExpenseService {
 
     public ExpenseResponse getExpenseByUniqueId(UUID uniqueId, UUID ownerId) {
         Expense expense = findExpenseOrThrow(uniqueId, ownerId);
+        // Only the read hides archived rows; PUT/PATCH/DELETE need to find them to answer 409 MODIFY_ARCHIVED
+        if (Boolean.TRUE.equals(expense.getArchived())) {
+            throw new ResourceNotFoundException("EXPENSE_NOT_FOUND", "Expense not found");
+        }
         return expenseMapper.toResponse(expense);
     }
 

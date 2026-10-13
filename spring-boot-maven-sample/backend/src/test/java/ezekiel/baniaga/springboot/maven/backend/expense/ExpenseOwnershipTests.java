@@ -133,6 +133,17 @@ class ExpenseOwnershipTests {
     }
 
     @Test
+    void deletedExpenseIsNotFoundById() throws Exception {
+        String id = createExpense(alice);
+        mockMvc.perform(delete("/api/expense/" + id + "?version=0").header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, alice))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("EXPENSE_NOT_FOUND"));
+    }
+
+    @Test
     void notFoundIsJsonAndSameForMissingAndForeignExpense() throws Exception {
         String foreign = createExpense(alice);
 
