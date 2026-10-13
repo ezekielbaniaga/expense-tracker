@@ -10,12 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **`ADMIN_PASSWORD` longer than 72 bytes crashes startup with an unclear error.**
-      `auth/service/AdminBootstrapService.java` passes it to `BCryptPasswordEncoder.encode`, which throws
-      `IllegalArgumentException: password cannot be more than 72 bytes`. Verified with a throwaway test calling
-      `passwordEncoder.encode` on 100 bytes (login with a long password correctly returns 401). Check the length
-      next to the blank check with a message naming `ADMIN_PASSWORD`; the planned user endpoints
-      (`docs/user-endpoints-proposal.md`) will need the same 72-byte limit on passwords.
 - [ ] **An empty `ADMIN_USERNAME` creates an admin with a blank username nobody can log in as.** Compose passes
       `ADMIN_USERNAME: ${ADMIN_USERNAME}`, which becomes an empty string when `.env` doesn't set it, and Spring's
       `${ADMIN_USERNAME:admin}` default only applies when the variable is unset, not empty. `AdminBootstrapService`
@@ -73,3 +67,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] PUT/PATCH without `version` returned 409 instead of 400; `version` is now `@NotNull` (758dbb9)
 - [x] GET /api/expense/{id} returns 404 for deleted (archived) expenses (733c734)
 - [x] POST and /categories now accept X-API-Version 1.1 (baseline `1.0+`); only 1.0 and 1.1 are supported (a9661dc)
+- [x] Startup rejects an `ADMIN_PASSWORD` over 72 bytes (UTF-8) with a clear error instead of a BCrypt crash (1c50f0e)
