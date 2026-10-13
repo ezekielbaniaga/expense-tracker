@@ -10,10 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **PUT/PATCH without `version` returns 409 "modified by another user" instead of 400.** `version` in
-      `expense/dto/UpdateExpenseRequest.java` and `PatchExpenseDescriptionRequest.java` has only `@PositiveOrZero`,
-      so null passes validation and `ExpenseService.checkVersion` reports a conflict that never happened. Verified
-      with a throwaway MockMvc test (both endpoints: 409 `CONCURRENT_MODIFICATION`). Add `@NotNull`.
 - [ ] **Deleted (archived) expenses still come back from `GET /api/expense/{id}` with 200.**
       `ExpenseService.getExpenseByUniqueId` uses `findByUniqueIdAndOwnerId`, which ignores `archived`, and
       `ExpenseResponse` has no archived field, so after a `DELETE` returns 204 the client can't tell the expense
@@ -88,3 +84,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] App container runs as an unprivileged `app` user instead of root (8a401f1)
 - [x] `/auth/login` is covered by tests: success, wrong password, unknown and disabled user, blank input (83182ea)
 - [x] Login truncates a User-Agent over 500 characters instead of failing with 500 (077aedb)
+- [x] PUT/PATCH without `version` returned 409 instead of 400; `version` is now `@NotNull` (758dbb9)
