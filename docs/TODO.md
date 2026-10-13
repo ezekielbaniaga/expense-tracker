@@ -10,12 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **An empty `ADMIN_USERNAME` creates an admin with a blank username nobody can log in as.** Compose passes
-      `ADMIN_USERNAME: ${ADMIN_USERNAME}`, which becomes an empty string when `.env` doesn't set it, and Spring's
-      `${ADMIN_USERNAME:admin}` default only applies when the variable is unset, not empty. `AdminBootstrapService`
-      checks the password for blank but not the username, and `LoginRequest` rejects a blank username. Verified
-      that `${ADMIN_USERNAME:admin}` resolves to `""` when the variable is empty. Fix with `${ADMIN_USERNAME:-admin}`
-      in `docker_compose/docker-compose.yml` and/or treat a blank username as `admin` (or fail) in the service.
 - [ ] **README describes reuse detection as future work and lists files that don't exist.** `README.md` section 11
       ends with "This can eventually become refresh-token reuse detection ... The next security enhancement is
       therefore", but reuse detection revokes the session today (see Done). The "Security components" tree lists
@@ -68,3 +62,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] GET /api/expense/{id} returns 404 for deleted (archived) expenses (733c734)
 - [x] POST and /categories now accept X-API-Version 1.1 (baseline `1.0+`); only 1.0 and 1.1 are supported (a9661dc)
 - [x] Startup rejects an `ADMIN_PASSWORD` over 72 bytes (UTF-8) with a clear error instead of a BCrypt crash (1c50f0e)
+- [x] An empty `ADMIN_USERNAME` now falls back to `admin` in Compose and in `AdminBootstrapService` (75ef8ea)
