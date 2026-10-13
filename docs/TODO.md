@@ -8,13 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Open
-
-- [ ] **Session cleanup scans the whole `user_sessions` table every minute from 3:00 to 3:59.**
-      `UserSessionRepository.deleteEndedBefore` filters on `expires_at` and `revoked_at`, which have no index
-      (V7 only indexes `refresh_token_hash`). Harmless at today's size, but every login adds a row. Add the indexes in
-      a new migration (V10), not in V7.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -55,3 +48,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] An empty `ADMIN_USERNAME` now falls back to `admin` in Compose and in `AdminBootstrapService` (75ef8ea)
 - [x] README described reuse detection as future work and listed files that don't exist (e937c41)
 - [x] Tests cover PUT/PATCH expense success, stale-version and archived 409s, and refreshing an expired or revoked session (659f519)
+- [x] Session cleanup uses indexes on `expires_at` and `revoked_at` (V10) instead of scanning `user_sessions` (ed065cd)
