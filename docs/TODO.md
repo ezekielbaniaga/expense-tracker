@@ -10,13 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **Clients on `X-API-Version: 1.1` can only list expenses; create and categories return 400.**
-      `expense/ExpenseController.java` maps `POST` and `/categories` with `version = "1.0"`, an exact match, so the
-      same header a 1.1 client uses for `GET /api/expense` is rejected elsewhere. `config/WebMVCConfig.java` also
-      declares 1.2, 2.0, 2.1 and 2.2 as supported although no endpoint serves them. Verified with a throwaway
-      MockMvc test (POST and GET /categories with 1.1: 400). Careful: use a baseline (`version = "1.0+"`) for
-      endpoints that didn't change in 1.1, but keep the two `GET /api/expense` mappings exact (1.0 and 1.1) or the
-      1.0 one would swallow 1.1 requests. Test both versions on every endpoint.
 - [ ] **`ADMIN_PASSWORD` longer than 72 bytes crashes startup with an unclear error.**
       `auth/service/AdminBootstrapService.java` passes it to `BCryptPasswordEncoder.encode`, which throws
       `IllegalArgumentException: password cannot be more than 72 bytes`. Verified with a throwaway test calling
@@ -79,3 +72,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Login truncates a User-Agent over 500 characters instead of failing with 500 (077aedb)
 - [x] PUT/PATCH without `version` returned 409 instead of 400; `version` is now `@NotNull` (758dbb9)
 - [x] GET /api/expense/{id} returns 404 for deleted (archived) expenses (733c734)
+- [x] POST and /categories now accept X-API-Version 1.1 (baseline `1.0+`); only 1.0 and 1.1 are supported (a9661dc)
