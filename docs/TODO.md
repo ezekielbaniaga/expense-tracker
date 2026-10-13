@@ -1,12 +1,65 @@
 # TODO
 
-Last investigation: 2026-10-13 00:01 — 11 new findings
+Last investigation: 2026-10-13 17:01 — 9 new findings
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `spring-boot-maven-sample/backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
 
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
+
+## Open
+
+- [ ] **A User-Agent over 500 characters makes `/auth/login` fail with 500.** `AuthController.login` passes the
+      raw header to `UserSessionService.createSession`, and `user_sessions.user_agent` is `VARCHAR(500)` (V7). The
+      insert throws `DataIntegrityViolationException`, which nothing handles, so a client with a long User-Agent
+      can never log in. Verified with a throwaway MockMvc test (600-char User-Agent: unhandled exception from the insert).
+      Careful: truncate in the service (the header is client-controlled metadata), don't reject the login, and
+      don't edit V7. Add a regression test in `LoginTests`.
+- [ ] **PUT/PATCH without `version` returns 409 "modified by another user" instead of 400.** `version` in
+      `expense/dto/UpdateExpenseRequest.java` and `PatchExpenseDescriptionRequest.java` has only `@PositiveOrZero`,
+      so null passes validation and `ExpenseService.checkVersion` reports a conflict that never happened. Verified
+      with a throwaway MockMvc test (both endpoints: 409 `CONCURRENT_MODIFICATION`). Add `@NotNull`.
+- [ ] **Deleted (archived) expenses still come back from `GET /api/expense/{id}` with 200.**
+      `ExpenseService.getExpenseByUniqueId` uses `findByUniqueIdAndOwnerId`, which ignores `archived`, and
+      `ExpenseResponse` has no archived field, so after a `DELETE` returns 204 the client can't tell the expense
+      was deleted. Verified with a throwaway MockMvc test (DELETE 204, then GET 200 with `version: 1`).
+      Careful: PUT/PATCH/DELETE also use `findExpenseOrThrow` and rely on it finding archived rows to return
+      409 `MODIFY_ARCHIVED` (covered by `deletingArchivedExpenseIsRejected`). Either filter only in the GET, or
+      add an `archived`/`archivedAt` field to the response; don't change the shared lookup.
+- [ ] **Clients on `X-API-Version: 1.1` can only list expenses; create and categories return 400.**
+      `expense/ExpenseController.java` maps `POST` and `/categories` with `version = "1.0"`, an exact match, so the
+      same header a 1.1 client uses for `GET /api/expense` is rejected elsewhere. `config/WebMVCConfig.java` also
+      declares 1.2, 2.0, 2.1 and 2.2 as supported although no endpoint serves them. Verified with a throwaway
+      MockMvc test (POST and GET /categories with 1.1: 400). Careful: use a baseline (`version = "1.0+"`) for
+      endpoints that didn't change in 1.1, but keep the two `GET /api/expense` mappings exact (1.0 and 1.1) or the
+      1.0 one would swallow 1.1 requests. Test both versions on every endpoint.
+- [ ] **`ADMIN_PASSWORD` longer than 72 bytes crashes startup with an unclear error.**
+      `auth/service/AdminBootstrapService.java` passes it to `BCryptPasswordEncoder.encode`, which throws
+      `IllegalArgumentException: password cannot be more than 72 bytes`. Verified with a throwaway test calling
+      `passwordEncoder.encode` on 100 bytes (login with a long password correctly returns 401). Check the length
+      next to the blank check with a message naming `ADMIN_PASSWORD`; the planned user endpoints
+      (`docs/user-endpoints-proposal.md`) will need the same 72-byte limit on passwords.
+- [ ] **An empty `ADMIN_USERNAME` creates an admin with a blank username nobody can log in as.** Compose passes
+      `ADMIN_USERNAME: ${ADMIN_USERNAME}`, which becomes an empty string when `.env` doesn't set it, and Spring's
+      `${ADMIN_USERNAME:admin}` default only applies when the variable is unset, not empty. `AdminBootstrapService`
+      checks the password for blank but not the username, and `LoginRequest` rejects a blank username. Verified
+      that `${ADMIN_USERNAME:admin}` resolves to `""` when the variable is empty. Fix with `${ADMIN_USERNAME:-admin}`
+      in `docker_compose/docker-compose.yml` and/or treat a blank username as `admin` (or fail) in the service.
+- [ ] **README describes reuse detection as future work and lists files that don't exist.** `README.md` section 11
+      ends with "This can eventually become refresh-token reuse detection ... The next security enhancement is
+      therefore", but reuse detection revokes the session today (see Done). The "Security components" tree lists
+      `AdminBootstrapConfiguration` (doesn't exist) and puts `AdminBootstrapProperties`, `CustomUserDetailsMapper`,
+      `RefreshTokenGenerator`, `RefreshTokenHasher` and `UserSessionService` under `auth/config` or `auth/security`;
+      they live in `auth/props`, `auth/mapper` and `session/`.
+- [ ] **Missing tests for expense update/patch and for refreshing an expired or revoked session.** No test covers
+      `PUT`/`PATCH /api/expense/{id}` success, stale-version 409 or archived 409, or the `revokedAt`/`expiresAt`
+      branches of `UserSessionService.rotateRefreshToken` (logout tests reach the revoked branch only through the
+      endpoint). Add them to `ExpenseOwnershipTests`/`ExpenseValidationTests` and `RefreshTokenReuseTests`.
+- [ ] **Session cleanup scans the whole `user_sessions` table every minute from 3:00 to 3:59.**
+      `UserSessionRepository.deleteEndedBefore` filters on `expires_at` and `revoked_at`, which have no index
+      (V7 only indexes `refresh_token_hash`). Harmless at today's size, but every login adds a row. Add the indexes in
+      a new migration (V10), not in V7.
 
 ## Needs you
 
