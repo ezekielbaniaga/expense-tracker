@@ -34,12 +34,12 @@ public class ExpenseController {
        return service.getArchivedExpenses(user.getUniqueId());
     }
 
-    @PostMapping(version = "1.0")
+    @PostMapping(version = "1.0+")
     public ExpenseResponse createExpense(@Valid @RequestBody CreateExpenseRequest request, @AuthenticationPrincipal CustomUserDetails user) {
         return service.addExpense(request, user.getUniqueId());
     }
 
-    @GetMapping(value = "/categories", version = "1.0")
+    @GetMapping(value = "/categories", version = "1.0+")
     public AllCategoriesResponse getSupportedCategories() {
         return service.getAllCategories();
     }
