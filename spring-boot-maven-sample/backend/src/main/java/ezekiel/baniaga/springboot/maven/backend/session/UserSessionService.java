@@ -19,6 +19,9 @@ import java.time.LocalDateTime;
 @Slf4j
 public class UserSessionService {
 
+    // Matches user_sessions.user_agent VARCHAR(500) (V7)
+    private static final int MAX_USER_AGENT_LENGTH = 500;
+
     private final UserRepository userRepository;
     private final UserSessionRepository repository;
     private final UsedRefreshTokenRepository usedRefreshTokenRepository;
@@ -54,7 +57,7 @@ public class UserSessionService {
         UserSession session = new UserSession();
         session.setUser(user);
         session.setRefreshTokenHash(hashedRefreshToken);
-        session.setUserAgent(userAgent);
+        session.setUserAgent(truncateUserAgent(userAgent));
         session.setIpAddress(ipAddress);
         session.setCreatedAt(now);
         session.setLastUsedAt(now);
@@ -161,4 +164,14 @@ public class UserSessionService {
             .orElseGet(() -> new BadCredentialsException("Invalid Refresh Token"));
     }
 
+    /**
+     * The User-Agent header is client-controlled metadata, so an overlong
+     * value is cut to fit the column instead of failing the login.
+     */
+    private static String truncateUserAgent(String userAgent) {
+        if (userAgent == null || userAgent.length() <= MAX_USER_AGENT_LENGTH) {
+            return userAgent;
+        }
+        return userAgent.substring(0, MAX_USER_AGENT_LENGTH);
+    }
 }

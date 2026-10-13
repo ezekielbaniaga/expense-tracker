@@ -108,9 +108,28 @@ class LoginTests {
             .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
+    @Test
+    void overlongUserAgentIsTruncatedNotRejected() throws Exception {
+        // user_sessions.user_agent is VARCHAR(500); the header is client-controlled
+        String longUserAgent = "x".repeat(600);
+
+        String body = login(user.getUsername(), PASSWORD, longUserAgent)
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        String refreshToken = JsonPath.read(body, "$.refreshToken");
+        UserSession session = userSessionRepository
+            .findByRefreshTokenHash(refreshTokenHasher.hash(refreshToken)).orElseThrow();
+        assertThat(session.getUserAgent()).isEqualTo(longUserAgent.substring(0, 500));
+    }
+
     private ResultActions login(String username, String password) throws Exception {
+        return login(username, password, "LoginTests");
+    }
+
+    private ResultActions login(String username, String password, String userAgent) throws Exception {
         return mockMvc.perform(post("/auth/login")
-            .header(HttpHeaders.USER_AGENT, "LoginTests")
+            .header(HttpHeaders.USER_AGENT, userAgent)
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}"));
     }
