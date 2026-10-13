@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 
 public record PatchExpenseDescriptionRequest (
 
+    @NotNull
     @PositiveOrZero
     Long version,
 

@@ -7,6 +7,7 @@ import java.time.LocalDate;
 
 public record UpdateExpenseRequest (
 
+    @NotNull
     @PositiveOrZero
     Long version,
 

@@ -96,6 +96,30 @@ class ExpenseValidationTests {
     }
 
     @Test
+    void updateAndPatchWithoutVersionAreRejected() throws Exception {
+        String body = mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"Lunch\",\"amount\":12.50,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+
+        mockMvc.perform(put("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"Lunch\",\"amount\":12.50,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.messages", hasItem("version: must not be null")));
+
+        mockMvc.perform(patch("/api/expense/" + id + "/description").header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"Dinner\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+            .andExpect(jsonPath("$.messages", hasItem("version: must not be null")));
+    }
+
+    @Test
     void amountMustFitTheColumn() throws Exception {
         // NUMERIC(10,2): at most 8 digits before the point and 2 after
         createWithAmount("123456789.00").andExpect(status().isBadRequest())
