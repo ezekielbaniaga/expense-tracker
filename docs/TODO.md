@@ -10,13 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **Deleted (archived) expenses still come back from `GET /api/expense/{id}` with 200.**
-      `ExpenseService.getExpenseByUniqueId` uses `findByUniqueIdAndOwnerId`, which ignores `archived`, and
-      `ExpenseResponse` has no archived field, so after a `DELETE` returns 204 the client can't tell the expense
-      was deleted. Verified with a throwaway MockMvc test (DELETE 204, then GET 200 with `version: 1`).
-      Careful: PUT/PATCH/DELETE also use `findExpenseOrThrow` and rely on it finding archived rows to return
-      409 `MODIFY_ARCHIVED` (covered by `deletingArchivedExpenseIsRejected`). Either filter only in the GET, or
-      add an `archived`/`archivedAt` field to the response; don't change the shared lookup.
 - [ ] **Clients on `X-API-Version: 1.1` can only list expenses; create and categories return 400.**
       `expense/ExpenseController.java` maps `POST` and `/categories` with `version = "1.0"`, an exact match, so the
       same header a 1.1 client uses for `GET /api/expense` is rejected elsewhere. `config/WebMVCConfig.java` also
@@ -85,3 +78,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] `/auth/login` is covered by tests: success, wrong password, unknown and disabled user, blank input (83182ea)
 - [x] Login truncates a User-Agent over 500 characters instead of failing with 500 (077aedb)
 - [x] PUT/PATCH without `version` returned 409 instead of 400; `version` is now `@NotNull` (758dbb9)
+- [x] GET /api/expense/{id} returns 404 for deleted (archived) expenses (733c734)
