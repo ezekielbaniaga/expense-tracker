@@ -10,10 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **Missing tests for expense update/patch and for refreshing an expired or revoked session.** No test covers
-      `PUT`/`PATCH /api/expense/{id}` success, stale-version 409 or archived 409, or the `revokedAt`/`expiresAt`
-      branches of `UserSessionService.rotateRefreshToken` (logout tests reach the revoked branch only through the
-      endpoint). Add them to `ExpenseOwnershipTests`/`ExpenseValidationTests` and `RefreshTokenReuseTests`.
 - [ ] **Session cleanup scans the whole `user_sessions` table every minute from 3:00 to 3:59.**
       `UserSessionRepository.deleteEndedBefore` filters on `expires_at` and `revoked_at`, which have no index
       (V7 only indexes `refresh_token_hash`). Harmless at today's size, but every login adds a row. Add the indexes in
@@ -58,3 +54,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Startup rejects an `ADMIN_PASSWORD` over 72 bytes (UTF-8) with a clear error instead of a BCrypt crash (1c50f0e)
 - [x] An empty `ADMIN_USERNAME` now falls back to `admin` in Compose and in `AdminBootstrapService` (75ef8ea)
 - [x] README described reuse detection as future work and listed files that don't exist (e937c41)
+- [x] Tests cover PUT/PATCH expense success, stale-version and archived 409s, and refreshing an expired or revoked session (659f519)
