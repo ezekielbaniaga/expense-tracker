@@ -10,12 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Open
 
-- [ ] **README describes reuse detection as future work and lists files that don't exist.** `README.md` section 11
-      ends with "This can eventually become refresh-token reuse detection ... The next security enhancement is
-      therefore", but reuse detection revokes the session today (see Done). The "Security components" tree lists
-      `AdminBootstrapConfiguration` (doesn't exist) and puts `AdminBootstrapProperties`, `CustomUserDetailsMapper`,
-      `RefreshTokenGenerator`, `RefreshTokenHasher` and `UserSessionService` under `auth/config` or `auth/security`;
-      they live in `auth/props`, `auth/mapper` and `session/`.
 - [ ] **Missing tests for expense update/patch and for refreshing an expired or revoked session.** No test covers
       `PUT`/`PATCH /api/expense/{id}` success, stale-version 409 or archived 409, or the `revokedAt`/`expiresAt`
       branches of `UserSessionService.rotateRefreshToken` (logout tests reach the revoked branch only through the
@@ -63,3 +57,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] POST and /categories now accept X-API-Version 1.1 (baseline `1.0+`); only 1.0 and 1.1 are supported (a9661dc)
 - [x] Startup rejects an `ADMIN_PASSWORD` over 72 bytes (UTF-8) with a clear error instead of a BCrypt crash (1c50f0e)
 - [x] An empty `ADMIN_USERNAME` now falls back to `admin` in Compose and in `AdminBootstrapService` (75ef8ea)
+- [x] README described reuse detection as future work and listed files that don't exist (e937c41)
