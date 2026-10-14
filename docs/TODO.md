@@ -1,12 +1,61 @@
 # TODO
 
-Last investigation: 2026-10-13 17:01 — 9 new findings
+Last investigation: 2026-10-15 00:51 — 7 new findings
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `spring-boot-maven-sample/backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
 
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
+
+## Auth
+
+- [ ] **A demoted or disabled admin can reinstate themselves.** `user/UserService.java` `updateUser` trusts the
+      role in the caller's access token and only blocks *disabling or demoting* yourself. After admin A demotes
+      or disables admin B, B's access token still says `ADMIN` for up to 15 minutes, and B can
+      `PATCH /users/{B}` with `role: ADMIN` or `enabled: true` and get 200. Verified against a real server:
+      both the demotion and the disabling were undone by B's old token, so the revocation does nothing.
+      Load the actor in `updateUser` (the enabled admins are already locked there) and refuse with 403 unless
+      they are still an enabled `ADMIN`; add a test for both cases.
+- [ ] **Usernames are not normalized or restricted.** `auth/dto/RegisterRequest.java` only has `@NotBlank` and
+      `@Size(max = 100)`, so `alice `, ` alice`, a lone zero-width space (`\u200b`) and names containing `\n`
+      all register as separate accounts (verified: all 201 next to an existing `alice`). That allows
+      lookalike accounts in the admin list and log lines broken by newlines. Trim the name, and reject
+      control and format characters (or allow only a set like `[A-Za-z0-9._-]`), in register and in login so
+      both match.
+- [ ] **Admin bootstrap accepts any existing user with that name.** `auth/service/AdminBootstrapService.java`
+      returns as soon as `findByUsername(ADMIN_USERNAME)` finds a row, without checking its role. If
+      `ADMIN_USERNAME` is changed to a name a `USER` has registered, startup logs nothing, no admin is
+      created and `ADMIN_PASSWORD` does not work. The runner is an `ApplicationRunner`, which runs after
+      Tomcat already accepts requests, so on a first start `/auth/register` can even claim the name first.
+      Log a warning (or fail) when the existing user is not an enabled `ADMIN`.
+
+## Errors and validation
+
+- [ ] **400s raised by Spring MVC are not `ErrorResponse`.** `common/GlobalExceptionHandler.java` has no
+      handler for `MethodArgumentTypeMismatchException`, `HttpMessageNotReadableException` or
+      `MissingServletRequestParameterException`, so a malformed UUID (`GET /users/not-a-uuid`), an unknown
+      enum (`PATCH /users/{id}` with `"role":"SUPER"`), `?page=abc`, malformed JSON or a missing `?version=`
+      return Spring Boot's `{timestamp, status, error, path}` body instead. Verified against a real server
+      for the UUID, enum and `page` cases.
+      README section 17 promises the same body for every error.
+
+## Database
+
+- [ ] **`expense.id` is still `SERIAL` (32-bit).** `V1__initial_tables.sql` created it as `SERIAL`, while
+      `expense/entity/Expense.java` maps it as `Long`. V12 widened `users.id` for the same mismatch, and
+      expenses grow much faster than users. Add a migration that widens `expense.id` and `expense_id_seq` to
+      `BIGINT` (no foreign key points at it).
+
+## Docs
+
+- [ ] **README describes the wrong error body.** README section 17 says errors are
+      `{"code": "...", "message": ...}`, but `common/ErrorResponse.java` returns `messages` (an array) and a
+      `timestamp` (verified in responses). Fix the README line.
+- [ ] **`AdminUserController` Javadoc misstates when a role change applies.** `user/AdminUserController.java`
+      says on `update` that a role change applies at the user's next login. A promotion revokes nothing and
+      applies at the next `/auth/refresh` (which reads the role from the database); only demotion and
+      disabling revoke sessions and force a login. README section 17 already describes it correctly.
 
 ## Needs you
 
