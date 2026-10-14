@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,6 +20,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // Same configuration as ExpenseOwnershipTests, so both share one Spring context and container
@@ -74,6 +77,27 @@ class RoleEnforcementTests {
             mockMvc.perform(get(path))
                 .andExpect(status().isUnauthorized());
         }
+    }
+
+    // Security rejections must use the same {code, messages, timestamp} body as every other error
+    @Test
+    void forbiddenBodyIsErrorResponse() throws Exception {
+        mockMvc.perform(get("/users").header(HttpHeaders.AUTHORIZATION, user))
+            .andExpect(status().isForbidden())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"))
+            .andExpect(jsonPath("$.messages[0]").value("Access Denied"))
+            .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void unauthorizedBodyIsErrorResponse() throws Exception {
+        mockMvc.perform(get("/users/me"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+            .andExpect(jsonPath("$.messages[0]").value("Authentication Required"))
+            .andExpect(jsonPath("$.timestamp").exists());
     }
 
     private String bearer(User u) {

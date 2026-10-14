@@ -1,11 +1,13 @@
 package ezekiel.baniaga.springboot.maven.backend.auth.config;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTAuthenticationFilter;
+import ezekiel.baniaga.springboot.maven.backend.common.ErrorResponse;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -15,6 +17,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
@@ -23,6 +29,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JWTAuthenticationFilter jwtAuthenticationFilter;
+    private final JsonMapper jsonMapper;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -44,16 +51,23 @@ public class SecurityConfig {
                     .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(exception -> exception
-                .authenticationEntryPoint((request, response, authException) -> {
-                   response.sendError(
-                       HttpServletResponse.SC_UNAUTHORIZED, "Authentication Required"
-                   );
-                }).accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.sendError(
-                        HttpServletResponse.SC_FORBIDDEN, "Access Denied"
-                    );
-                }))
+                .authenticationEntryPoint((request, response, authException) ->
+                    writeError(response, HttpServletResponse.SC_UNAUTHORIZED,
+                        "AUTHENTICATION_REQUIRED", "Authentication Required"))
+                .accessDeniedHandler((request, response, accessDeniedException) ->
+                    writeError(response, HttpServletResponse.SC_FORBIDDEN,
+                        "ACCESS_DENIED", "Access Denied")))
             .build();
+    }
+
+    // Written directly rather than via sendError, which would render Spring's default
+    // error page instead of the ErrorResponse body every other error uses
+    private void writeError(HttpServletResponse response, int status, String code, String message)
+            throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        jsonMapper.writeValue(response.getOutputStream(), new ErrorResponse(code, message));
     }
 
     @Bean
