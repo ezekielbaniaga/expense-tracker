@@ -118,6 +118,95 @@ class RegisterTests {
             .andExpect(jsonPath("$.refreshToken").exists());
     }
 
+    @Test
+    void paddedUsernameIsStoredTrimmed() throws Exception {
+        String username = uniqueName("Hank");
+
+        register("  " + username + "\t", PASSWORD)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.username").value(username));
+
+        assertThat(userRepository.findByUsername(username)).isPresent();
+    }
+
+    @Test
+    void paddedCopyOfAnExistingUsernameIs409() throws Exception {
+        String username = uniqueName("Ivy");
+        register(username, PASSWORD).andExpect(status().isCreated());
+
+        register(username + " ", PASSWORD)
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("USERNAME_TAKEN"));
+        register(" " + username, PASSWORD)
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("USERNAME_TAKEN"));
+    }
+
+    @Test
+    void zeroWidthSpaceUsernameIs400() throws Exception {
+        register("\u200b", PASSWORD)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_USERNAME"));
+
+        register(uniqueName("ja\u200bck"), PASSWORD)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_USERNAME"));
+    }
+
+    @Test
+    void usernameWithNewlineIs400() throws Exception {
+        register(uniqueName("kate") + "\nadmin", PASSWORD)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_USERNAME"));
+    }
+
+    @Test
+    void usernameWithInnerSpaceOrOtherSymbolsIs400() throws Exception {
+        for (String name : new String[] {"liam " + uniqueName("x"), uniqueName("mia@"), uniqueName("n\u00e9d")}) {
+            register(name, PASSWORD)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_USERNAME"));
+        }
+    }
+
+    @Test
+    void lettersDigitsDotUnderscoreAndHyphenAreAllowed() throws Exception {
+        String username = "Olive.Smith_" + UUID.randomUUID().toString().substring(0, 8) + "-99";
+
+        register(username, PASSWORD)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.username").value(username));
+    }
+
+    @Test
+    void loginWithSurroundingWhitespaceMatchesTheAccount() throws Exception {
+        String username = uniqueName("Paul");
+        register(username, PASSWORD).andExpect(status().isCreated());
+
+        mockMvc.perform(post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("username", "  " + username + "\n", "password", PASSWORD))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").exists());
+    }
+
+    // The character rules apply to new registrations only. Accounts created before them
+    // (or by the admin bootstrap) must still be able to log in with their exact name.
+    @Test
+    void existingAccountOutsideTheNewRulesCanStillLogIn() throws Exception {
+        for (String username : new String[] {"Jos\u00e9 " + uniqueName("q"), " " + uniqueName("rita") + " "}) {
+            jdbcTemplate.update(
+                "INSERT INTO users (unique_id, username, password, role, enabled, created_at) "
+                    + "VALUES (?, ?, ?, 'USER', true, now())",
+                UUID.randomUUID(), username, passwordEncoder.encode(PASSWORD));
+
+            mockMvc.perform(post("/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(json(Map.of("username", username, "password", PASSWORD))))
+                .andExpect(status().isOk());
+        }
+    }
+
     // V11's index is what stops two concurrent registrations that both pass the existence check
     @Test
     void databaseRejectsUsernamesDifferingOnlyInCase() {

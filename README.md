@@ -878,6 +878,12 @@ Content-Type: application/json
 * `400 INVALID_PASSWORD` if the password has fewer than 12 characters, more than 72 bytes in UTF-8
   (the BCrypt limit), or equals the username ignoring case. The same rules apply to a password change.
 * `username` is required and at most 100 characters (otherwise `VALIDATION_ERROR`).
+* The username is stripped of leading and trailing whitespace, then may only contain `A-Z`, `a-z`, `0-9`,
+  `.`, `_` and `-` (otherwise `400 INVALID_USERNAME`). This rules out lookalikes such as `alice ` next to
+  `alice`, invisible characters like a zero-width space, and newlines that would split log lines.
+* Login strips the username too, so ` alice ` logs in as `alice`. Login does not apply the character rule:
+  it first tries the exact name, so accounts created before the rule (or the `ADMIN_USERNAME` admin) keep
+  working.
 * There is no login throttling yet, so registration is not rate limited either.
 
 ## Roles

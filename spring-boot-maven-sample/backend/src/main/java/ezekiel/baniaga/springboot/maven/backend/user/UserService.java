@@ -39,6 +39,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final DefaultUUIDGenerator uuidGenerator;
     private final PasswordValidator passwordValidator;
+    private final UsernameValidator usernameValidator;
     private final UserSessionService userSessionService;
 
     /**
@@ -77,10 +78,12 @@ public class UserService {
 
     /**
      * Self sign-up: always a USER. Usernames are unique ignoring case (V11),
-     * so "alice" is taken once "Alice" exists.
+     * so "alice" is taken once "Alice" exists. The name is stripped and must
+     * pass UsernameValidator, so " alice" is the same name as "alice".
      */
     @Transactional
-    public User register(String username, String rawPassword) {
+    public User register(String rawUsername, String rawPassword) {
+        String username = usernameValidator.normalizeAndValidate(rawUsername);
         passwordValidator.validate(username, rawPassword);
 
         if (userRepository.findByUsername(username).isPresent()) {

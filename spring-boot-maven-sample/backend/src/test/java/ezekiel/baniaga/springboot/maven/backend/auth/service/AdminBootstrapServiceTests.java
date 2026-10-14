@@ -4,6 +4,7 @@ import ezekiel.baniaga.springboot.maven.backend.auth.props.AdminBootstrapPropert
 import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
 import ezekiel.baniaga.springboot.maven.backend.user.PasswordValidator;
+import ezekiel.baniaga.springboot.maven.backend.user.UsernameValidator;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.UserService;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
@@ -97,7 +98,7 @@ class AdminBootstrapServiceTests {
         properties.setPassword(password);
 
         UserService userService = new UserService(
-            userRepository, passwordEncoder, new DefaultUUIDGenerator(), new PasswordValidator(),
+            userRepository, passwordEncoder, new DefaultUUIDGenerator(), new PasswordValidator(), new UsernameValidator(),
             mock(UserSessionService.class));
         new AdminBootstrapService(userRepository, userService, properties)
             .createInitialAdminUser();
