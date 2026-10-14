@@ -13,15 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
 V10 is taken by the session cleanup indexes, so the first new migration is V11.
 
-- [ ] **Add `POST /auth/register`.** Public (add to `permitAll()`), body `username` + `password`, creates a
-      `USER` via `UserService`, returns 201 with a `UserResponse` record (`id` = `unique_id`, `username`,
-      `role`, `createdAt`; never `password`), no tokens. V11: unique index on `lower(username)` so `Alice`
-      and `alice` can't both exist; duplicate gives 409 `BusinessRuleException`. Also make
-      `UserRepository.findByUsername` case-insensitive so login matches (check V11 fails cleanly if existing
-      rows clash). Password rules in one reusable validator: at least 12 characters, at most 72 bytes UTF-8,
-      not equal to the username. Leave the `ADMIN_PASSWORD` bootstrap check as is, so existing setups
-      still start. Test: success, duplicate in other case, weak
-      password, too long password, then login with the new account.
 - [ ] **Test cross-user expense isolation end to end.** Register two users, create an expense as the first,
       and assert the second gets 404 on GET, PUT, PATCH, and DELETE, and that it's absent from the second
       user's list. First real proof of the ownership scoping from 7a70240.
@@ -95,3 +86,4 @@ V10 is taken by the session cleanup indexes, so the first new migration is V11.
 - [x] Session cleanup uses indexes on `expires_at` and `revoked_at` (V10) instead of scanning `user_sessions` (ed065cd)
 - [x] `UserService` creates users (bootstrap uses it); `/users/**` requires ADMIN, `/users/me` any user (1fc86a8)
 - [x] Spring Security 401/403 responses are `ErrorResponse` JSON (`AUTHENTICATION_REQUIRED` / `ACCESS_DENIED`) instead of the default error page (ab2ae02)
+- [x] `POST /auth/register` creates a USER (201 `UserResponse`); usernames unique ignoring case (V11), login matches any case, password rules in `PasswordValidator` (2c312df)
