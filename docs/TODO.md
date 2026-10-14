@@ -13,14 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
 V10 is taken by the session cleanup indexes, so the first new migration is V11.
 
-- [ ] **Add `UserService` and enforce roles.** Move user creation out of `auth/service/AdminBootstrapService.java`
-      into a new `user/UserService.java` (sets `uniqueId`, `createdAt`, `enabled`, password hash) and have the
-      bootstrap call it. In `auth/config/SecurityConfig.java` add `@EnableMethodSecurity`, then
-      `.requestMatchers("/users/me", "/users/me/**").authenticated()` followed by
-      `.requestMatchers("/users", "/users/**").hasRole("ADMIN")` before `anyRequest()` (order matters).
-      The JWT filter already grants `ROLE_<role>` (`JWTService` writes the `role` claim, `CustomUserDetails`
-      adds the prefix), so no filter change is needed. Test: a `USER` token gets 403 on `/users`, an `ADMIN`
-      token gets past the rule (404 until the endpoint exists). Tests need a second user, created via the repository.
 - [ ] **403 responses are not `ErrorResponse` JSON.** The access-denied handler in `SecurityConfig` calls
       `sendError(403)`, so the body is Spring's default error page instead of `{code, message}` like every
       other error. Write an `ErrorResponse` (code `ACCESS_DENIED`) directly, and do the same for the 401
@@ -105,3 +97,4 @@ V10 is taken by the session cleanup indexes, so the first new migration is V11.
 - [x] README described reuse detection as future work and listed files that don't exist (e937c41)
 - [x] Tests cover PUT/PATCH expense success, stale-version and archived 409s, and refreshing an expired or revoked session (659f519)
 - [x] Session cleanup uses indexes on `expires_at` and `revoked_at` (V10) instead of scanning `user_sessions` (ed065cd)
+- [x] `UserService` creates users (bootstrap uses it); `/users/**` requires ADMIN, `/users/me` any user (1fc86a8)
