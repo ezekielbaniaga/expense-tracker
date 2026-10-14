@@ -8,13 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Database
-
-- [ ] **`expense.id` is still `SERIAL` (32-bit).** `V1__initial_tables.sql` created it as `SERIAL`, while
-      `expense/entity/Expense.java` maps it as `Long`. V12 widened `users.id` for the same mismatch, and
-      expenses grow much faster than users. Add a migration that widens `expense.id` and `expense_id_seq` to
-      `BIGINT` (no foreign key points at it).
-
 ## Docs
 
 - [ ] **README describes the wrong error body.** README section 17 says errors are
@@ -84,3 +77,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Register strips usernames and allows only `[A-Za-z0-9._-]` (400 `INVALID_USERNAME`); login strips too but tries the exact name first, so existing accounts still log in (be932ae)
 - [x] Admin bootstrap logs a WARN when `ADMIN_USERNAME` belongs to a non-admin or disabled account, instead of silently skipping; the account is not promoted or re-enabled (6d1caff)
 - [x] 400s raised by Spring MVC now return ErrorResponse (60b83d5)
+- [x] `expense.id` and `expense_id_seq` are `BIGINT` (V13), matching `Expense.id` as `Long` (dd839a9)
