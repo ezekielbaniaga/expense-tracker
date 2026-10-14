@@ -1,5 +1,6 @@
 package ezekiel.baniaga.springboot.maven.backend.user.mapper;
 
+import ezekiel.baniaga.springboot.maven.backend.user.dto.AdminUserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import org.springframework.stereotype.Component;
@@ -13,5 +14,16 @@ public class UserMapper {
             user.getUsername(),
             user.getRole(),
             user.getCreatedAt());
+    }
+
+    public AdminUserResponse toAdminResponse(User user) {
+        return new AdminUserResponse(
+            user.getUniqueId(),
+            user.getUsername(),
+            user.getRole(),
+            user.isEnabled(),
+            user.getVersion(),
+            user.getCreatedAt(),
+            user.getLastModified());
     }
 }

@@ -2,6 +2,7 @@ package ezekiel.baniaga.springboot.maven.backend.common;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -76,4 +77,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(409).body(resp);
     }
 
+    /**
+     * @PreAuthorize denials are thrown inside the controller, so they land here
+     * rather than in SecurityConfig's access-denied handler. Same body as that one.
+     *
+     * https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/403
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDenied(AccessDeniedException ex) {
+        ErrorResponse resp = new ErrorResponse("ACCESS_DENIED", "Access Denied");
+        return ResponseEntity.status(403).body(resp);
+    }
 }

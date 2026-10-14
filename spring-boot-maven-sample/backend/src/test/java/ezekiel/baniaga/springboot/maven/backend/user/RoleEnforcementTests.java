@@ -53,13 +53,14 @@ class RoleEnforcementTests {
         }
     }
 
-    // No /users endpoints exist yet, so getting past the rule means a 404, not a 403
+    // An unknown id gives 404 USER_NOT_FOUND, which shows the request got past the rule
     @Test
     void adminGetsPastTheAdminRule() throws Exception {
-        for (String path : List.of("/users", "/users/some-id")) {
-            mockMvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, admin))
-                .andExpect(status().isNotFound());
-        }
+        mockMvc.perform(get("/users").header(HttpHeaders.AUTHORIZATION, admin))
+            .andExpect(status().isOk());
+        mockMvc.perform(get("/users/" + UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, admin))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
     }
 
     // /users/me must match before /users/** or every regular user would be locked out of it
