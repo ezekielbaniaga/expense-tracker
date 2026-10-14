@@ -1,5 +1,9 @@
 package ezekiel.baniaga.springboot.maven.backend.auth.service;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import ezekiel.baniaga.springboot.maven.backend.auth.props.AdminBootstrapProperties;
 import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
@@ -9,24 +13,47 @@ import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.UserService;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 // Plain unit test: no Spring context needed (the test profile skips the bootstrap runner)
 class AdminBootstrapServiceTests {
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    private final Logger logger = (Logger) LoggerFactory.getLogger(AdminBootstrapService.class);
+    private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
+
+    @BeforeEach
+    void attachLogAppender() {
+        logs.start();
+        logger.addAppender(logs);
+    }
+
+    @AfterEach
+    void detachLogAppender() {
+        logger.detachAppender(logs);
+    }
 
     @Test
     void blankPasswordIsRejected() {
@@ -86,6 +113,70 @@ class AdminBootstrapServiceTests {
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(saved.capture());
         assertThat(saved.getValue().getUsername()).isEqualTo("alice");
+    }
+
+    @Test
+    void existingEnabledAdminIsLeftAloneWithoutWarning() {
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(existing(Role.ADMIN, true)));
+
+        create("change-me");
+
+        verify(userRepository, never()).save(any());
+        assertThat(warnings()).isEmpty();
+    }
+
+    // ADMIN_USERNAME pointed at a name a USER registered: no admin exists and ADMIN_PASSWORD does not work
+    @Test
+    void existingUserWithTheAdminNameIsNotPromotedButWarned() {
+        User user = existing(Role.USER, true);
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+
+        create("alice", "change-me");
+
+        verify(userRepository, never()).save(any());
+        assertThat(user.getRole()).isEqualTo(Role.USER);
+        assertThat(warnings()).singleElement().asString()
+            .contains("'alice'", "role USER", "not an ADMIN");
+    }
+
+    @Test
+    void existingDisabledAdminIsNotEnabledButWarned() {
+        User admin = existing(Role.ADMIN, false);
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+
+        create("change-me");
+
+        verify(userRepository, never()).save(any());
+        assertThat(admin.isEnabled()).isFalse();
+        assertThat(warnings()).singleElement().asString()
+            .contains("'admin'", "disabled");
+    }
+
+    @Test
+    void noExistingUserCreatesTheAdminWithoutWarning() {
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.empty());
+
+        create("change-me");
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(saved.capture());
+        assertThat(saved.getValue().getUsername()).isEqualTo("admin");
+        assertThat(saved.getValue().getRole()).isEqualTo(Role.ADMIN);
+        assertThat(warnings()).isEmpty();
+    }
+
+    private static User existing(Role role, boolean enabled) {
+        User user = new User();
+        user.setRole(role);
+        user.setEnabled(enabled);
+        return user;
+    }
+
+    private List<String> warnings() {
+        return logs.list.stream()
+            .filter(event -> event.getLevel() == Level.WARN)
+            .map(ILoggingEvent::getFormattedMessage)
+            .toList();
     }
 
     private void create(String password) {
