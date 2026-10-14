@@ -8,12 +8,68 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## Users
+
+From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
+V10 is taken by the session cleanup indexes, so the first new migration is V11.
+
+- [ ] **Add `UserService` and enforce roles.** Move user creation out of `auth/service/AdminBootstrapService.java`
+      into a new `user/UserService.java` (sets `uniqueId`, `createdAt`, `enabled`, password hash) and have the
+      bootstrap call it. In `auth/config/SecurityConfig.java` add `@EnableMethodSecurity`, then
+      `.requestMatchers("/users/me", "/users/me/**").authenticated()` followed by
+      `.requestMatchers("/users", "/users/**").hasRole("ADMIN")` before `anyRequest()` (order matters).
+      The JWT filter already grants `ROLE_<role>` (`JWTService` writes the `role` claim, `CustomUserDetails`
+      adds the prefix), so no filter change is needed. Test: a `USER` token gets 403 on `/users`, an `ADMIN`
+      token gets past the rule (404 until the endpoint exists). Tests need a second user, created via the repository.
+- [ ] **403 responses are not `ErrorResponse` JSON.** The access-denied handler in `SecurityConfig` calls
+      `sendError(403)`, so the body is Spring's default error page instead of `{code, message}` like every
+      other error. Write an `ErrorResponse` (code `ACCESS_DENIED`) directly, and do the same for the 401
+      entry point. Test both bodies.
+- [ ] **Add `POST /auth/register`.** Public (add to `permitAll()`), body `username` + `password`, creates a
+      `USER` via `UserService`, returns 201 with a `UserResponse` record (`id` = `unique_id`, `username`,
+      `role`, `createdAt`; never `password`), no tokens. V11: unique index on `lower(username)` so `Alice`
+      and `alice` can't both exist; duplicate gives 409 `BusinessRuleException`. Also make
+      `UserRepository.findByUsername` case-insensitive so login matches (check V11 fails cleanly if existing
+      rows clash). Password rules in one reusable validator: at least 12 characters, at most 72 bytes UTF-8,
+      not equal to the username. Leave the `ADMIN_PASSWORD` bootstrap check as is, so existing setups
+      still start. Test: success, duplicate in other case, weak
+      password, too long password, then login with the new account.
+- [ ] **Test cross-user expense isolation end to end.** Register two users, create an expense as the first,
+      and assert the second gets 404 on GET, PUT, PATCH, and DELETE, and that it's absent from the second
+      user's list. First real proof of the ownership scoping from 7a70240.
+- [ ] **Add `GET /users/me` and `POST /users/me/password`.** New `user/UserController.java`. The access token's
+      principal has no database id, so look the user up by `unique_id` (add `UserRepository.findByUniqueId`).
+      Password change takes `currentPassword` + `newPassword`, applies the register password rules, sets
+      `last_modified` (nothing fills it today), and revokes all the user's sessions via a new
+      `UserSessionService.revokeAllForUser(userId)` (bulk `UPDATE ... WHERE user_id = :id AND revoked_at IS
+      NULL`). Wrong current password gives 400 or 409, not 401, so clients don't treat it as a logout. Test:
+      profile, wrong current password, old refresh token rejected after a change, login with the new password.
+- [ ] **Add admin endpoints `GET /users`, `GET /users/{id}`, `PATCH /users/{id}`.** `@PreAuthorize("hasRole('ADMIN')")`
+      on each method as a second layer behind the URL rule. List is paged with optional `?username=` and
+      `?enabled=` filters; `{id}` is the `unique_id`. PATCH changes `enabled` and `role` (needs `version`
+      like expenses), sets `last_modified`, and calls `revokeAllForUser` on disable or demotion so the next
+      refresh carries the new state. Guard rails as `BusinessRuleException`: an admin can't disable or
+      demote themselves, and the last enabled admin can't be removed (count admins in the same transaction
+      with a lock, or two admins demoting each other at once both pass). Test: USER gets 403, each guard
+      rail, demoted user's refresh token is rejected.
+- [ ] **Document the user endpoints.** Update `README.md` (registration, roles, what revokes sessions, that
+      a role change applies at the next refresh) and add Bruno requests for the six endpoints to
+      `spring-boot-maven-sample/spring-boot-sample-bruno-opencollection.yml`.
+- [ ] **`users.id` is `SERIAL` (int) but the entity uses `Long`.** Low priority. Align with a migration that
+      changes `users.id` and `user_sessions.user_id` to `BIGINT` together, or leave as is and note why.
+
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
 - [ ] **Decide on login brute-force protection.** `/auth/login` allows unlimited password attempts. Options:
       per-username/IP throttling in the app (in-memory, so per instance), a library like Bucket4j, or rate
-      limiting at a reverse proxy. Which one depends on how you'll deploy.
+      limiting at a reverse proxy. Which one depends on how you'll deploy. The user endpoints proposal says to
+      decide this before `POST /auth/register` ships, since the same limit should cover both (and stop mass
+      account creation). The register item is in the queue above.
+- [ ] **Decide whether to add `users.password_changed_at`.** The proposal lists it so old sessions can be
+      rejected after a password change. But the password change item already revokes every session, and the
+      JWT filter never reads the database, so the column would only help if you also add a per-request user
+      check. Suggest dropping it unless you want that check.
 
 ## Done
 
