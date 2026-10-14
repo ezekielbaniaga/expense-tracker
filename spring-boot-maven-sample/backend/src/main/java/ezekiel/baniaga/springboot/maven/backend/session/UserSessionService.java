@@ -138,6 +138,16 @@ public class UserSessionService {
     }
 
     /**
+     * Ends every active session of the user, e.g. after a password change.
+     * Their refresh tokens stop working; access tokens already issued stay
+     * valid until they expire.
+     */
+    @Transactional
+    public int revokeAllForUser(Long userId) {
+        return repository.revokeAllForUser(userId, LocalDateTime.now());
+    }
+
+    /**
      * Deletes sessions that expired or were revoked more than retentionDays ago,
      * together with their used token hashes. Active sessions are never touched.
      */

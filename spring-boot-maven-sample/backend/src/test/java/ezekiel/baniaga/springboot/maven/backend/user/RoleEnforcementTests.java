@@ -65,10 +65,11 @@ class RoleEnforcementTests {
     // /users/me must match before /users/** or every regular user would be locked out of it
     @Test
     void userGetsPastTheRuleForOwnProfile() throws Exception {
-        for (String path : List.of("/users/me", "/users/me/password")) {
-            mockMvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, user))
-                .andExpect(status().isNotFound());
-        }
+        mockMvc.perform(get("/users/me").header(HttpHeaders.AUTHORIZATION, user))
+            .andExpect(status().isOk());
+        // POST-only endpoint: 405 shows the request got past security
+        mockMvc.perform(get("/users/me/password").header(HttpHeaders.AUTHORIZATION, user))
+            .andExpect(status().isMethodNotAllowed());
     }
 
     @Test

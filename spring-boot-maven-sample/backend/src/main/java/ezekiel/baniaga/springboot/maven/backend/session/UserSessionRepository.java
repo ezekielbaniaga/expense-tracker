@@ -30,6 +30,16 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     """)
     int revoke(@Param("id") Long id, @Param("revokedAt") LocalDateTime revokedAt);
 
+    // Ends every active session of a user in one statement. Already revoked
+    // sessions keep their original revocation time.
+    @Transactional
+    @Modifying
+    @Query("""
+        UPDATE UserSession s SET s.revokedAt = :revokedAt
+        WHERE s.user.id = :userId AND s.revokedAt IS NULL
+    """)
+    int revokeAllForUser(@Param("userId") Long userId, @Param("revokedAt") LocalDateTime revokedAt);
+
     // Native Query as JPQL does not support LIMIT in DELETE.
     // used_refresh_tokens rows go with their session (ON DELETE CASCADE).
     @Modifying
