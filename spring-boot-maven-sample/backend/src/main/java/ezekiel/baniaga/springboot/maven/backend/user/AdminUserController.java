@@ -65,8 +65,9 @@ public class AdminUserController {
     /**
      * 403 if the caller is no longer an enabled ADMIN (checked in the service,
      * under the admin lock). 409 CONCURRENT_MODIFICATION on a stale version, CANNOT_MODIFY_SELF or
-     * LAST_ADMIN for the guard rails. A role change applies at the user's
-     * next login: disabling or demoting revokes all their sessions.
+     * LAST_ADMIN for the guard rails. Disabling or demoting revokes all
+     * the user's sessions, forcing a new login. A promotion revokes nothing and
+     * applies at the user's next /auth/refresh, which reads the role from the database.
      */
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
