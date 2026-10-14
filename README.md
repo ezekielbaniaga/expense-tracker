@@ -856,6 +856,133 @@ The complete lifecycle can be summarized as:
 
 ---
 
+# 17. User Accounts, Roles and Admin Endpoints
+
+Every error below uses the same JSON body as the rest of the API: `{"code": "...", "message": ...}`.
+Request bodies that fail bean validation (blank fields, missing `version`) return `400 VALIDATION_ERROR`.
+
+## Registration
+
+```http
+POST /auth/register
+Content-Type: application/json
+
+{ "username": "alice", "password": "a-long-password" }
+```
+
+* No access token needed. Always creates a `USER` (never an `ADMIN`), enabled.
+* `201 Created` with `{ id, username, role, createdAt }`. `id` is the user's `unique_id` (UUID), never the
+  database id. No tokens are returned; the client calls `/auth/login` next.
+* `409 USERNAME_TAKEN` if the name exists in any letter case. Usernames are unique ignoring case
+  (index added in V11), so `alice` is taken once `Alice` exists. Login matches the username in any case.
+* `400 INVALID_PASSWORD` if the password has fewer than 12 characters, more than 72 bytes in UTF-8
+  (the BCrypt limit), or equals the username ignoring case. The same rules apply to a password change.
+* `username` is required and at most 100 characters (otherwise `VALIDATION_ERROR`).
+* There is no login throttling yet, so registration is not rate limited either.
+
+## Roles
+
+There are two roles, `USER` and `ADMIN`. The role is stored in the user row and copied into the
+access token as the `role` claim.
+
+| Path | Who |
+| --- | --- |
+| `/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/logout` | anyone |
+| `/users/me`, `/users/me/**` | any authenticated user |
+| `/users`, `/users/**` | `ADMIN` only (`403 ACCESS_DENIED` otherwise) |
+| everything else (expenses) | any authenticated user |
+
+The admin controller methods also carry `@PreAuthorize("hasRole('ADMIN')")`, so a later change to the URL
+rules cannot open them up. A missing or invalid access token gives `401 AUTHENTICATION_REQUIRED`.
+The first admin is created at startup from `ADMIN_USERNAME` / `ADMIN_PASSWORD`; there is no endpoint that
+creates admins, but an existing admin can promote a user with `PATCH /users/{id}`.
+
+## Self-service endpoints (any authenticated user)
+
+```http
+GET /users/me
+```
+
+`200` with `{ id, username, role, createdAt }`. `404 USER_NOT_FOUND` if the account was removed after the
+token was issued.
+
+```http
+POST /users/me/password
+Content-Type: application/json
+
+{ "currentPassword": "...", "newPassword": "..." }
+```
+
+* `204 No Content` on success.
+* `400 INVALID_CURRENT_PASSWORD` if the current password is wrong. This is deliberately 400, not 401,
+  so a client does not mistake it for an expired login.
+* `400 INVALID_PASSWORD` if the new password breaks the rules above.
+* A password change revokes **every** session of the user, including the caller's own. All refresh
+  tokens stop working and the client must log in again with the new password. The current access token
+  keeps working until it expires (at most 15 minutes).
+
+## Admin endpoints (`ADMIN` only)
+
+In these paths `{id}` is the user's `unique_id` (UUID), never the database id.
+
+```http
+GET /users?username=ali&enabled=true&page=0&size=20
+```
+
+* `username` is a case-insensitive substring match (`%` and `_` are taken literally); `enabled` filters
+  exactly; both are optional. Results are ordered oldest first.
+* `page` is zero-based (default 0), `size` defaults to 20 (maximum 100). Anything outside that range is
+  `400 INVALID_PAGE`.
+* `200` with `{ users: [...], page, size, total, totalPages }`. Each user is
+  `{ id, username, role, enabled, version, createdAt, lastModified }`. The password hash is never returned.
+
+```http
+GET /users/{id}
+```
+
+`200` with the same admin user shape, or `404 USER_NOT_FOUND`.
+
+```http
+PATCH /users/{id}
+Content-Type: application/json
+
+{ "version": 0, "enabled": false, "role": "USER" }
+```
+
+* `version` is required (take it from the GET response); `enabled` and `role` are each optional, but at
+  least one must be given or the answer is `400 EMPTY_PATCH`.
+* `200` with the updated admin user shape and the incremented `version`.
+* `409 CONCURRENT_MODIFICATION` if `version` is stale.
+* `409 CANNOT_MODIFY_SELF` if an admin tries to disable or demote themselves.
+* `409 LAST_ADMIN` if the change would disable or demote the last enabled admin. The enabled admins are
+  locked (`SELECT ... FOR UPDATE`) first, so two admins demoting each other at the same moment are
+  serialized and the second one is refused.
+* `404 USER_NOT_FOUND` for an unknown id.
+
+## What revokes sessions
+
+| Event | Sessions revoked |
+| --- | --- |
+| `POST /auth/logout` | the one session of that refresh token |
+| refresh token reuse | the session that was reused |
+| refresh by a disabled user | that session |
+| `POST /users/me/password` | all sessions of the user, including the caller's |
+| `PATCH /users/{id}` that disables the user | all sessions of that user |
+| `PATCH /users/{id}` that demotes `ADMIN` to `USER` | all sessions of that user |
+| `PATCH /users/{id}` that enables or promotes | none |
+
+## Role changes and the access token
+
+The access token is never checked against the database, so the role inside it is whatever it was at
+issue time. A role change therefore takes effect when the user's next access token is issued:
+
+* **Demotion or disabling** revokes the user's sessions, so the next `/auth/refresh` fails with 401. The
+  already-issued access token keeps its old role (and keeps working) until it expires, at most 15 minutes.
+* **Promotion** revokes nothing. The user keeps the `USER` token until it expires; the next
+  `/auth/refresh` builds the new access token from the database and carries the `ADMIN` role.
+
+---
+
 ## Current Authentication Stack
 
 ```text
@@ -953,6 +1080,8 @@ The authentication system is being developed incrementally.
 * [x] Refresh-token reuse detection
 * [x] Rotation/concurrency hardening
 * [x] `/auth/logout`
+* [x] `POST /auth/register`, roles, `/users/me`, password change
+* [x] Admin user endpoints (`/users`) with session revocation
 
 ### Next
 

@@ -178,6 +178,106 @@ items:
       timeout: 0
       followRedirects: true
       maxRedirects: 5
+  - info:
+      name: Register
+      type: http
+      seq: 10
+    http:
+      method: POST
+      url: http://localhost:8080/auth/register
+      body:
+        type: json
+        data: |-
+          {
+              "username": "alice",
+              "password": "a-long-password"
+          }
+      auth: none
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Get Me
+      type: http
+      seq: 11
+    http:
+      method: GET
+      url: http://localhost:8080/users/me
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Change My Password
+      type: http
+      seq: 12
+    http:
+      method: POST
+      url: http://localhost:8080/users/me/password
+      body:
+        type: json
+        data: |-
+          {
+              "currentPassword": "a-long-password",
+              "newPassword": "another-long-password"
+          }
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: List Users (admin)
+      type: http
+      seq: 13
+    http:
+      method: GET
+      url: http://localhost:8080/users?username=ali&enabled=true&page=0&size=20
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Get User (admin)
+      type: http
+      seq: 14
+    http:
+      method: GET
+      url: http://localhost:8080/users/00000000-0000-0000-0000-000000000000
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Update User (admin)
+      type: http
+      seq: 15
+    http:
+      method: PATCH
+      url: http://localhost:8080/users/00000000-0000-0000-0000-000000000000
+      body:
+        type: json
+        data: |-
+          {
+              "version": 0,
+              "enabled": false,
+              "role": "USER"
+          }
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
 bundled: true
 extensions:
   bruno:
