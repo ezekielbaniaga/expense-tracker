@@ -8,15 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Auth
-
-- [ ] **Admin bootstrap accepts any existing user with that name.** `auth/service/AdminBootstrapService.java`
-      returns as soon as `findByUsername(ADMIN_USERNAME)` finds a row, without checking its role. If
-      `ADMIN_USERNAME` is changed to a name a `USER` has registered, startup logs nothing, no admin is
-      created and `ADMIN_PASSWORD` does not work. The runner is an `ApplicationRunner`, which runs after
-      Tomcat already accepts requests, so on a first start `/auth/register` can even claim the name first.
-      Log a warning (or fail) when the existing user is not an enabled `ADMIN`.
-
 ## Errors and validation
 
 - [ ] **400s raised by Spring MVC are not `ErrorResponse`.** `common/GlobalExceptionHandler.java` has no
@@ -101,3 +92,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] `users.id` and `user_sessions.user_id` are `BIGINT` (V12), matching `User.id` as `Long`; the id sequence is `BIGINT` too (651143e)
 - [x] Demoted or disabled admins could use their old token to reinstate themselves; admin endpoints now check the caller in the database (1104109)
 - [x] Register strips usernames and allows only `[A-Za-z0-9._-]` (400 `INVALID_USERNAME`); login strips too but tries the exact name first, so existing accounts still log in (be932ae)
+- [x] Admin bootstrap logs a WARN when `ADMIN_USERNAME` belongs to a non-admin or disabled account, instead of silently skipping; the account is not promoted or re-enabled (6d1caff)
