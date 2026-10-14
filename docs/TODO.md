@@ -10,9 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Docs
 
-- [ ] **README describes the wrong error body.** README section 17 says errors are
-      `{"code": "...", "message": ...}`, but `common/ErrorResponse.java` returns `messages` (an array) and a
-      `timestamp` (verified in responses). Fix the README line.
 - [ ] **`AdminUserController` Javadoc misstates when a role change applies.** `user/AdminUserController.java`
       says on `update` that a role change applies at the user's next login. A promotion revokes nothing and
       applies at the next `/auth/refresh` (which reads the role from the database); only demotion and
@@ -78,3 +75,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Admin bootstrap logs a WARN when `ADMIN_USERNAME` belongs to a non-admin or disabled account, instead of silently skipping; the account is not promoted or re-enabled (6d1caff)
 - [x] 400s raised by Spring MVC now return ErrorResponse (60b83d5)
 - [x] `expense.id` and `expense_id_seq` are `BIGINT` (V13), matching `Expense.id` as `Long` (dd839a9)
+- [x] README section 17 already documents the `{"code", "messages", "timestamp"}` error body; verified against `ErrorResponse` (60b83d5)
