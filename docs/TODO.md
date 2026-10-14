@@ -8,13 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Docs
-
-- [ ] **`AdminUserController` Javadoc misstates when a role change applies.** `user/AdminUserController.java`
-      says on `update` that a role change applies at the user's next login. A promotion revokes nothing and
-      applies at the next `/auth/refresh` (which reads the role from the database); only demotion and
-      disabling revoke sessions and force a login. README section 17 already describes it correctly.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -76,3 +69,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] 400s raised by Spring MVC now return ErrorResponse (60b83d5)
 - [x] `expense.id` and `expense_id_seq` are `BIGINT` (V13), matching `Expense.id` as `Long` (dd839a9)
 - [x] README section 17 already documents the `{"code", "messages", "timestamp"}` error body; verified against `ErrorResponse` (60b83d5)
+- [x] `AdminUserController` Javadoc now says a promotion applies at the next `/auth/refresh`, only demotion/disabling force a login (840e145)
