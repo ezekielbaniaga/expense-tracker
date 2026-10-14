@@ -3,16 +3,20 @@ package ezekiel.baniaga.springboot.maven.backend.auth;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.LoginRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.LoginResponse;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
+import ezekiel.baniaga.springboot.maven.backend.auth.dto.RegisterRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
 import ezekiel.baniaga.springboot.maven.backend.session.RefreshTokenResult;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
-import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
+import ezekiel.baniaga.springboot.maven.backend.user.UserService;
+import ezekiel.baniaga.springboot.maven.backend.user.dto.UserResponse;
+import ezekiel.baniaga.springboot.maven.backend.user.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,6 +36,24 @@ public class AuthController {
     private final JWTService jwtService;
 
     private final UserSessionService userSessionService;
+
+    private final UserService userService;
+    private final UserMapper userMapper;
+
+    /**
+     * Creates a USER account. Returns no tokens; the client logs in next.
+     * 409 USERNAME_TAKEN if the name exists in any case, 400 INVALID_PASSWORD
+     * if the password breaks the rules in PasswordValidator.
+     */
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> register(
+        @Valid @RequestBody RegisterRequest request) {
+
+        UserResponse user = userMapper.toResponse(
+            userService.register(request.username(), request.password()));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
 
     @PostMapping("/login")
     public LoginResponse login(

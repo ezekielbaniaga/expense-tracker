@@ -44,7 +44,7 @@ public class SecurityConfig {
                 // rendered there is replaced by 401. Requesting /error directly stays protected.
                 auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                     .requestMatchers(
-                        "/auth/login","/auth/refresh","/auth/logout").permitAll()
+                        "/auth/login","/auth/register","/auth/refresh","/auth/logout").permitAll()
                     // Order matters: /users/me must match before /users/** or regular users get 403
                     .requestMatchers("/users/me", "/users/me/**").authenticated()
                     .requestMatchers("/users", "/users/**").hasRole("ADMIN")
