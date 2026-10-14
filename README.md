@@ -925,6 +925,10 @@ Content-Type: application/json
 
 In these paths `{id}` is the user's `unique_id` (UUID), never the database id.
 
+Every admin endpoint also checks the caller against the database: an admin who has been demoted or
+disabled still holds an access token that says `ADMIN` (until it expires), and gets `403 ACCESS_DENIED`
+from all of them, so they cannot read users or undo their own demotion.
+
 ```http
 GET /users?username=ali&enabled=true&page=0&size=20
 ```
@@ -956,7 +960,7 @@ Content-Type: application/json
 * `409 CANNOT_MODIFY_SELF` if an admin tries to disable or demote themselves.
 * `409 LAST_ADMIN` if the change would disable or demote the last enabled admin. The enabled admins are
   locked (`SELECT ... FOR UPDATE`) first, so two admins demoting each other at the same moment are
-  serialized and the second one is refused.
+  serialized and the second one is refused (with `403`, since by then it is no longer an admin).
 * `404 USER_NOT_FOUND` for an unknown id.
 
 ## What revokes sessions
@@ -978,6 +982,7 @@ issue time. A role change therefore takes effect when the user's next access tok
 
 * **Demotion or disabling** revokes the user's sessions, so the next `/auth/refresh` fails with 401. The
   already-issued access token keeps its old role (and keeps working) until it expires, at most 15 minutes.
+  The admin endpoints are the exception: they check the caller in the database and refuse with 403.
 * **Promotion** revokes nothing. The user keeps the `USER` token until it expires; the next
   `/auth/refresh` builds the new access token from the database and carries the `ADMIN` role.
 

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -112,6 +113,21 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * The access token keeps the ADMIN role for up to 15 minutes after a
+     * demotion or disabling, so the admin endpoints check the caller against
+     * the database too. 403 ACCESS_DENIED, the same body as a USER gets.
+     */
+    @Transactional(readOnly = true)
+    public void requireEnabledAdmin(UUID actorId) {
+        boolean stillAdmin = userRepository.findByUniqueId(actorId)
+            .map(actor -> actor.getRole() == Role.ADMIN && actor.isEnabled())
+            .orElse(false);
+        if (!stillAdmin) {
+            throw new AccessDeniedException("Access Denied");
+        }
+    }
+
     private static BusinessRuleException usernameTaken() {
         return new BusinessRuleException("USERNAME_TAKEN", "Username is already taken.");
     }
@@ -150,10 +166,14 @@ public class UserService {
      * expenses. Disabling or demoting revokes every session of the user, so
      * the next refresh fails and the next login carries the new state.
      *
+     * The caller must still be an enabled ADMIN in the database (403
+     * otherwise): their access token may predate a demotion or disabling.
+     *
      * Guard rails (409): an admin can't disable or demote themselves, and the
      * last enabled admin can't be disabled or demoted. The enabled admins are
      * locked before anything is read, so two admins demoting each other at
-     * the same time are serialized and the second one sees only one admin left.
+     * the same time are serialized and the second one finds it is no longer
+     * an admin. With the caller check, LAST_ADMIN is a backstop only.
      */
     @Transactional
     public User updateUser(UUID actorId, UUID targetId, Long version, Boolean enabled, Role role) {
@@ -162,6 +182,9 @@ public class UserService {
         }
 
         List<User> enabledAdmins = userRepository.lockEnabledAdmins();
+        if (enabledAdmins.stream().noneMatch(admin -> admin.getUniqueId().equals(actorId))) {
+            throw new AccessDeniedException("Access Denied");
+        }
 
         User user = getByUniqueId(targetId);
         if (!user.getVersion().equals(version)) {

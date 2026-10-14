@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -104,9 +105,11 @@ class AdminUserTests {
         SecurityContextHolder.getContext().setAuthentication(
             UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities()));
 
-        // The proxied bean, without the security filter chain in front of it
+        // The proxied bean, without the security filter chain in front of it. The resolver
+        // fills @AuthenticationPrincipal as the full app does
         MockMvc noUrlRules = MockMvcBuilders
             .standaloneSetup(context.getBean("adminUserController"))
+            .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
             .setControllerAdvice(exceptionHandler)
             .build();
 
@@ -287,9 +290,57 @@ class AdminUserTests {
         assertThat(saved.getVersion()).isZero();
     }
 
-    // Reachable when the caller was demoted or disabled after its access token was issued
+    // A demoted or disabled admin's access token still says ADMIN until it expires, so the
+    // service checks the caller against the database. Without that, B undoes its own demotion
     @Test
-    void lastEnabledAdminCannotBeRemoved() throws Exception {
+    void demotedAdminCannotPromoteThemselvesBack() throws Exception {
+        User other = createUser(Role.ADMIN);
+        String otherBearer = bearer(other);
+        patchUser(adminBearer, other, Map.of("role", "USER")).andExpect(status().isOk());
+
+        patchUser(otherBearer, reload(other), Map.of("role", "ADMIN"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+
+        assertThat(reload(other).getRole()).isEqualTo(Role.USER);
+    }
+
+    @Test
+    void disabledAdminCannotEnableThemselvesBack() throws Exception {
+        User other = createUser(Role.ADMIN);
+        String otherBearer = bearer(other);
+        patchUser(adminBearer, other, Map.of("enabled", false)).andExpect(status().isOk());
+
+        patchUser(otherBearer, reload(other), Map.of("enabled", true))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+
+        assertThat(reload(other).isEnabled()).isFalse();
+    }
+
+    // The same stale token must not keep reading the user list either
+    @Test
+    void demotedOrDisabledAdminCannotReadUsers() throws Exception {
+        User demoted = createUser(Role.ADMIN);
+        User disabled = createUser(Role.ADMIN);
+        String demotedBearer = bearer(demoted);
+        String disabledBearer = bearer(disabled);
+        patchUser(adminBearer, demoted, Map.of("role", "USER")).andExpect(status().isOk());
+        patchUser(adminBearer, disabled, Map.of("enabled", false)).andExpect(status().isOk());
+
+        for (String staleBearer : List.of(demotedBearer, disabledBearer)) {
+            mockMvc.perform(get("/users").header(HttpHeaders.AUTHORIZATION, staleBearer))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+            mockMvc.perform(get("/users/" + admin.getUniqueId()).header(HttpHeaders.AUTHORIZATION, staleBearer))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        }
+    }
+
+    // Used to be the LAST_ADMIN case; a caller who is no longer an enabled admin is now refused first
+    @Test
+    void disabledAdminCannotRemoveTheLastAdmin() throws Exception {
         onlyThisTestsAdminsEnabled();
         User other = createUser(Role.ADMIN);
         String otherBearer = bearer(other);
@@ -298,18 +349,19 @@ class AdminUserTests {
         patchUser(adminBearer, other, Map.of("enabled", false)).andExpect(status().isOk());
 
         patchUser(otherBearer, admin, Map.of("role", "USER"))
-            .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.code").value("LAST_ADMIN"));
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
         patchUser(otherBearer, admin, Map.of("enabled", false))
-            .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.code").value("LAST_ADMIN"));
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
 
         User saved = reload(admin);
         assertThat(saved.isEnabled()).isTrue();
         assertThat(saved.getRole()).isEqualTo(Role.ADMIN);
     }
 
-    // Without the lock both transactions count two admins and both demotions commit
+    // Without the lock both transactions see both admins and both demotions commit. With it the
+    // second waits, then finds its caller is no longer an enabled admin and is refused
     @Test
     void twoAdminsDemotingEachOtherAtOnceLeaveOneAdmin() throws Exception {
         for (int round = 0; round < 5; round++) {
@@ -337,7 +389,7 @@ class AdminUserTests {
                 for (Future<Integer> result : results) {
                     statuses.add(result.get());
                 }
-                assertThat(statuses).containsExactlyInAnyOrder(200, 409);
+                assertThat(statuses).containsExactlyInAnyOrder(200, 403);
             } finally {
                 pool.shutdownNow();
             }

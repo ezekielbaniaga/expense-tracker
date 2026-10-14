@@ -24,7 +24,9 @@ import java.util.UUID;
 /**
  * Admin user management. SecurityConfig already limits /users/** to ADMIN;
  * @PreAuthorize repeats it per method so a future URL rule change can't
- * open these up. {id} is always the unique_id, never the database id.
+ * open these up. Both only see the role in the access token, so each method
+ * also checks the caller is still an enabled ADMIN in the database.
+ * {id} is always the unique_id, never the database id.
  */
 @RestController
 @RequestMapping("/users")
@@ -40,8 +42,10 @@ public class AdminUserController {
         @RequestParam(required = false) String username,
         @RequestParam(required = false) Boolean enabled,
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size) {
+        @RequestParam(defaultValue = "20") int size,
+        @AuthenticationPrincipal CustomUserDetails admin) {
 
+        userService.requireEnabledAdmin(admin.getUniqueId());
         Page<User> users = userService.listUsers(username, enabled, page, size);
         return new UserListResponse(
             users.getContent().stream().map(userMapper::toAdminResponse).toList(),
@@ -53,12 +57,14 @@ public class AdminUserController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public AdminUserResponse get(@PathVariable UUID id) {
+    public AdminUserResponse get(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails admin) {
+        userService.requireEnabledAdmin(admin.getUniqueId());
         return userMapper.toAdminResponse(userService.getByUniqueId(id));
     }
 
     /**
-     * 409 CONCURRENT_MODIFICATION on a stale version, CANNOT_MODIFY_SELF or
+     * 403 if the caller is no longer an enabled ADMIN (checked in the service,
+     * under the admin lock). 409 CONCURRENT_MODIFICATION on a stale version, CANNOT_MODIFY_SELF or
      * LAST_ADMIN for the guard rails. A role change applies at the user's
      * next login: disabling or demoting revokes all their sessions.
      */
