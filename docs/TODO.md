@@ -13,9 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
 V10 is taken by the session cleanup indexes, so the first new migration is V11.
 
-- [ ] **Document the user endpoints.** Update `README.md` (registration, roles, what revokes sessions, that
-      a role change applies at the next refresh) and add Bruno requests for the six endpoints to
-      `spring-boot-maven-sample/spring-boot-sample-bruno-opencollection.yml`.
 - [ ] **`users.id` is `SERIAL` (int) but the entity uses `Long`.** Low priority. Align with a migration that
       changes `users.id` and `user_sessions.user_id` to `BIGINT` together, or leave as is and note why.
 
@@ -72,3 +69,4 @@ V10 is taken by the session cleanup indexes, so the first new migration is V11.
 - [x] Test cross-user expense isolation end to end via register/login; no ownership bug found (b3d664e)
 - [x] `GET /users/me` and `POST /users/me/password`; a change checks the current password (400 if wrong), applies `PasswordValidator`, sets `last_modified` and revokes all sessions via `revokeAllForUser` (2af110b)
 - [x] Admin `GET /users` (paged, `?username=`/`?enabled=`), `GET /users/{id}`, `PATCH /users/{id}` (enabled/role with `version`); disable/demote revokes sessions; 409 `CANNOT_MODIFY_SELF` / `LAST_ADMIN` with enabled admins locked `FOR UPDATE`; `@PreAuthorize` 403 is `ErrorResponse` via `GlobalExceptionHandler` (2b9614a)
+- [x] User endpoints documented: README section 17 (registration, roles, session revocation, role change at next refresh) and six Bruno requests (03d7921)
