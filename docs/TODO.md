@@ -10,12 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Auth
 
-- [ ] **Usernames are not normalized or restricted.** `auth/dto/RegisterRequest.java` only has `@NotBlank` and
-      `@Size(max = 100)`, so `alice `, ` alice`, a lone zero-width space (`\u200b`) and names containing `\n`
-      all register as separate accounts (verified: all 201 next to an existing `alice`). That allows
-      lookalike accounts in the admin list and log lines broken by newlines. Trim the name, and reject
-      control and format characters (or allow only a set like `[A-Za-z0-9._-]`), in register and in login so
-      both match.
 - [ ] **Admin bootstrap accepts any existing user with that name.** `auth/service/AdminBootstrapService.java`
       returns as soon as `findByUsername(ADMIN_USERNAME)` finds a row, without checking its role. If
       `ADMIN_USERNAME` is changed to a name a `USER` has registered, startup logs nothing, no admin is
@@ -106,3 +100,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] User endpoints documented: README section 17 (registration, roles, session revocation, role change at next refresh) and six Bruno requests (03d7921)
 - [x] `users.id` and `user_sessions.user_id` are `BIGINT` (V12), matching `User.id` as `Long`; the id sequence is `BIGINT` too (651143e)
 - [x] Demoted or disabled admins could use their old token to reinstate themselves; admin endpoints now check the caller in the database (1104109)
+- [x] Register strips usernames and allows only `[A-Za-z0-9._-]` (400 `INVALID_USERNAME`); login strips too but tries the exact name first, so existing accounts still log in (be932ae)
