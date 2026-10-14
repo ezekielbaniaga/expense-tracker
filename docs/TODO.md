@@ -13,9 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
 V10 is taken by the session cleanup indexes, so the first new migration is V11.
 
-- [ ] **Test cross-user expense isolation end to end.** Register two users, create an expense as the first,
-      and assert the second gets 404 on GET, PUT, PATCH, and DELETE, and that it's absent from the second
-      user's list. First real proof of the ownership scoping from 7a70240.
 - [ ] **Add `GET /users/me` and `POST /users/me/password`.** New `user/UserController.java`. The access token's
       principal has no database id, so look the user up by `unique_id` (add `UserRepository.findByUniqueId`).
       Password change takes `currentPassword` + `newPassword`, applies the register password rules, sets
@@ -87,3 +84,4 @@ V10 is taken by the session cleanup indexes, so the first new migration is V11.
 - [x] `UserService` creates users (bootstrap uses it); `/users/**` requires ADMIN, `/users/me` any user (1fc86a8)
 - [x] Spring Security 401/403 responses are `ErrorResponse` JSON (`AUTHENTICATION_REQUIRED` / `ACCESS_DENIED`) instead of the default error page (ab2ae02)
 - [x] `POST /auth/register` creates a USER (201 `UserResponse`); usernames unique ignoring case (V11), login matches any case, password rules in `PasswordValidator` (2c312df)
+- [x] Test cross-user expense isolation end to end via register/login; no ownership bug found (b3d664e)
