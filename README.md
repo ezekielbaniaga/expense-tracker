@@ -858,8 +858,11 @@ The complete lifecycle can be summarized as:
 
 # 17. User Accounts, Roles and Admin Endpoints
 
-Every error below uses the same JSON body as the rest of the API: `{"code": "...", "message": ...}`.
+Every error below uses the same JSON body as the rest of the API: `{"code": "...", "messages": [...], "timestamp": "..."}`.
 Request bodies that fail bean validation (blank fields, missing `version`) return `400 VALIDATION_ERROR`.
+So do a malformed path variable or query parameter (`/users/not-a-uuid`, `?page=abc`) and a missing
+required query parameter. An unreadable body (malformed JSON, unknown enum value) returns
+`400 MALFORMED_REQUEST`.
 
 ## Registration
 
