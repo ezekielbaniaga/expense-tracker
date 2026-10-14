@@ -13,10 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
 V10 is taken by the session cleanup indexes, so the first new migration is V11.
 
-- [ ] **403 responses are not `ErrorResponse` JSON.** The access-denied handler in `SecurityConfig` calls
-      `sendError(403)`, so the body is Spring's default error page instead of `{code, message}` like every
-      other error. Write an `ErrorResponse` (code `ACCESS_DENIED`) directly, and do the same for the 401
-      entry point. Test both bodies.
 - [ ] **Add `POST /auth/register`.** Public (add to `permitAll()`), body `username` + `password`, creates a
       `USER` via `UserService`, returns 201 with a `UserResponse` record (`id` = `unique_id`, `username`,
       `role`, `createdAt`; never `password`), no tokens. V11: unique index on `lower(username)` so `Alice`
@@ -98,3 +94,4 @@ V10 is taken by the session cleanup indexes, so the first new migration is V11.
 - [x] Tests cover PUT/PATCH expense success, stale-version and archived 409s, and refreshing an expired or revoked session (659f519)
 - [x] Session cleanup uses indexes on `expires_at` and `revoked_at` (V10) instead of scanning `user_sessions` (ed065cd)
 - [x] `UserService` creates users (bootstrap uses it); `/users/**` requires ADMIN, `/users/me` any user (1fc86a8)
+- [x] Spring Security 401/403 responses are `ErrorResponse` JSON (`AUTHENTICATION_REQUIRED` / `ACCESS_DENIED`) instead of the default error page (ab2ae02)
