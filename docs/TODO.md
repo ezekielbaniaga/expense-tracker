@@ -13,13 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
 V10 is taken by the session cleanup indexes, so the first new migration is V11.
 
-- [ ] **Add `GET /users/me` and `POST /users/me/password`.** New `user/UserController.java`. The access token's
-      principal has no database id, so look the user up by `unique_id` (add `UserRepository.findByUniqueId`).
-      Password change takes `currentPassword` + `newPassword`, applies the register password rules, sets
-      `last_modified` (nothing fills it today), and revokes all the user's sessions via a new
-      `UserSessionService.revokeAllForUser(userId)` (bulk `UPDATE ... WHERE user_id = :id AND revoked_at IS
-      NULL`). Wrong current password gives 400 or 409, not 401, so clients don't treat it as a logout. Test:
-      profile, wrong current password, old refresh token rejected after a change, login with the new password.
 - [ ] **Add admin endpoints `GET /users`, `GET /users/{id}`, `PATCH /users/{id}`.** `@PreAuthorize("hasRole('ADMIN')")`
       on each method as a second layer behind the URL rule. List is paged with optional `?username=` and
       `?enabled=` filters; `{id}` is the `unique_id`. PATCH changes `enabled` and `role` (needs `version`
@@ -85,3 +78,4 @@ V10 is taken by the session cleanup indexes, so the first new migration is V11.
 - [x] Spring Security 401/403 responses are `ErrorResponse` JSON (`AUTHENTICATION_REQUIRED` / `ACCESS_DENIED`) instead of the default error page (ab2ae02)
 - [x] `POST /auth/register` creates a USER (201 `UserResponse`); usernames unique ignoring case (V11), login matches any case, password rules in `PasswordValidator` (2c312df)
 - [x] Test cross-user expense isolation end to end via register/login; no ownership bug found (b3d664e)
+- [x] `GET /users/me` and `POST /users/me/password`; a change checks the current password (400 if wrong), applies `PasswordValidator`, sets `last_modified` and revokes all sessions via `revokeAllForUser` (2af110b)
