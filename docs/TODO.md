@@ -10,13 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Auth
 
-- [ ] **A demoted or disabled admin can reinstate themselves.** `user/UserService.java` `updateUser` trusts the
-      role in the caller's access token and only blocks *disabling or demoting* yourself. After admin A demotes
-      or disables admin B, B's access token still says `ADMIN` for up to 15 minutes, and B can
-      `PATCH /users/{B}` with `role: ADMIN` or `enabled: true` and get 200. Verified against a real server:
-      both the demotion and the disabling were undone by B's old token, so the revocation does nothing.
-      Load the actor in `updateUser` (the enabled admins are already locked there) and refuse with 403 unless
-      they are still an enabled `ADMIN`; add a test for both cases.
 - [ ] **Usernames are not normalized or restricted.** `auth/dto/RegisterRequest.java` only has `@NotBlank` and
       `@Size(max = 100)`, so `alice `, ` alice`, a lone zero-width space (`\u200b`) and names containing `\n`
       all register as separate accounts (verified: all 201 next to an existing `alice`). That allows
@@ -112,3 +105,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Admin `GET /users` (paged, `?username=`/`?enabled=`), `GET /users/{id}`, `PATCH /users/{id}` (enabled/role with `version`); disable/demote revokes sessions; 409 `CANNOT_MODIFY_SELF` / `LAST_ADMIN` with enabled admins locked `FOR UPDATE`; `@PreAuthorize` 403 is `ErrorResponse` via `GlobalExceptionHandler` (2b9614a)
 - [x] User endpoints documented: README section 17 (registration, roles, session revocation, role change at next refresh) and six Bruno requests (03d7921)
 - [x] `users.id` and `user_sessions.user_id` are `BIGINT` (V12), matching `User.id` as `Long`; the id sequence is `BIGINT` too (651143e)
+- [x] Demoted or disabled admins could use their old token to reinstate themselves; admin endpoints now check the caller in the database (1104109)
