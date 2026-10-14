@@ -13,14 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 From `docs/user-endpoints-proposal.md` (read it for the full design). Migration numbers there are stale:
 V10 is taken by the session cleanup indexes, so the first new migration is V11.
 
-- [ ] **Add admin endpoints `GET /users`, `GET /users/{id}`, `PATCH /users/{id}`.** `@PreAuthorize("hasRole('ADMIN')")`
-      on each method as a second layer behind the URL rule. List is paged with optional `?username=` and
-      `?enabled=` filters; `{id}` is the `unique_id`. PATCH changes `enabled` and `role` (needs `version`
-      like expenses), sets `last_modified`, and calls `revokeAllForUser` on disable or demotion so the next
-      refresh carries the new state. Guard rails as `BusinessRuleException`: an admin can't disable or
-      demote themselves, and the last enabled admin can't be removed (count admins in the same transaction
-      with a lock, or two admins demoting each other at once both pass). Test: USER gets 403, each guard
-      rail, demoted user's refresh token is rejected.
 - [ ] **Document the user endpoints.** Update `README.md` (registration, roles, what revokes sessions, that
       a role change applies at the next refresh) and add Bruno requests for the six endpoints to
       `spring-boot-maven-sample/spring-boot-sample-bruno-opencollection.yml`.
@@ -79,3 +71,4 @@ V10 is taken by the session cleanup indexes, so the first new migration is V11.
 - [x] `POST /auth/register` creates a USER (201 `UserResponse`); usernames unique ignoring case (V11), login matches any case, password rules in `PasswordValidator` (2c312df)
 - [x] Test cross-user expense isolation end to end via register/login; no ownership bug found (b3d664e)
 - [x] `GET /users/me` and `POST /users/me/password`; a change checks the current password (400 if wrong), applies `PasswordValidator`, sets `last_modified` and revokes all sessions via `revokeAllForUser` (2af110b)
+- [x] Admin `GET /users` (paged, `?username=`/`?enabled=`), `GET /users/{id}`, `PATCH /users/{id}` (enabled/role with `version`); disable/demote revokes sessions; 409 `CANNOT_MODIFY_SELF` / `LAST_ADMIN` with enabled admins locked `FOR UPDATE`; `@PreAuthorize` 403 is `ErrorResponse` via `GlobalExceptionHandler` (2b9614a)
