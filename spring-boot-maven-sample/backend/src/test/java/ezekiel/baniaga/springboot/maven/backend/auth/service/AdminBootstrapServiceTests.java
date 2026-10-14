@@ -3,6 +3,8 @@ package ezekiel.baniaga.springboot.maven.backend.auth.service;
 import ezekiel.baniaga.springboot.maven.backend.auth.props.AdminBootstrapProperties;
 import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
+import ezekiel.baniaga.springboot.maven.backend.user.UserService;
+import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,6 +56,10 @@ class AdminBootstrapServiceTests {
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(saved.capture());
         assertThat(passwordEncoder.matches(password, saved.getValue().getPassword())).isTrue();
+        assertThat(saved.getValue().getRole()).isEqualTo(Role.ADMIN);
+        assertThat(saved.getValue().isEnabled()).isTrue();
+        assertThat(saved.getValue().getUniqueId()).isNotNull();
+        assertThat(saved.getValue().getCreatedAt()).isNotNull();
     }
 
     // Compose passes an empty ADMIN_USERNAME when .env doesn't set it, and Spring's
@@ -88,7 +94,8 @@ class AdminBootstrapServiceTests {
         properties.setUsername(username);
         properties.setPassword(password);
 
-        new AdminBootstrapService(userRepository, passwordEncoder, properties, new DefaultUUIDGenerator())
+        UserService userService = new UserService(userRepository, passwordEncoder, new DefaultUUIDGenerator());
+        new AdminBootstrapService(userRepository, userService, properties)
             .createInitialAdminUser();
     }
 }
