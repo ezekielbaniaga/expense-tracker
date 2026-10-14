@@ -8,16 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Errors and validation
-
-- [ ] **400s raised by Spring MVC are not `ErrorResponse`.** `common/GlobalExceptionHandler.java` has no
-      handler for `MethodArgumentTypeMismatchException`, `HttpMessageNotReadableException` or
-      `MissingServletRequestParameterException`, so a malformed UUID (`GET /users/not-a-uuid`), an unknown
-      enum (`PATCH /users/{id}` with `"role":"SUPER"`), `?page=abc`, malformed JSON or a missing `?version=`
-      return Spring Boot's `{timestamp, status, error, path}` body instead. Verified against a real server
-      for the UUID, enum and `page` cases.
-      README section 17 promises the same body for every error.
-
 ## Database
 
 - [ ] **`expense.id` is still `SERIAL` (32-bit).** `V1__initial_tables.sql` created it as `SERIAL`, while
@@ -93,3 +83,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Demoted or disabled admins could use their old token to reinstate themselves; admin endpoints now check the caller in the database (1104109)
 - [x] Register strips usernames and allows only `[A-Za-z0-9._-]` (400 `INVALID_USERNAME`); login strips too but tries the exact name first, so existing accounts still log in (be932ae)
 - [x] Admin bootstrap logs a WARN when `ADMIN_USERNAME` belongs to a non-admin or disabled account, instead of silently skipping; the account is not promoted or re-enabled (6d1caff)
+- [x] 400s raised by Spring MVC now return ErrorResponse (60b83d5)
