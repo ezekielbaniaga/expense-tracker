@@ -2,7 +2,7 @@
 
 2026-10-16
 
-Status: queued in docs/TODO.md (2026-10-16)
+Status: done
 
 ## Context
 

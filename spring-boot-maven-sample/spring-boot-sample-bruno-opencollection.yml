@@ -278,6 +278,84 @@ items:
       timeout: 0
       followRedirects: true
       maxRedirects: 5
+  - info:
+      name: List My Sessions
+      type: http
+      seq: 16
+    http:
+      method: GET
+      url: http://localhost:8080/users/me/sessions
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Revoke My Session
+      type: http
+      seq: 17
+    http:
+      method: DELETE
+      url: http://localhost:8080/users/me/sessions/11111111-1111-1111-1111-111111111111
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Revoke My Other Sessions
+      type: http
+      seq: 18
+    http:
+      method: DELETE
+      url: http://localhost:8080/users/me/sessions
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: List User Sessions (admin)
+      type: http
+      seq: 19
+    http:
+      method: GET
+      url: http://localhost:8080/users/00000000-0000-0000-0000-000000000000/sessions
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Revoke User Session (admin)
+      type: http
+      seq: 20
+    http:
+      method: DELETE
+      url: http://localhost:8080/users/00000000-0000-0000-0000-000000000000/sessions/11111111-1111-1111-1111-111111111111
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
+  - info:
+      name: Revoke User Sessions (admin)
+      type: http
+      seq: 21
+    http:
+      method: DELETE
+      url: http://localhost:8080/users/00000000-0000-0000-0000-000000000000/sessions
+      auth: inherit
+    settings:
+      encodeUrl: true
+      timeout: 0
+      followRedirects: true
+      maxRedirects: 5
 bundled: true
 extensions:
   bruno:

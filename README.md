@@ -176,10 +176,15 @@ The current claims are approximately:
   "sub": "admin",
   "uid": "019f47ca-...",
   "role": "ADMIN",
+  "sid": "5b0c1c1e-...",
   "iat": 1783893415,
   "exp": 1783894315
 }
 ```
+
+`sid` is the `unique_id` of the session the token belongs to. It is optional: tokens issued before the
+claim existed have none, and a `sid` that is not a UUID is rejected. It stays the same when the refresh
+token rotates.
 
 The token contains enough information for the application to reconstruct the authenticated user's security identity without querying the database on every API request.
 
@@ -333,12 +338,15 @@ This means a database compromise does not immediately expose usable refresh toke
 
 Refresh tokens are associated with persistent sessions.
 
+`unique_id` is a random (v4) UUID and is the only session id exposed through the API; `id` stays internal.
+
 Current table:
 
 ```text
 user_sessions
 
 id
+unique_id
 user_id
 refresh_token_hash
 user_agent
@@ -659,6 +667,10 @@ revoked_at != NULL
 401 Unauthorized
 ```
 
+Logout needs the refresh token. Logged-in users can also list and revoke their sessions without it
+(`GET /users/me/sessions`, `DELETE /users/me/sessions[/{sessionId}]`), and admins can do the same for any
+user (`GET`/`DELETE /users/{id}/sessions[/{sessionId}]`). See section 17, "Sessions".
+
 ---
 
 # 13. Authentication vs Authorization
@@ -972,6 +984,62 @@ Content-Type: application/json
   serialized and the second one is refused (with `403`, since by then it is no longer an admin).
 * `404 USER_NOT_FOUND` for an unknown id.
 
+## Sessions
+
+Sessions are identified by their `unique_id` (UUID), never the database id. Active means not revoked and
+not expired.
+
+| Endpoint | Who | Result |
+| --- | --- | --- |
+| `GET /users/me/sessions` | any user | `200` list of your active sessions |
+| `DELETE /users/me/sessions/{sessionId}` | any user | `204` |
+| `DELETE /users/me/sessions` | any user | `200 {"revoked": n}`, all your sessions except the current one |
+| `GET /users/{id}/sessions` | `ADMIN` | `200` list of that user's active sessions |
+| `DELETE /users/{id}/sessions/{sessionId}` | `ADMIN` | `204` |
+| `DELETE /users/{id}/sessions` | `ADMIN` | `200 {"revoked": n}`, all of that user's sessions |
+
+Each list item is:
+
+```json
+{
+  "id": "5b0c1c1e-...",
+  "createdAt": "2026-10-16T08:00:00",
+  "lastUsedAt": "2026-10-16T09:30:00",
+  "expiresAt": "2026-11-15T08:00:00",
+  "userAgent": "Mozilla/5.0 ...",
+  "ipAddress": "203.0.113.7",
+  "current": true
+}
+```
+
+The list is ordered by most recent use, is not paged (the number of active sessions is capped, see
+below), and never contains the refresh token hash.
+
+* **`sid` and `current`.** `current` is true for the session whose id is in the `sid` claim of the access
+  token making the call. For an admin listing another user, it is false on every row, because `sid` is the
+  admin's own session. A token without `sid` (issued before the claim existed, for at most 15 minutes
+  after the upgrade) marks nothing as current, and `DELETE /users/me/sessions` then revokes every
+  session, since it cannot tell which one to keep.
+* **404 and 204 rules.**
+  * `DELETE .../sessions/{sessionId}` is `204` on success and also when the session is already revoked
+    or expired, so repeating the call is safe.
+  * A session that does not exist or belongs to another user is `404 SESSION_NOT_FOUND`, the same answer
+    for both so ids cannot be probed. In the admin path, an unknown `{id}` user gives this too.
+  * `GET /users/{id}/sessions` and `DELETE /users/{id}/sessions` give `404 USER_NOT_FOUND` for an
+    unknown user. The bulk deletes return `{"revoked": 0}` when there is nothing to revoke, not 404.
+  * Revoking your current session works like logout. An admin may revoke their own sessions; this is
+    not a `CANNOT_MODIFY_SELF` case.
+  * `/users/me/sessions` always means the caller's sessions; `me` is never read as a user id.
+  * The admin endpoints check the caller against the database like the other admin endpoints, so a
+    demoted or disabled admin gets `403 ACCESS_DENIED`.
+* **Old tokens still work for a while.** Revoking a session stops its refresh token, but the access token
+  already issued keeps working until it expires, up to `app.jwt.expiration` (15 minutes). The JWT filter
+  never reads the database, so it cannot know about the revoke. The `sid` claim would allow a
+  per-request check later.
+* **Cap of 10 active sessions per user.** A login that would exceed the cap revokes the least recently
+  used sessions first, so the new login always succeeds. The user row is locked during the check, so
+  simultaneous logins cannot go over the cap.
+
 ## What revokes sessions
 
 | Event | Sessions revoked |
@@ -979,6 +1047,11 @@ Content-Type: application/json
 | `POST /auth/logout` | the one session of that refresh token |
 | refresh token reuse | the session that was reused |
 | refresh by a disabled user | that session |
+| `DELETE /users/me/sessions/{sessionId}` | that session (yours) |
+| `DELETE /users/me/sessions` | all your sessions except the current one (all if the token has no `sid`) |
+| `DELETE /users/{id}/sessions/{sessionId}` | that session of that user |
+| `DELETE /users/{id}/sessions` | all sessions of that user |
+| login with 10 active sessions | the least recently used ones, to make room |
 | `POST /users/me/password` | all sessions of the user, including the caller's |
 | `PATCH /users/{id}` that disables the user | all sessions of that user |
 | `PATCH /users/{id}` that demotes `ADMIN` to `USER` | all sessions of that user |
@@ -1096,12 +1169,12 @@ The authentication system is being developed incrementally.
 * [x] `/auth/logout`
 * [x] `POST /auth/register`, roles, `/users/me`, password change
 * [x] Admin user endpoints (`/users`) with session revocation
+* [x] Revoke individual sessions
+* [x] Revoke all sessions
+* [x] Session management API
 
 ### Next
 
-* [ ] Revoke individual sessions
-* [ ] Revoke all sessions
-* [ ] Session management API
 * [ ] Further authentication/security hardening
 * [ ] Additional authorization rules
 
