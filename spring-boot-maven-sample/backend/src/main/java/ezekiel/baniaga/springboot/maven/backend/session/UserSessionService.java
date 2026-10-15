@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +56,8 @@ public class UserSessionService {
         User user = userRepository.getReferenceById(userId);
 
         UserSession session = new UserSession();
+        // Random v4: a session id must not reveal when the session was created
+        session.setUniqueId(UUID.randomUUID());
         session.setUser(user);
         session.setRefreshTokenHash(hashedRefreshToken);
         session.setUserAgent(truncateUserAgent(userAgent));

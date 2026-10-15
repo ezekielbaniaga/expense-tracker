@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * These are important meaning of date fields:
@@ -27,6 +28,10 @@ public class UserSession {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Public id exposed by the session endpoints and the access token's sid claim
+    @Column(name = "unique_id", nullable = false, updatable = false, unique = true)
+    private UUID uniqueId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
