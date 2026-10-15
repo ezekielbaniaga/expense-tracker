@@ -1,6 +1,8 @@
 package ezekiel.baniaga.springboot.maven.backend.user;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
+import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
+import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.AdminUserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UpdateUserRequest;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UserListResponse;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,6 +38,7 @@ public class AdminUserController {
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final UserSessionService userSessionService;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -60,6 +64,19 @@ public class AdminUserController {
     public AdminUserResponse get(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails admin) {
         userService.requireEnabledAdmin(admin.getUniqueId());
         return userMapper.toAdminResponse(userService.getByUniqueId(id));
+    }
+
+    /**
+     * The user's active sessions, most recently used first. current marks
+     * only the admin's own session (their token's sid), so it is false for
+     * every row unless the admin lists their own id. 404 USER_NOT_FOUND.
+     * /users/me/sessions is UserController's, a more specific match than this.
+     */
+    @GetMapping("/{id}/sessions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<SessionResponse> sessions(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails admin) {
+        userService.requireEnabledAdmin(admin.getUniqueId());
+        return userSessionService.listActiveSessions(id, admin.getSessionId());
     }
 
     /**
