@@ -8,21 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Investigation 2026-10-16
-
-- [ ] **Bulk session revokes count (and stamp) expired sessions.** `session/UserSessionRepository.revokeAllForUser` and
-      `revokeAllForUserExcept` filter only `revokedAt IS NULL`, not `expiresAt > now`. So `DELETE /users/me/sessions` and
-      `DELETE /users/{id}/sessions` return `{"revoked": n}` including long-expired sessions, contradicting `RevokedSessionsResponse`
-      Javadoc ("how many active sessions were ended"), `AdminUserController.revokeSessions` Javadoc ("every active session") and README
-      section 17 ("Active means not revoked and not expired"); a user with only expired sessions gets `revoked: 1`, not 0. Verified
-      with a throwaway test: one active + one expired session, revoke others from the active one → returned 1, list showed 1 active.
-      Fix: add `AND s.expiresAt > :now` to both queries (and pass `now`); password change, disable/demote use the same query and only
-      need active sessions too.
-      Test: extend `session/SessionRevokeTests` and `user/AdminSessionTests`: expire one session with `jdbcTemplate`, then revoke-all
-      → count excludes it; expired session's `revoked_at` stays null.
-      Careful: `UserSessionCleanup` uses `expires_at OR revoked_at` so leaving expired rows unrevoked does not change cleanup; keep
-      `revokedAt IS NULL` so first revocation times are kept.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -100,3 +85,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Login caps active sessions at 10 per user, revoking the least recently used; `createSession` locks the user row so concurrent logins cannot exceed it (4488f0d)
 - [x] Session management documented: README (`sid`, `unique_id`, Sessions subsection, revocation table, roadmap) and six Bruno requests; proposal marked done (d9110fc)
 - [x] Login re-checks the user under its row lock: a password change or disable that commits during the password check gives 401 and no session; the access token uses the locked user's role (1b75457)
+- [x] Bulk session revokes (`DELETE /users/me/sessions`, `DELETE /users/{id}/sessions`, password change, disable/demote) skip expired sessions: not counted in `revoked`, `revoked_at` stays null (1d7d652)
