@@ -8,6 +8,70 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## Session Management API
+
+From docs/session-management-proposal.md. Work in order.
+
+- [ ] **V14: session `unique_id` and `user_id` index.** Add `V14__add_unique_id_to_user_sessions.sql`: column `unique_id UUID`,
+      backfill `gen_random_uuid()`, `SET NOT NULL`, unique index `idx_user_sessions_unique_id`, plain index `idx_user_sessions_user_id`.
+      Add `UUID uniqueId` to `session/entity/UserSession.java` (`nullable = false, updatable = false, unique = true`) and set it with
+      `UUID.randomUUID()` (v4, not `DefaultUUIDGenerator`) in `UserSessionService.createSession` before `save`.
+      Test: new `session/UserSessionUniqueIdTests` checks both indexes in `pg_indexes`, NOT NULL in `information_schema`, and two sessions get different ids.
+      Careful: never edit V7/V10. Tests share one DB, so use a fresh user per test. Proposal: "Data model and migrations".
+- [ ] **`sid` claim in the access token.** Add nullable `UUID sessionId` as the last component of `auth/security/JWTPrincipal`. Add
+      `JWTService.generateToken(CustomUserDetails, UUID sessionId)` that writes `sid` only when non-null; keep the 1-arg overload (delegates with null).
+      `toPrincipal` reads `sid` when present. Add nullable `sessionId` to `CustomUserDetails`, keeping a 6-arg constructor so existing callers compile;
+      `CustomUserDetailsMapper.toCustomUserDetails(JWTPrincipal)` copies it.
+      Test: extend `JWTServiceTests`: `sid` round-trips; no `sid` parses with `sessionId == null`; a non-UUID `sid` gives `Optional.empty()`.
+      Careful: a missing `sid` must not throw, or tokens issued before the deploy fail for 15 min. Proposal: "Knowing the current session".
+- [ ] **Carry the session id through login and refresh.** Add record `session/CreatedSession(rawRefreshToken, sessionId)`; `createSession` returns it.
+      Add `UUID sessionId` to `RefreshTokenResult`, from `userSession.getUniqueId()` in `rotateRefreshToken`. In `AuthController.login` call
+      `createSession` FIRST (today it's after `generateToken`), then `generateToken(userDetails, created.sessionId())`; `refresh` passes `result.sessionId()`.
+      Update the ~20 `createSession` call sites in `RefreshTokenReuseTests` and `UserSessionCleanupTests` to `.rawRefreshToken()`.
+      Test: extend `LoginTests`: the login token's `sid` equals the stored session's `uniqueId`, and the token from `/auth/refresh` has the same `sid`.
+      Careful: the session `uniqueId` never changes on rotation; keep the mapping inside the rotation transaction (lazy `User`).
+- [ ] **`GET /users/me/sessions`.** Add `UserSessionRepository.findActiveByUserId(Long userId, LocalDateTime now)` (`revokedAt IS NULL AND expiresAt > :now
+      ORDER BY lastUsedAt DESC, id DESC`), record `session/dto/SessionResponse(id, createdAt, lastUsedAt, expiresAt, userAgent, ipAddress, current)`,
+      `session/mapper/SessionMapper.toResponse(UserSession, UUID currentSid)`, and `UserSessionService.listActiveSessions(UUID userUniqueId, UUID currentSid)`
+      (`readOnly`, resolves the user via `userRepository.findByUniqueId`, 404 `USER_NOT_FOUND`). Wire it in `UserController`.
+      Test: new `session/SessionListTests`: two logins → two sessions, exactly one `current`; revoked and expired excluded; other users' excluded;
+      no `refreshTokenHash` in the body; a token without `sid` → none `current`.
+      Careful: the JWT filter leaves `databaseId` null, so resolve by `uniqueId`. Pass Java `now`, not SQL `now()`. Don't inject `UserService` into
+      `UserSessionService` (cycle). No paging: the cap item below keeps lists at 10.
+- [ ] **`DELETE /users/me/sessions/{sessionId}`.** Add `UserSessionRepository.findByUniqueIdAndUserId`, and `UserSessionService.revokeOwnSession(UUID userUniqueId,
+      UUID sessionId)` (`@Transactional`): not found → `ResourceNotFoundException("SESSION_NOT_FOUND", ...)` (already maps to 404); found → bulk
+      `repository.revoke(id, now)`, INFO log with session and user unique ids. `UserController` returns 204.
+      Test: new `session/SessionRevokeTests`: revoked session's refresh → 401, other session still refreshes; another user's session and a random UUID → 404
+      `SESSION_NOT_FOUND`; repeat → 204; `not-a-uuid` → 400 `VALIDATION_ERROR`; revoking the current session works.
+      Careful: use the bulk `revoke` query, never set `revokedAt` on the loaded entity and save (races with a concurrent rotate). Owned but already revoked → 204.
+- [ ] **`DELETE /users/me/sessions` (revoke all others).** Add `UserSessionRepository.revokeAllForUserExcept(userId, keepUniqueId, revokedAt)` modeled on
+      `revokeAllForUser`, and `UserSessionService.revokeOtherSessions(UUID userUniqueId, UUID currentSid)`. Record `session/dto/RevokedSessionsResponse(int revoked)`;
+      the endpoint returns 200 `{"revoked": n}`.
+      Test: extend `SessionRevokeTests`: three logins, DELETE with the third's token → `revoked: 2`, first two refresh → 401, third still refreshes;
+      a token without `sid` revokes all; a second call → `revoked: 0`.
+      Careful: `uniqueId <> NULL` matches nothing in SQL, so when `currentSid` is null call `revokeAllForUser` instead.
+- [ ] **Admin `GET /users/{id}/sessions`.** In `AdminUserController`, `@PreAuthorize("hasRole('ADMIN')")`, call `userService.requireEnabledAdmin(admin.getUniqueId())`
+      first, then `userSessionService.listActiveSessions(id, admin.getSessionId())`, so `current` marks only the admin's own session. Unknown user → 404 `USER_NOT_FOUND`.
+      Test: new `user/AdminSessionTests`: admin sees the target's sessions; USER → 403; demoted admin's old token → 403; unknown id → 404; routing: an ADMIN
+      calling `GET /users/me/sessions` gets their own list (200, not 400). Add the endpoint to `AdminUserTests.userIsForbiddenOnEveryAdminEndpoint` and
+      `methodSecurityDeniesUserEvenWithoutTheUrlRule`.
+      Careful: if `UserController` lacks a method for a `/users/me/sessions` path, Spring falls through to `/{id}` and `me` fails UUID conversion (400).
+- [ ] **Admin revoke one and revoke all.** `DELETE /users/{id}/sessions/{sessionId}` → 204, reusing `revokeOwnSession(id, sessionId)` (a session not owned by
+      `{id}` → 404 `SESSION_NOT_FOUND`). `DELETE /users/{id}/sessions` → 200 `{"revoked": n}` via `userService.getByUniqueId(id)` (404 `USER_NOT_FOUND`) then
+      `revokeAllForUser`. Both behind `@PreAuthorize` and `requireEnabledAdmin`; INFO log with the admin as actor.
+      Test: extend `AdminSessionTests`: revoke-all kills the target's refresh tokens; revoke-one ends only that session; user B's session via user A's id → 404;
+      USER → 403; demoted admin → 403; admin revoking their own → 200 (no `CANNOT_MODIFY_SELF`). Extend the two `AdminUserTests` forbidden tests.
+- [ ] **Cap active sessions at 10.** Make `createSession` `@Transactional`; lock the user row (`UserRepository` `@Lock(PESSIMISTIC_WRITE) findLockedById`),
+      count active sessions, and when at 10 or more, bulk-revoke the least recently used (`ORDER BY lastUsedAt ASC`) before inserting.
+      Test: new `session/SessionCapTests`: 11 logins → 10 active and the least recently used one's refresh → 401; concurrent logins (thread pool, as in
+      `RefreshTokenReuseTests`) never exceed 10.
+      Careful: without the lock, concurrent logins exceed the cap. Lock order is user row then sessions; refresh locks only the session row.
+- [ ] **Document session management.** `README.md`: add `sid` to the §2 claims, `unique_id` to the §6 columns, the new endpoints to §12, a "Sessions"
+      subsection to §17 (six endpoints, response shape, 404/204 rules, `sid` and old tokens, the cap, and that the access token works up to
+      `app.jwt.expiration` (15m) after a revoke), rows in the "What revokes sessions" table; move the three session roadmap items to Completed.
+      Bruno: six requests at seq 16–21 in `spring-boot-maven-sample/spring-boot-sample-bruno-opencollection.yml` (placeholder UUIDs, `auth: inherit`).
+      Mark the proposal `Status: done`. Test: none (docs); run `./mvnw test` once to confirm nothing changed.
+
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
