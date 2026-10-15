@@ -8,16 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Session Management API
-
-From docs/session-management-proposal.md. Work in order.
-
-- [ ] **Document session management.** `README.md`: add `sid` to the §2 claims, `unique_id` to the §6 columns, the new endpoints to §12, a "Sessions"
-      subsection to §17 (six endpoints, response shape, 404/204 rules, `sid` and old tokens, the cap, and that the access token works up to
-      `app.jwt.expiration` (15m) after a revoke), rows in the "What revokes sessions" table; move the three session roadmap items to Completed.
-      Bruno: six requests at seq 16–21 in `spring-boot-maven-sample/spring-boot-sample-bruno-opencollection.yml` (placeholder UUIDs, `auth: inherit`).
-      Mark the proposal `Status: done`. Test: none (docs); run `./mvnw test` once to confirm nothing changed.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -89,3 +79,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] Admin `GET /users/{id}/sessions` lists a user's active sessions; `current` marks only the admin's own session, unknown user is 404 `USER_NOT_FOUND`, demoted admins get 403 (ccf729b)
 - [x] Admin `DELETE /users/{id}/sessions/{sessionId}` (204; not the user's session is 404 `SESSION_NOT_FOUND`) and `DELETE /users/{id}/sessions` (`{"revoked": n}`, unknown user 404); demoted admins 403, admins may revoke their own (f4e8b5e)
 - [x] Login caps active sessions at 10 per user, revoking the least recently used; `createSession` locks the user row so concurrent logins cannot exceed it (4488f0d)
+- [x] Session management documented: README (`sid`, `unique_id`, Sessions subsection, revocation table, roadmap) and six Bruno requests; proposal marked done (d9110fc)
