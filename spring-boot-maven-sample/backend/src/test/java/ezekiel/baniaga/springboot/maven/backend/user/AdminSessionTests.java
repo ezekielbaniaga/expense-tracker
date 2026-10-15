@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -148,6 +149,24 @@ class AdminSessionTests {
         revokeAll(adminTokens.bearer(), target.getUniqueId())
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.revoked").value(0));
+    }
+
+    // Only active sessions count: an expired one is not counted and keeps revoked_at null
+    @Test
+    void revokeAllSkipsExpiredSessions() throws Exception {
+        User target = createUser(Role.USER);
+        Tokens expired = login(target);
+        Tokens active = login(target);
+        jdbcTemplate.update("UPDATE user_sessions SET expires_at = ? WHERE unique_id = ?",
+            LocalDateTime.now().minusDays(1), UUID.fromString(sidOf(expired)));
+
+        revokeAll(adminTokens.bearer(), target.getUniqueId())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.revoked").value(1));
+
+        refresh(active.refreshToken()).andExpect(status().isUnauthorized());
+        assertThat(jdbcTemplate.queryForObject("SELECT revoked_at FROM user_sessions WHERE unique_id = ?",
+            LocalDateTime.class, UUID.fromString(sidOf(expired)))).isNull();
     }
 
     @Test

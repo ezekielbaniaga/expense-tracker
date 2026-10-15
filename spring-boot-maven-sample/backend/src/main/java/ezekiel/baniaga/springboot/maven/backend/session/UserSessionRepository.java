@@ -62,13 +62,15 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     """)
     int revoke(@Param("id") Long id, @Param("revokedAt") LocalDateTime revokedAt);
 
-    // Ends every active session of a user in one statement. Already revoked
-    // sessions keep their original revocation time.
+    // Ends every active session of a user in one statement and returns how many.
+    // Already revoked sessions keep their original revocation time. Expired ones
+    // are already over, so they are neither counted nor stamped (cleanup removes
+    // them by expires_at). revokedAt doubles as "now" for the expiry check.
     @Transactional
     @Modifying
     @Query("""
         UPDATE UserSession s SET s.revokedAt = :revokedAt
-        WHERE s.user.id = :userId AND s.revokedAt IS NULL
+        WHERE s.user.id = :userId AND s.revokedAt IS NULL AND s.expiresAt > :revokedAt
     """)
     int revokeAllForUser(@Param("userId") Long userId, @Param("revokedAt") LocalDateTime revokedAt);
 
@@ -78,7 +80,8 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     @Modifying
     @Query("""
         UPDATE UserSession s SET s.revokedAt = :revokedAt
-        WHERE s.user.id = :userId AND s.revokedAt IS NULL AND s.uniqueId <> :keepUniqueId
+        WHERE s.user.id = :userId AND s.revokedAt IS NULL AND s.expiresAt > :revokedAt
+          AND s.uniqueId <> :keepUniqueId
     """)
     int revokeAllForUserExcept(
         @Param("userId") Long userId,

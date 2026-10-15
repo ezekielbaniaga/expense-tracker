@@ -12,11 +12,13 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -42,6 +44,7 @@ class SessionRevokeTests {
     @Autowired JWTService jwtService;
     @Autowired UserRepository userRepository;
     @Autowired CustomUserDetailsMapper customUserDetailsMapper;
+    @Autowired JdbcTemplate jdbcTemplate;
 
     @Test
     void revokedSessionCannotRefreshButOtherSessionStillCan() throws Exception {
@@ -163,6 +166,41 @@ class SessionRevokeTests {
         refresh(second.refreshToken()).andExpect(status().isUnauthorized());
     }
 
+    // Only active sessions count: an expired one is already over, so it is not
+    // counted and keeps revoked_at null
+    @Test
+    void revokeAllOthersSkipsExpiredSessions() throws Exception {
+        String username = register("Judy");
+        Tokens expired = login(username);
+        login(username);
+        Tokens current = login(username);
+        expire(expired);
+
+        revokeAll(current.bearer())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.revoked").value(1));
+
+        assertThat(revokedAt(expired)).isNull();
+    }
+
+    // Same for a token without a sid, which revokes every session
+    @Test
+    void tokenWithoutSidSkipsExpiredSessions() throws Exception {
+        String username = register("Ken");
+        Tokens expired = login(username);
+        login(username);
+        expire(expired);
+
+        String noSidToken = jwtService.generateToken(customUserDetailsMapper.toCustomUserDetails(
+            userRepository.findByUsername(username).orElseThrow()));
+
+        revokeAll("Bearer " + noSidToken)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.revoked").value(1));
+
+        assertThat(revokedAt(expired)).isNull();
+    }
+
     @Test
     void revokeAllOthersWithoutTokenIs401() throws Exception {
         mockMvc.perform(delete("/users/me/sessions")).andExpect(status().isUnauthorized());
@@ -193,6 +231,16 @@ class SessionRevokeTests {
         return mockMvc.perform(get("/users/me/sessions").header(HttpHeaders.AUTHORIZATION, bearer))
             .andExpect(status().isOk())
             .andReturn().getResponse().getContentAsString();
+    }
+
+    private void expire(Tokens tokens) {
+        jdbcTemplate.update("UPDATE user_sessions SET expires_at = ? WHERE unique_id = ?",
+            LocalDateTime.now().minusDays(1), UUID.fromString(sidOf(tokens)));
+    }
+
+    private LocalDateTime revokedAt(Tokens tokens) {
+        return jdbcTemplate.queryForObject("SELECT revoked_at FROM user_sessions WHERE unique_id = ?",
+            LocalDateTime.class, UUID.fromString(sidOf(tokens)));
     }
 
     private String sidOf(Tokens tokens) {

@@ -216,7 +216,7 @@ public class UserSessionService {
     }
 
     /**
-     * "Log out everywhere else": revokes every session of the user except
+     * "Log out everywhere else": revokes every active session of the user except
      * currentSid, the caller's own. Returns how many were revoked, so a
      * repeated call returns 0.
      *
