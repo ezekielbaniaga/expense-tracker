@@ -2,6 +2,8 @@ package ezekiel.baniaga.springboot.maven.backend.session;
 
 import com.jayway.jsonpath.JsonPath;
 import ezekiel.baniaga.springboot.maven.backend.TestcontainersConfiguration;
+import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
+import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,7 @@ class SessionCapTests {
     @Autowired JsonMapper jsonMapper;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired UserRepository userRepository;
+    @Autowired CustomUserDetailsMapper customUserDetailsMapper;
     @Autowired UserSessionService userSessionService;
     @Autowired JWTService jwtService;
 
@@ -84,7 +87,8 @@ class SessionCapTests {
     @Test
     void concurrentLoginsNeverExceedTheCap() throws Exception {
         String username = register("Race");
-        Long userId = userRepository.findByUsername(username).orElseThrow().getId();
+        CustomUserDetails userDetails = customUserDetailsMapper.toCustomUserDetails(
+            userRepository.findByUsername(username).orElseThrow());
         int threads = 20;
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -94,7 +98,7 @@ class SessionCapTests {
             for (int i = 0; i < threads; i++) {
                 results.add(pool.submit(() -> {
                     start.await();
-                    return userSessionService.createSession(userId, "test", "127.0.0.1");
+                    return userSessionService.createSession(userDetails, "test", "127.0.0.1");
                 }));
             }
             start.countDown();

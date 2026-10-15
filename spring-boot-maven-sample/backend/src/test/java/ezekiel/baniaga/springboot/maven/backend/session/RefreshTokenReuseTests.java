@@ -1,6 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
 import ezekiel.baniaga.springboot.maven.backend.TestcontainersConfiguration;
+import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
@@ -43,6 +44,7 @@ class RefreshTokenReuseTests {
     @Autowired UserSessionRepository userSessionRepository;
     @Autowired RefreshTokenHasher refreshTokenHasher;
     @Autowired UserRepository userRepository;
+    @Autowired CustomUserDetailsMapper customUserDetailsMapper;
     @Autowired MockMvc mockMvc;
 
     private User user;
@@ -61,7 +63,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void rotationResultIsUsableOutsideTransaction() {
-        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
 
         // No web request here, so no open-session-in-view to rescue a lazy proxy
         RefreshTokenResult result = userSessionService.rotateRefreshToken(token);
@@ -73,7 +75,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void disabledUserCannotRefreshAndSessionIsRevoked() throws Exception {
-        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
 
         user.setEnabled(false);
         user = userRepository.save(user);
@@ -91,7 +93,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void reusingRotatedTokenRevokesSession() {
-        String first = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String first = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
         String second = userSessionService.rotateRefreshToken(first).newRawRefreshToken();
 
         assertThatThrownBy(() -> userSessionService.rotateRefreshToken(first))
@@ -107,7 +109,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void reuseIsDetectedAfterSeveralRotations() {
-        String first = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String first = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
         String second = userSessionService.rotateRefreshToken(first).newRawRefreshToken();
         String third = userSessionService.rotateRefreshToken(second).newRawRefreshToken();
 
@@ -119,7 +121,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void unknownTokenIsRejectedWithoutRevokingAnything() {
-        String current = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String current = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
 
         assertThatThrownBy(() -> userSessionService.rotateRefreshToken("never-issued"))
             .isInstanceOf(BadCredentialsException.class)
@@ -130,7 +132,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void expiredSessionCannotRefresh() throws Exception {
-        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
         UserSession session = sessionFor(token);
         session.setExpiresAt(LocalDateTime.now().minusMinutes(1));
         userSessionRepository.save(session);
@@ -149,7 +151,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void revokedSessionCannotRefresh() throws Exception {
-        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
         LocalDateTime revokedAt = LocalDateTime.now().minusMinutes(5);
         UserSession session = sessionFor(token);
         session.setRevokedAt(revokedAt);
@@ -169,7 +171,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void concurrentRefreshesWithSameTokenLetOnlyOneSucceed() throws Exception {
-        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
         int threads = 8;
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -206,7 +208,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void refreshEndpointReturns401OnReuse() throws Exception {
-        String first = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String first = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
 
         refresh(first).andExpect(status().isOk());
         refresh(first).andExpect(status().isUnauthorized());
@@ -214,7 +216,7 @@ class RefreshTokenReuseTests {
 
     @Test
     void logoutRevokesSessionSoRefreshFails() throws Exception {
-        String token = userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
 
         // No access token needed: logout must work after the JWT expired
         logout(token).andExpect(status().isNoContent());
@@ -225,8 +227,8 @@ class RefreshTokenReuseTests {
 
     @Test
     void logoutOnlyRevokesThatSession() throws Exception {
-        String laptop = userSessionService.createSession(user.getId(), "laptop", "127.0.0.1").rawRefreshToken();
-        String phone = userSessionService.createSession(user.getId(), "phone", "127.0.0.1").rawRefreshToken();
+        String laptop = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "laptop", "127.0.0.1").rawRefreshToken();
+        String phone = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "phone", "127.0.0.1").rawRefreshToken();
 
         logout(laptop).andExpect(status().isNoContent());
 

@@ -1,6 +1,8 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
 import ezekiel.baniaga.springboot.maven.backend.TestcontainersConfiguration;
+import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
+import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
@@ -30,6 +32,7 @@ class UserSessionUniqueIdTests {
     @Autowired UserSessionService userSessionService;
     @Autowired RefreshTokenHasher refreshTokenHasher;
     @Autowired UserRepository userRepository;
+    @Autowired CustomUserDetailsMapper customUserDetailsMapper;
 
     // unique_id is the public session id (looked up by the session endpoints);
     // user_id is filtered on by listing and revokeAllForUser
@@ -65,10 +68,10 @@ class UserSessionUniqueIdTests {
 
     @Test
     void eachSessionGetsItsOwnUniqueId() {
-        Long userId = newUser().getId();
+        CustomUserDetails userDetails = customUserDetailsMapper.toCustomUserDetails(newUser());
 
-        UUID first = uniqueIdOf(userSessionService.createSession(userId, "agent", "127.0.0.1").rawRefreshToken());
-        UUID second = uniqueIdOf(userSessionService.createSession(userId, "agent", "127.0.0.1").rawRefreshToken());
+        UUID first = uniqueIdOf(userSessionService.createSession(userDetails, "agent", "127.0.0.1").rawRefreshToken());
+        UUID second = uniqueIdOf(userSessionService.createSession(userDetails, "agent", "127.0.0.1").rawRefreshToken());
 
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();

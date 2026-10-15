@@ -1,6 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
 import ezekiel.baniaga.springboot.maven.backend.TestcontainersConfiguration;
+import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
@@ -30,6 +31,7 @@ class UserSessionCleanupTests {
     @Autowired UsedRefreshTokenRepository usedRefreshTokenRepository;
     @Autowired RefreshTokenHasher refreshTokenHasher;
     @Autowired UserRepository userRepository;
+    @Autowired CustomUserDetailsMapper customUserDetailsMapper;
 
     private User user;
 
@@ -75,7 +77,7 @@ class UserSessionCleanupTests {
     }
 
     private String newSession() {
-        return userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
+        return userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
     }
 
     private Long sessionId(String rawToken) {

@@ -1,6 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
+import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.common.ResourceNotFoundException;
 import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UsedRefreshToken;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -59,10 +61,15 @@ public class UserSessionService {
      * without it each would see room under the cap and all would insert.
      * Lock order is the user row, then sessions. Refresh locks only its session
      * row, so the two can't deadlock.
+     *
+     * authenticated is the user as AuthenticationManager loaded it. Under the
+     * lock the user is read again: if it was disabled or its password hash
+     * changed since, the login is rejected (DisabledException /
+     * BadCredentialsException, 401) and no session is created.
      */
     @Transactional
     public CreatedSession createSession(
-            Long userId,
+            CustomUserDetails authenticated,
             String userAgent,
             String ipAddress) {
 
@@ -70,8 +77,20 @@ public class UserSessionService {
         String hashedRefreshToken = refreshTokenHasher.hash(rawRefreshToken);
         LocalDateTime now = LocalDateTime.now();
 
+        Long userId = authenticated.getDatabaseId();
         User user = userRepository.findLockedById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
+
+        // The password was checked before this lock. A password change or disable
+        // that committed since then already ran revokeAllForUser, so a session
+        // created now would survive it. Compare the hash, not last_modified: a
+        // role change sets that too and must not fail the login.
+        if (!user.isEnabled()) {
+            throw new DisabledException("User account is disabled");
+        }
+        if (!Objects.equals(user.getPassword(), authenticated.getPassword())) {
+            throw new BadCredentialsException("Bad credentials");
+        }
 
         revokeLeastRecentlyUsedOverCap(userId, now);
 
@@ -88,7 +107,11 @@ public class UserSessionService {
 
         repository.save(session);
 
-        return new CreatedSession(rawRefreshToken, session.getUniqueId());
+        return new CreatedSession(
+            rawRefreshToken,
+            session.getUniqueId(),
+            customUserDetailsMapper.toCustomUserDetails(user)
+        );
     }
 
     /**

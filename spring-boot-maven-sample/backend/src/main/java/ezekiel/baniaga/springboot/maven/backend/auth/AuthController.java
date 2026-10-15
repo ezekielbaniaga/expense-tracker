@@ -73,13 +73,15 @@ public class AuthController {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
         // Session first, so the access token can carry its id as the sid claim
+        // Re-checks the user under its row lock: a password change or disable may have
+        // committed while the password was being checked
         CreatedSession created = userSessionService.createSession(
-            userDetails.getDatabaseId(),
+            userDetails,
             httpServletRequest.getHeader(HttpHeaders.USER_AGENT),
             httpServletRequest.getRemoteAddr()
         );
 
-        String token = jwtService.generateToken(userDetails, created.sessionId());
+        String token = jwtService.generateToken(created.userDetails(), created.sessionId());
 
         return new LoginResponse(token, created.rawRefreshToken());
     }
