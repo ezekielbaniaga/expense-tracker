@@ -12,12 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **`DELETE /users/me/sessions` (revoke all others).** Add `UserSessionRepository.revokeAllForUserExcept(userId, keepUniqueId, revokedAt)` modeled on
-      `revokeAllForUser`, and `UserSessionService.revokeOtherSessions(UUID userUniqueId, UUID currentSid)`. Record `session/dto/RevokedSessionsResponse(int revoked)`;
-      the endpoint returns 200 `{"revoked": n}`.
-      Test: extend `SessionRevokeTests`: three logins, DELETE with the third's token → `revoked: 2`, first two refresh → 401, third still refreshes;
-      a token without `sid` revokes all; a second call → `revoked: 0`.
-      Careful: `uniqueId <> NULL` matches nothing in SQL, so when `currentSid` is null call `revokeAllForUser` instead.
 - [ ] **Admin `GET /users/{id}/sessions`.** In `AdminUserController`, `@PreAuthorize("hasRole('ADMIN')")`, call `userService.requireEnabledAdmin(admin.getUniqueId())`
       first, then `userSessionService.listActiveSessions(id, admin.getSessionId())`, so `current` marks only the admin's own session. Unknown user → 404 `USER_NOT_FOUND`.
       Test: new `user/AdminSessionTests`: admin sees the target's sessions; USER → 403; demoted admin's old token → 403; unknown id → 404; routing: an ADMIN
@@ -107,3 +101,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] Login and refresh put the session's `unique_id` in the access token `sid`; `createSession` returns `CreatedSession`, `RefreshTokenResult` has `sessionId` (2c4a927)
 - [x] `GET /users/me/sessions` lists active sessions (most recently used first) as `SessionResponse`; the token's `sid` session is `current`, none for tokens without `sid` (0e5fbb1)
 - [x] `DELETE /users/me/sessions/{sessionId}` revokes one of your sessions (204, also if already revoked); another user's or unknown id is 404 `SESSION_NOT_FOUND` (bc7bfdf)
+- [x] `DELETE /users/me/sessions` revokes all your other sessions and returns `{"revoked": n}`; a token without `sid` revokes all (6b65014)
