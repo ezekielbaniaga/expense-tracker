@@ -36,6 +36,23 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     """)
     List<UserSession> findActiveByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 
+    // Ids of the user's active sessions, least recently used first, for the session cap.
+    // id breaks ties so the oldest login goes first when lastUsedAt is equal.
+    @Query("""
+        SELECT s.id FROM UserSession s
+        WHERE s.user.id = :userId AND s.revokedAt IS NULL AND s.expiresAt > :now
+        ORDER BY s.lastUsedAt ASC, s.id ASC
+    """)
+    List<Long> findActiveIdsLeastRecentlyUsedFirst(@Param("userId") Long userId, @Param("now") LocalDateTime now);
+
+    // Bulk revoke by id, keeping the first revocation time of already revoked sessions
+    @Modifying
+    @Query("""
+        UPDATE UserSession s SET s.revokedAt = :revokedAt
+        WHERE s.id IN :ids AND s.revokedAt IS NULL
+    """)
+    int revokeAll(@Param("ids") List<Long> ids, @Param("revokedAt") LocalDateTime revokedAt);
+
     // Keeps the first revocation time if the session was already revoked
     @Transactional
     @Modifying

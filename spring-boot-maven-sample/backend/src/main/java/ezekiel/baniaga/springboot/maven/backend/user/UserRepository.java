@@ -22,6 +22,12 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // The access token carries the unique_id, not the database id
     Optional<User> findByUniqueId(UUID uniqueId);
 
+    // SELECT ... FOR UPDATE on one user, so concurrent logins of that user count
+    // their sessions one after another (session cap in UserSessionService)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findLockedById(@Param("id") Long id);
+
     // SELECT ... FOR UPDATE on every enabled admin, so two admins removing each other
     // at once can't both count two. The second waits, and PostgreSQL re-checks the WHERE
     // on the rows the first changed, so it counts one. Ordered so both lock in the same order.

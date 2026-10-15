@@ -27,6 +27,9 @@ public class UserSessionService {
     // Matches user_sessions.user_agent VARCHAR(500) (V7)
     private static final int MAX_USER_AGENT_LENGTH = 500;
 
+    // Most active sessions a user can have; logging in past it ends the least recently used
+    static final int MAX_ACTIVE_SESSIONS = 10;
+
     private final UserRepository userRepository;
     private final UserSessionRepository repository;
     private final UsedRefreshTokenRepository usedRefreshTokenRepository;
@@ -48,7 +51,16 @@ public class UserSessionService {
            ├──▶ Client
            │
            └──▶ NEVER database
+     *
+     * At most MAX_ACTIVE_SESSIONS stay active: when the user already has that
+     * many, the least recently used ones are revoked first, so the new login
+     * always succeeds. The user row is locked (SELECT ... FOR UPDATE) for the
+     * transaction, so concurrent logins of one user count one after another;
+     * without it each would see room under the cap and all would insert.
+     * Lock order is the user row, then sessions. Refresh locks only its session
+     * row, so the two can't deadlock.
      */
+    @Transactional
     public CreatedSession createSession(
             Long userId,
             String userAgent,
@@ -58,8 +70,10 @@ public class UserSessionService {
         String hashedRefreshToken = refreshTokenHasher.hash(rawRefreshToken);
         LocalDateTime now = LocalDateTime.now();
 
-        //This creates a reference/proxy without immediately querying the database.
-        User user = userRepository.getReferenceById(userId);
+        User user = userRepository.findLockedById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
+
+        revokeLeastRecentlyUsedOverCap(userId, now);
 
         UserSession session = new UserSession();
         // Random v4: a session id must not reveal when the session was created
@@ -228,6 +242,22 @@ public class UserSessionService {
     public int cleanupEndedSessions(int retentionDays, int limit) {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
         return repository.deleteEndedBefore(cutoff, limit);
+    }
+
+    /**
+     * Makes room for one more session: revokes the least recently used active
+     * sessions until MAX_ACTIVE_SESSIONS - 1 are left. Must run under the user
+     * row lock taken by createSession.
+     */
+    private void revokeLeastRecentlyUsedOverCap(Long userId, LocalDateTime now) {
+        List<Long> active = repository.findActiveIdsLeastRecentlyUsedFirst(userId, now);
+        int excess = active.size() - (MAX_ACTIVE_SESSIONS - 1);
+        if (excess <= 0) {
+            return;
+        }
+
+        int revoked = repository.revokeAll(active.subList(0, excess), now);
+        log.info("Session cap reached, revoked {} least recently used session(s) of user {}", revoked, userId);
     }
 
     /**
