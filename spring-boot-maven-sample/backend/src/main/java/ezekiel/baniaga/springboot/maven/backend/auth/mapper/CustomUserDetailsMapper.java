@@ -15,7 +15,8 @@ public class CustomUserDetailsMapper {
             principal.username(),
             null,
             principal.role(),
-            true
+            true,
+            principal.sessionId()
         );
     }
 

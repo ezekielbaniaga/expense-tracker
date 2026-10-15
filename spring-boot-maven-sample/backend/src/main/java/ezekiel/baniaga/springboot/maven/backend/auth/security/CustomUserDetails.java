@@ -1,7 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.auth.security;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
     @Getter
@@ -23,6 +23,14 @@ public class CustomUserDetails implements UserDetails {
     @Getter
     private final String role;
     private final boolean enabled;
+    // The sid claim of the access token; null when loaded from the database or for older tokens
+    @Getter
+    private final @Nullable UUID sessionId;
+
+    public CustomUserDetails(Long databaseId, UUID uniqueId, String username, String password,
+                             String role, boolean enabled) {
+        this(databaseId, uniqueId, username, password, role, enabled, null);
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

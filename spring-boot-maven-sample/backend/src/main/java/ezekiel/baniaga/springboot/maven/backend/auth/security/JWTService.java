@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.props.JWTProperties;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -26,12 +27,24 @@ public class JWTService {
     private volatile SecretKey signingKey;
 
     public String generateToken(CustomUserDetails user) {
+        return generateToken(user, null);
+    }
+
+    /**
+     * @param sessionId the session's public unique id, written as the {@code sid} claim;
+     *                  when null the claim is left out
+     */
+    public String generateToken(CustomUserDetails user, UUID sessionId) {
         Instant now = Instant.now();
 
-        return Jwts.builder()
+        JwtBuilder builder = Jwts.builder()
             .subject(user.getUsername())
             .claim("uid", user.getUniqueId().toString())
-            .claim("role", user.getRole())
+            .claim("role", user.getRole());
+        if (sessionId != null) {
+            builder.claim("sid", sessionId.toString());
+        }
+        return builder
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plus(jwtProperties.getExpiration())))
             .signWith(signingKey())
@@ -70,11 +83,15 @@ public class JWTService {
         return extractAllClaims(token).getExpiration().toInstant();
     }
 
+    // A missing sid is allowed (tokens issued before the claim existed); a malformed one
+    // throws IllegalArgumentException, which parsePrincipal turns into empty
     private JWTPrincipal toPrincipal(Claims claims) {
+        String sid = claims.get("sid", String.class);
         return new JWTPrincipal(
             UUID.fromString(claims.get("uid", String.class)),
             claims.getSubject(),
-            claims.get("role", String.class)
+            claims.get("role", String.class),
+            sid == null ? null : UUID.fromString(sid)
         );
     }
 
