@@ -12,14 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **`GET /users/me/sessions`.** Add `UserSessionRepository.findActiveByUserId(Long userId, LocalDateTime now)` (`revokedAt IS NULL AND expiresAt > :now
-      ORDER BY lastUsedAt DESC, id DESC`), record `session/dto/SessionResponse(id, createdAt, lastUsedAt, expiresAt, userAgent, ipAddress, current)`,
-      `session/mapper/SessionMapper.toResponse(UserSession, UUID currentSid)`, and `UserSessionService.listActiveSessions(UUID userUniqueId, UUID currentSid)`
-      (`readOnly`, resolves the user via `userRepository.findByUniqueId`, 404 `USER_NOT_FOUND`). Wire it in `UserController`.
-      Test: new `session/SessionListTests`: two logins → two sessions, exactly one `current`; revoked and expired excluded; other users' excluded;
-      no `refreshTokenHash` in the body; a token without `sid` → none `current`.
-      Careful: the JWT filter leaves `databaseId` null, so resolve by `uniqueId`. Pass Java `now`, not SQL `now()`. Don't inject `UserService` into
-      `UserSessionService` (cycle). No paging: the cap item below keeps lists at 10.
 - [ ] **`DELETE /users/me/sessions/{sessionId}`.** Add `UserSessionRepository.findByUniqueIdAndUserId`, and `UserSessionService.revokeOwnSession(UUID userUniqueId,
       UUID sessionId)` (`@Transactional`): not found → `ResourceNotFoundException("SESSION_NOT_FOUND", ...)` (already maps to 404); found → bulk
       `repository.revoke(id, now)`, INFO log with session and user unique ids. `UserController` returns 204.
@@ -119,3 +111,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] `user_sessions.unique_id` (random v4 UUID, NOT NULL, unique index) and a `user_id` index (V14); `createSession` sets it (fbb9c10)
 - [x] Access token carries an optional `sid` claim (`JWTPrincipal`/`CustomUserDetails.sessionId`); missing `sid` parses to null, non-UUID is rejected (7f92648)
 - [x] Login and refresh put the session's `unique_id` in the access token `sid`; `createSession` returns `CreatedSession`, `RefreshTokenResult` has `sessionId` (2c4a927)
+- [x] `GET /users/me/sessions` lists active sessions (most recently used first) as `SessionResponse`; the token's `sid` session is `current`, none for tokens without `sid` (0e5fbb1)
