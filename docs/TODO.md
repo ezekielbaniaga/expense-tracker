@@ -12,12 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **V14: session `unique_id` and `user_id` index.** Add `V14__add_unique_id_to_user_sessions.sql`: column `unique_id UUID`,
-      backfill `gen_random_uuid()`, `SET NOT NULL`, unique index `idx_user_sessions_unique_id`, plain index `idx_user_sessions_user_id`.
-      Add `UUID uniqueId` to `session/entity/UserSession.java` (`nullable = false, updatable = false, unique = true`) and set it with
-      `UUID.randomUUID()` (v4, not `DefaultUUIDGenerator`) in `UserSessionService.createSession` before `save`.
-      Test: new `session/UserSessionUniqueIdTests` checks both indexes in `pg_indexes`, NOT NULL in `information_schema`, and two sessions get different ids.
-      Careful: never edit V7/V10. Tests share one DB, so use a fresh user per test. Proposal: "Data model and migrations".
 - [ ] **`sid` claim in the access token.** Add nullable `UUID sessionId` as the last component of `auth/security/JWTPrincipal`. Add
       `JWTService.generateToken(CustomUserDetails, UUID sessionId)` that writes `sid` only when non-null; keep the 1-arg overload (delegates with null).
       `toPrincipal` reads `sid` when present. Add nullable `sessionId` to `CustomUserDetails`, keeping a 6-arg constructor so existing callers compile;
@@ -134,3 +128,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] `expense.id` and `expense_id_seq` are `BIGINT` (V13), matching `Expense.id` as `Long` (dd839a9)
 - [x] README section 17 already documents the `{"code", "messages", "timestamp"}` error body; verified against `ErrorResponse` (60b83d5)
 - [x] `AdminUserController` Javadoc now says a promotion applies at the next `/auth/refresh`, only demotion/disabling force a login (840e145)
+- [x] `user_sessions.unique_id` (random v4 UUID, NOT NULL, unique index) and a `user_id` index (V14); `createSession` sets it (fbb9c10)
