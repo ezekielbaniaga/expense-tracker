@@ -12,12 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **`DELETE /users/me/sessions/{sessionId}`.** Add `UserSessionRepository.findByUniqueIdAndUserId`, and `UserSessionService.revokeOwnSession(UUID userUniqueId,
-      UUID sessionId)` (`@Transactional`): not found → `ResourceNotFoundException("SESSION_NOT_FOUND", ...)` (already maps to 404); found → bulk
-      `repository.revoke(id, now)`, INFO log with session and user unique ids. `UserController` returns 204.
-      Test: new `session/SessionRevokeTests`: revoked session's refresh → 401, other session still refreshes; another user's session and a random UUID → 404
-      `SESSION_NOT_FOUND`; repeat → 204; `not-a-uuid` → 400 `VALIDATION_ERROR`; revoking the current session works.
-      Careful: use the bulk `revoke` query, never set `revokedAt` on the loaded entity and save (races with a concurrent rotate). Owned but already revoked → 204.
 - [ ] **`DELETE /users/me/sessions` (revoke all others).** Add `UserSessionRepository.revokeAllForUserExcept(userId, keepUniqueId, revokedAt)` modeled on
       `revokeAllForUser`, and `UserSessionService.revokeOtherSessions(UUID userUniqueId, UUID currentSid)`. Record `session/dto/RevokedSessionsResponse(int revoked)`;
       the endpoint returns 200 `{"revoked": n}`.
@@ -112,3 +106,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] Access token carries an optional `sid` claim (`JWTPrincipal`/`CustomUserDetails.sessionId`); missing `sid` parses to null, non-UUID is rejected (7f92648)
 - [x] Login and refresh put the session's `unique_id` in the access token `sid`; `createSession` returns `CreatedSession`, `RefreshTokenResult` has `sessionId` (2c4a927)
 - [x] `GET /users/me/sessions` lists active sessions (most recently used first) as `SessionResponse`; the token's `sid` session is `current`, none for tokens without `sid` (0e5fbb1)
+- [x] `DELETE /users/me/sessions/{sessionId}` revokes one of your sessions (204, also if already revoked); another user's or unknown id is 404 `SESSION_NOT_FOUND` (bc7bfdf)
