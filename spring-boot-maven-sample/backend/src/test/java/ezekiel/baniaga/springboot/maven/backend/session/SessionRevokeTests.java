@@ -2,7 +2,9 @@ package ezekiel.baniaga.springboot.maven.backend.session;
 
 import com.jayway.jsonpath.JsonPath;
 import ezekiel.baniaga.springboot.maven.backend.TestcontainersConfiguration;
+import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
+import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,6 +40,8 @@ class SessionRevokeTests {
     @Autowired MockMvc mockMvc;
     @Autowired JsonMapper jsonMapper;
     @Autowired JWTService jwtService;
+    @Autowired UserRepository userRepository;
+    @Autowired CustomUserDetailsMapper customUserDetailsMapper;
 
     @Test
     void revokedSessionCannotRefreshButOtherSessionStillCan() throws Exception {
@@ -111,6 +115,59 @@ class SessionRevokeTests {
             .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void revokeAllOthersKeepsOnlyTheCurrentSession() throws Exception {
+        String username = register("Grace");
+        Tokens first = login(username);
+        Tokens second = login(username);
+        Tokens third = login(username);
+
+        revokeAll(third.bearer())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.revoked").value(2));
+
+        refresh(first.refreshToken()).andExpect(status().isUnauthorized());
+        refresh(second.refreshToken()).andExpect(status().isUnauthorized());
+        refresh(third.refreshToken()).andExpect(status().isOk());
+    }
+
+    // Already revoked sessions are not counted again
+    @Test
+    void repeatingRevokeAllOthersRevokesNothing() throws Exception {
+        String username = register("Heidi");
+        login(username);
+        Tokens current = login(username);
+
+        revokeAll(current.bearer()).andExpect(jsonPath("$.revoked").value(1));
+        revokeAll(current.bearer())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.revoked").value(0));
+    }
+
+    // An older token without a sid can't say which session to keep, so every
+    // session is revoked (WHERE unique_id <> NULL would match none)
+    @Test
+    void tokenWithoutSidRevokesEverySession() throws Exception {
+        String username = register("Ivan");
+        Tokens first = login(username);
+        Tokens second = login(username);
+
+        String noSidToken = jwtService.generateToken(customUserDetailsMapper.toCustomUserDetails(
+            userRepository.findByUsername(username).orElseThrow()));
+
+        revokeAll("Bearer " + noSidToken)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.revoked").value(2));
+
+        refresh(first.refreshToken()).andExpect(status().isUnauthorized());
+        refresh(second.refreshToken()).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void revokeAllOthersWithoutTokenIs401() throws Exception {
+        mockMvc.perform(delete("/users/me/sessions")).andExpect(status().isUnauthorized());
+    }
+
     private record Tokens(String accessToken, String refreshToken) {
         String bearer() {
             return "Bearer " + accessToken;
@@ -120,6 +177,10 @@ class SessionRevokeTests {
     private ResultActions revoke(String bearer, String sessionId) throws Exception {
         return mockMvc.perform(delete("/users/me/sessions/{id}", sessionId)
             .header(HttpHeaders.AUTHORIZATION, bearer));
+    }
+
+    private ResultActions revokeAll(String bearer) throws Exception {
+        return mockMvc.perform(delete("/users/me/sessions").header(HttpHeaders.AUTHORIZATION, bearer));
     }
 
     private ResultActions refresh(String refreshToken) throws Exception {

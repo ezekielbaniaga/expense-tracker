@@ -2,6 +2,7 @@ package ezekiel.baniaga.springboot.maven.backend.user;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
+import ezekiel.baniaga.springboot.maven.backend.session.dto.RevokedSessionsResponse;
 import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.ChangePasswordRequest;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UserResponse;
@@ -47,6 +48,17 @@ public class UserController {
     @GetMapping("/me/sessions")
     public List<SessionResponse> sessions(@AuthenticationPrincipal CustomUserDetails user) {
         return userSessionService.listActiveSessions(user.getUniqueId(), user.getSessionId());
+    }
+
+    /**
+     * Revokes all your sessions except the current one ("log out everywhere
+     * else"). 200 with the number revoked; 0 when there was nothing to revoke.
+     * A token without a sid claim revokes every session, its own included.
+     */
+    @DeleteMapping("/me/sessions")
+    public RevokedSessionsResponse revokeOtherSessions(@AuthenticationPrincipal CustomUserDetails user) {
+        return new RevokedSessionsResponse(
+            userSessionService.revokeOtherSessions(user.getUniqueId(), user.getSessionId()));
     }
 
     /**

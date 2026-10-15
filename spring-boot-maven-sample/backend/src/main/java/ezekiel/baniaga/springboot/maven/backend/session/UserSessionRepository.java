@@ -55,6 +55,19 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     """)
     int revokeAllForUser(@Param("userId") Long userId, @Param("revokedAt") LocalDateTime revokedAt);
 
+    // Like revokeAllForUser, but keeps the session with keepUniqueId. keepUniqueId must
+    // not be null: unique_id <> NULL is never true in SQL, so nothing would be revoked.
+    @Transactional
+    @Modifying
+    @Query("""
+        UPDATE UserSession s SET s.revokedAt = :revokedAt
+        WHERE s.user.id = :userId AND s.revokedAt IS NULL AND s.uniqueId <> :keepUniqueId
+    """)
+    int revokeAllForUserExcept(
+        @Param("userId") Long userId,
+        @Param("keepUniqueId") UUID keepUniqueId,
+        @Param("revokedAt") LocalDateTime revokedAt);
+
     // Native Query as JPQL does not support LIMIT in DELETE.
     // used_refresh_tokens rows go with their session (ON DELETE CASCADE).
     @Modifying

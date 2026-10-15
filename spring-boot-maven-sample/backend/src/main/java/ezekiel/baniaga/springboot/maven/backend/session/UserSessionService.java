@@ -179,6 +179,29 @@ public class UserSessionService {
     }
 
     /**
+     * "Log out everywhere else": revokes every session of the user except
+     * currentSid, the caller's own. Returns how many were revoked, so a
+     * repeated call returns 0.
+     *
+     * A token without a sid (issued before the claim existed) can't say which
+     * session is its own, so every session is revoked. Comparing against a
+     * null sid in SQL would match nothing and silently revoke none.
+     */
+    @Transactional
+    public int revokeOtherSessions(UUID userUniqueId, UUID currentSid) {
+        User user = userRepository.findByUniqueId(userUniqueId)
+            .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
+
+        LocalDateTime now = LocalDateTime.now();
+        int revoked = currentSid == null
+            ? repository.revokeAllForUser(user.getId(), now)
+            : repository.revokeAllForUserExcept(user.getId(), currentSid, now);
+
+        log.info("Revoked {} other session(s) of user {}", revoked, userUniqueId);
+        return revoked;
+    }
+
+    /**
      * Active sessions of the user, most recently used first. The one whose
      * unique_id equals currentSid is marked current; with no sid (older
      * tokens) none is. No paging: active sessions are capped per user.
