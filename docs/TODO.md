@@ -12,12 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **Carry the session id through login and refresh.** Add record `session/CreatedSession(rawRefreshToken, sessionId)`; `createSession` returns it.
-      Add `UUID sessionId` to `RefreshTokenResult`, from `userSession.getUniqueId()` in `rotateRefreshToken`. In `AuthController.login` call
-      `createSession` FIRST (today it's after `generateToken`), then `generateToken(userDetails, created.sessionId())`; `refresh` passes `result.sessionId()`.
-      Update the ~20 `createSession` call sites in `RefreshTokenReuseTests` and `UserSessionCleanupTests` to `.rawRefreshToken()`.
-      Test: extend `LoginTests`: the login token's `sid` equals the stored session's `uniqueId`, and the token from `/auth/refresh` has the same `sid`.
-      Careful: the session `uniqueId` never changes on rotation; keep the mapping inside the rotation transaction (lazy `User`).
 - [ ] **`GET /users/me/sessions`.** Add `UserSessionRepository.findActiveByUserId(Long userId, LocalDateTime now)` (`revokedAt IS NULL AND expiresAt > :now
       ORDER BY lastUsedAt DESC, id DESC`), record `session/dto/SessionResponse(id, createdAt, lastUsedAt, expiresAt, userAgent, ipAddress, current)`,
       `session/mapper/SessionMapper.toResponse(UserSession, UUID currentSid)`, and `UserSessionService.listActiveSessions(UUID userUniqueId, UUID currentSid)`
@@ -124,3 +118,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] `AdminUserController` Javadoc now says a promotion applies at the next `/auth/refresh`, only demotion/disabling force a login (840e145)
 - [x] `user_sessions.unique_id` (random v4 UUID, NOT NULL, unique index) and a `user_id` index (V14); `createSession` sets it (fbb9c10)
 - [x] Access token carries an optional `sid` claim (`JWTPrincipal`/`CustomUserDetails.sessionId`); missing `sid` parses to null, non-UUID is rejected (7f92648)
+- [x] Login and refresh put the session's `unique_id` in the access token `sid`; `createSession` returns `CreatedSession`, `RefreshTokenResult` has `sessionId` (2c4a927)
