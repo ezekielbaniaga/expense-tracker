@@ -12,11 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **Admin revoke one and revoke all.** `DELETE /users/{id}/sessions/{sessionId}` → 204, reusing `revokeOwnSession(id, sessionId)` (a session not owned by
-      `{id}` → 404 `SESSION_NOT_FOUND`). `DELETE /users/{id}/sessions` → 200 `{"revoked": n}` via `userService.getByUniqueId(id)` (404 `USER_NOT_FOUND`) then
-      `revokeAllForUser`. Both behind `@PreAuthorize` and `requireEnabledAdmin`; INFO log with the admin as actor.
-      Test: extend `AdminSessionTests`: revoke-all kills the target's refresh tokens; revoke-one ends only that session; user B's session via user A's id → 404;
-      USER → 403; demoted admin → 403; admin revoking their own → 200 (no `CANNOT_MODIFY_SELF`). Extend the two `AdminUserTests` forbidden tests.
 - [ ] **Cap active sessions at 10.** Make `createSession` `@Transactional`; lock the user row (`UserRepository` `@Lock(PESSIMISTIC_WRITE) findLockedById`),
       count active sessions, and when at 10 or more, bulk-revoke the least recently used (`ORDER BY lastUsedAt ASC`) before inserting.
       Test: new `session/SessionCapTests`: 11 logins → 10 active and the least recently used one's refresh → 401; concurrent logins (thread pool, as in
@@ -97,3 +92,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] `DELETE /users/me/sessions/{sessionId}` revokes one of your sessions (204, also if already revoked); another user's or unknown id is 404 `SESSION_NOT_FOUND` (bc7bfdf)
 - [x] `DELETE /users/me/sessions` revokes all your other sessions and returns `{"revoked": n}`; a token without `sid` revokes all (6b65014)
 - [x] Admin `GET /users/{id}/sessions` lists a user's active sessions; `current` marks only the admin's own session, unknown user is 404 `USER_NOT_FOUND`, demoted admins get 403 (ccf729b)
+- [x] Admin `DELETE /users/{id}/sessions/{sessionId}` (204; not the user's session is 404 `SESSION_NOT_FOUND`) and `DELETE /users/{id}/sessions` (`{"revoked": n}`, unknown user 404); demoted admins 403, admins may revoke their own (f4e8b5e)
