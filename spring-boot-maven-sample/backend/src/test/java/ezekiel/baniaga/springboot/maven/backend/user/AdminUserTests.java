@@ -41,6 +41,7 @@ import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -97,6 +98,13 @@ class AdminUserTests {
         mockMvc.perform(get("/users/" + target.getUniqueId() + "/sessions").header(HttpHeaders.AUTHORIZATION, userBearer))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        mockMvc.perform(delete("/users/" + target.getUniqueId() + "/sessions").header(HttpHeaders.AUTHORIZATION, userBearer))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        mockMvc.perform(delete("/users/" + target.getUniqueId() + "/sessions/" + UUID.randomUUID())
+                .header(HttpHeaders.AUTHORIZATION, userBearer))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }
 
     // The second layer: if a URL rule ever stops covering these methods, @PreAuthorize still
@@ -125,6 +133,12 @@ class AdminUserTests {
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
         noUrlRules.perform(get("/users/" + admin.getUniqueId() + "/sessions"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        noUrlRules.perform(delete("/users/" + admin.getUniqueId() + "/sessions"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        noUrlRules.perform(delete("/users/" + admin.getUniqueId() + "/sessions/" + UUID.randomUUID()))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }

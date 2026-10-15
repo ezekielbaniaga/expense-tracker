@@ -2,6 +2,7 @@ package ezekiel.baniaga.springboot.maven.backend.user;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
+import ezekiel.baniaga.springboot.maven.backend.session.dto.RevokedSessionsResponse;
 import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.AdminUserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UpdateUserRequest;
@@ -10,9 +11,12 @@ import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import ezekiel.baniaga.springboot.maven.backend.user.mapper.UserMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +38,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminUserController {
 
     private final UserService userService;
@@ -77,6 +82,42 @@ public class AdminUserController {
     public List<SessionResponse> sessions(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails admin) {
         userService.requireEnabledAdmin(admin.getUniqueId());
         return userSessionService.listActiveSessions(id, admin.getSessionId());
+    }
+
+    /**
+     * Revokes every active session of the user: their refresh tokens stop
+     * working, access tokens stay valid until they expire. 200 with the number
+     * revoked (0 when there was nothing to revoke). 404 USER_NOT_FOUND.
+     * An admin may revoke their own sessions, the current one included;
+     * unlike PATCH this is not a CANNOT_MODIFY_SELF case.
+     */
+    @DeleteMapping("/{id}/sessions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public RevokedSessionsResponse revokeSessions(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails admin) {
+        userService.requireEnabledAdmin(admin.getUniqueId());
+        int revoked = userSessionService.revokeAllForUser(userService.getByUniqueId(id).getId());
+
+        log.info("Admin {} revoked {} session(s) of user {}", admin.getUniqueId(), revoked, id);
+        return new RevokedSessionsResponse(revoked);
+    }
+
+    /**
+     * Revokes one session of the user. 204, also when it was already revoked.
+     * 404 SESSION_NOT_FOUND if the user doesn't exist or the session isn't theirs,
+     * so another user's session can't be ended through the wrong id.
+     */
+    @DeleteMapping("/{id}/sessions/{sessionId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> revokeSession(
+        @PathVariable UUID id,
+        @PathVariable UUID sessionId,
+        @AuthenticationPrincipal CustomUserDetails admin) {
+
+        userService.requireEnabledAdmin(admin.getUniqueId());
+        userSessionService.revokeOwnSession(id, sessionId);
+
+        log.info("Admin {} revoked session {} of user {}", admin.getUniqueId(), sessionId, id);
+        return ResponseEntity.noContent().build();
     }
 
     /**
