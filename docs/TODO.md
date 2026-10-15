@@ -12,12 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **Admin `GET /users/{id}/sessions`.** In `AdminUserController`, `@PreAuthorize("hasRole('ADMIN')")`, call `userService.requireEnabledAdmin(admin.getUniqueId())`
-      first, then `userSessionService.listActiveSessions(id, admin.getSessionId())`, so `current` marks only the admin's own session. Unknown user → 404 `USER_NOT_FOUND`.
-      Test: new `user/AdminSessionTests`: admin sees the target's sessions; USER → 403; demoted admin's old token → 403; unknown id → 404; routing: an ADMIN
-      calling `GET /users/me/sessions` gets their own list (200, not 400). Add the endpoint to `AdminUserTests.userIsForbiddenOnEveryAdminEndpoint` and
-      `methodSecurityDeniesUserEvenWithoutTheUrlRule`.
-      Careful: if `UserController` lacks a method for a `/users/me/sessions` path, Spring falls through to `/{id}` and `me` fails UUID conversion (400).
 - [ ] **Admin revoke one and revoke all.** `DELETE /users/{id}/sessions/{sessionId}` → 204, reusing `revokeOwnSession(id, sessionId)` (a session not owned by
       `{id}` → 404 `SESSION_NOT_FOUND`). `DELETE /users/{id}/sessions` → 200 `{"revoked": n}` via `userService.getByUniqueId(id)` (404 `USER_NOT_FOUND`) then
       `revokeAllForUser`. Both behind `@PreAuthorize` and `requireEnabledAdmin`; INFO log with the admin as actor.
@@ -102,3 +96,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] `GET /users/me/sessions` lists active sessions (most recently used first) as `SessionResponse`; the token's `sid` session is `current`, none for tokens without `sid` (0e5fbb1)
 - [x] `DELETE /users/me/sessions/{sessionId}` revokes one of your sessions (204, also if already revoked); another user's or unknown id is 404 `SESSION_NOT_FOUND` (bc7bfdf)
 - [x] `DELETE /users/me/sessions` revokes all your other sessions and returns `{"revoked": n}`; a token without `sid` revokes all (6b65014)
+- [x] Admin `GET /users/{id}/sessions` lists a user's active sessions; `current` marks only the admin's own session, unknown user is 404 `USER_NOT_FOUND`, demoted admins get 403 (ccf729b)
