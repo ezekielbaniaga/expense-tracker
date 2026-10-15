@@ -12,12 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **`sid` claim in the access token.** Add nullable `UUID sessionId` as the last component of `auth/security/JWTPrincipal`. Add
-      `JWTService.generateToken(CustomUserDetails, UUID sessionId)` that writes `sid` only when non-null; keep the 1-arg overload (delegates with null).
-      `toPrincipal` reads `sid` when present. Add nullable `sessionId` to `CustomUserDetails`, keeping a 6-arg constructor so existing callers compile;
-      `CustomUserDetailsMapper.toCustomUserDetails(JWTPrincipal)` copies it.
-      Test: extend `JWTServiceTests`: `sid` round-trips; no `sid` parses with `sessionId == null`; a non-UUID `sid` gives `Optional.empty()`.
-      Careful: a missing `sid` must not throw, or tokens issued before the deploy fail for 15 min. Proposal: "Knowing the current session".
 - [ ] **Carry the session id through login and refresh.** Add record `session/CreatedSession(rawRefreshToken, sessionId)`; `createSession` returns it.
       Add `UUID sessionId` to `RefreshTokenResult`, from `userSession.getUniqueId()` in `rotateRefreshToken`. In `AuthController.login` call
       `createSession` FIRST (today it's after `generateToken`), then `generateToken(userDetails, created.sessionId())`; `refresh` passes `result.sessionId()`.
@@ -129,3 +123,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] README section 17 already documents the `{"code", "messages", "timestamp"}` error body; verified against `ErrorResponse` (60b83d5)
 - [x] `AdminUserController` Javadoc now says a promotion applies at the next `/auth/refresh`, only demotion/disabling force a login (840e145)
 - [x] `user_sessions.unique_id` (random v4 UUID, NOT NULL, unique index) and a `user_id` index (V14); `createSession` sets it (fbb9c10)
+- [x] Access token carries an optional `sid` claim (`JWTPrincipal`/`CustomUserDetails.sessionId`); missing `sid` parses to null, non-UUID is rejected (7f92648)
