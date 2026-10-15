@@ -10,19 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Investigation 2026-10-16
 
-- [ ] **Login can create a live session after a password change or disable.** `auth/AuthController.login` checks the password
-      (BCrypt, ~100ms) before `session/UserSessionService.createSession` takes the user row lock, and `createSession` does not
-      re-check the locked user. A login that passed with the old password while `POST /users/me/password` commits (or while an admin
-      disables the user) waits on the lock, then inserts a fresh session after `revokeAllForUser` ran. After a password change that
-      session keeps refreshing for 30 days, so the "a stolen password stops working" promise breaks; after a disable the login still
-      returns a 15-minute access token. Verified with a throwaway test: authenticate, `changePassword`, `createSession`, then
-      `rotateRefreshToken` succeeds; `createSession` for a just-disabled user succeeds.
-      Fix idea: after `findLockedById`, reject (401, BadCredentials/DisabledException) when the locked user is disabled or its password
-      hash differs from the one in the authenticated `CustomUserDetails`; build the access token from the locked user so the role is current too.
-      Test: in `session/SessionCapTests` or a new `session/LoginRaceTests`, authenticate via `AuthenticationManager`, then `changePassword`
-      (or disable via `jdbcTemplate`), then `createSession` → throws and no active session exists; a normal login still works.
-      Careful: keep the lock order (user row, then sessions); compare the hash, not `lastModified` (a role change also sets it); the exception
-      must still map to 401 through the security entry point, not 500.
 - [ ] **Bulk session revokes count (and stamp) expired sessions.** `session/UserSessionRepository.revokeAllForUser` and
       `revokeAllForUserExcept` filter only `revokedAt IS NULL`, not `expiresAt > now`. So `DELETE /users/me/sessions` and
       `DELETE /users/{id}/sessions` return `{"revoked": n}` including long-expired sessions, contradicting `RevokedSessionsResponse`
@@ -112,3 +99,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Admin `DELETE /users/{id}/sessions/{sessionId}` (204; not the user's session is 404 `SESSION_NOT_FOUND`) and `DELETE /users/{id}/sessions` (`{"revoked": n}`, unknown user 404); demoted admins 403, admins may revoke their own (f4e8b5e)
 - [x] Login caps active sessions at 10 per user, revoking the least recently used; `createSession` locks the user row so concurrent logins cannot exceed it (4488f0d)
 - [x] Session management documented: README (`sid`, `unique_id`, Sessions subsection, revocation table, roadmap) and six Bruno requests; proposal marked done (d9110fc)
+- [x] Login re-checks the user under its row lock: a password change or disable that commits during the password check gives 401 and no session; the access token uses the locked user's role (1b75457)
