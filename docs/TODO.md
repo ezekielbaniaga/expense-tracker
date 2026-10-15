@@ -12,11 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/session-management-proposal.md. Work in order.
 
-- [ ] **Cap active sessions at 10.** Make `createSession` `@Transactional`; lock the user row (`UserRepository` `@Lock(PESSIMISTIC_WRITE) findLockedById`),
-      count active sessions, and when at 10 or more, bulk-revoke the least recently used (`ORDER BY lastUsedAt ASC`) before inserting.
-      Test: new `session/SessionCapTests`: 11 logins → 10 active and the least recently used one's refresh → 401; concurrent logins (thread pool, as in
-      `RefreshTokenReuseTests`) never exceed 10.
-      Careful: without the lock, concurrent logins exceed the cap. Lock order is user row then sessions; refresh locks only the session row.
 - [ ] **Document session management.** `README.md`: add `sid` to the §2 claims, `unique_id` to the §6 columns, the new endpoints to §12, a "Sessions"
       subsection to §17 (six endpoints, response shape, 404/204 rules, `sid` and old tokens, the cap, and that the access token works up to
       `app.jwt.expiration` (15m) after a revoke), rows in the "What revokes sessions" table; move the three session roadmap items to Completed.
@@ -93,3 +88,4 @@ From docs/session-management-proposal.md. Work in order.
 - [x] `DELETE /users/me/sessions` revokes all your other sessions and returns `{"revoked": n}`; a token without `sid` revokes all (6b65014)
 - [x] Admin `GET /users/{id}/sessions` lists a user's active sessions; `current` marks only the admin's own session, unknown user is 404 `USER_NOT_FOUND`, demoted admins get 403 (ccf729b)
 - [x] Admin `DELETE /users/{id}/sessions/{sessionId}` (204; not the user's session is 404 `SESSION_NOT_FOUND`) and `DELETE /users/{id}/sessions` (`{"revoked": n}`, unknown user 404); demoted admins 403, admins may revoke their own (f4e8b5e)
+- [x] Login caps active sessions at 10 per user, revoking the least recently used; `createSession` locks the user row so concurrent logins cannot exceed it (4488f0d)
