@@ -67,8 +67,8 @@ class UserSessionUniqueIdTests {
     void eachSessionGetsItsOwnUniqueId() {
         Long userId = newUser().getId();
 
-        UUID first = uniqueIdOf(userSessionService.createSession(userId, "agent", "127.0.0.1"));
-        UUID second = uniqueIdOf(userSessionService.createSession(userId, "agent", "127.0.0.1"));
+        UUID first = uniqueIdOf(userSessionService.createSession(userId, "agent", "127.0.0.1").rawRefreshToken());
+        UUID second = uniqueIdOf(userSessionService.createSession(userId, "agent", "127.0.0.1").rawRefreshToken());
 
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();

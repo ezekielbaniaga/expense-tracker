@@ -6,6 +6,7 @@ import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RegisterRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
+import ezekiel.baniaga.springboot.maven.backend.session.CreatedSession;
 import ezekiel.baniaga.springboot.maven.backend.session.RefreshTokenResult;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
@@ -70,15 +71,17 @@ public class AuthController {
 
         // Construct and response a JWT token if authentication was a success
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        String token = jwtService.generateToken(userDetails);
 
-        String refreshToken = userSessionService.createSession(
+        // Session first, so the access token can carry its id as the sid claim
+        CreatedSession created = userSessionService.createSession(
             userDetails.getDatabaseId(),
             httpServletRequest.getHeader(HttpHeaders.USER_AGENT),
             httpServletRequest.getRemoteAddr()
         );
 
-        return new LoginResponse(token, refreshToken);
+        String token = jwtService.generateToken(userDetails, created.sessionId());
+
+        return new LoginResponse(token, created.rawRefreshToken());
     }
 
     @PostMapping("/refresh")
@@ -90,7 +93,7 @@ public class AuthController {
                 request.refreshToken());
 
         String accessToken =
-            jwtService.generateToken(result.userDetails());
+            jwtService.generateToken(result.userDetails(), result.sessionId());
 
         return new LoginResponse(
             accessToken, result.newRawRefreshToken());

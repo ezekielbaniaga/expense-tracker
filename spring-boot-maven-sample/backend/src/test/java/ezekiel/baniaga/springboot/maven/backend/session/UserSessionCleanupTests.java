@@ -75,7 +75,7 @@ class UserSessionCleanupTests {
     }
 
     private String newSession() {
-        return userSessionService.createSession(user.getId(), "test", "127.0.0.1");
+        return userSessionService.createSession(user.getId(), "test", "127.0.0.1").rawRefreshToken();
     }
 
     private Long sessionId(String rawToken) {

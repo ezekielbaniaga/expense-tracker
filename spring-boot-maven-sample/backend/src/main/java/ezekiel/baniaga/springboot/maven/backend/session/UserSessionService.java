@@ -35,7 +35,8 @@ public class UserSessionService {
      * controlling session later like revocation
      *
      * Note: Raw refresh token is returned but
-     * never saved to db for security.
+     * never saved to db for security. The session's
+     * public id is returned too, for the sid claim.
      *
         rawRefreshToken
            │
@@ -43,7 +44,7 @@ public class UserSessionService {
            │
            └──▶ NEVER database
      */
-    public String createSession(
+    public CreatedSession createSession(
             Long userId,
             String userAgent,
             String ipAddress) {
@@ -68,7 +69,7 @@ public class UserSessionService {
 
         repository.save(session);
 
-        return rawRefreshToken;
+        return new CreatedSession(rawRefreshToken, session.getUniqueId());
     }
 
     /**
@@ -124,7 +125,8 @@ public class UserSessionService {
         // Map while the transaction is open; the User is a lazy proxy
         return new RefreshTokenResult(
             customUserDetailsMapper.toCustomUserDetails(userSession.getUser()),
-            newRawRefreshToken
+            newRawRefreshToken,
+            userSession.getUniqueId()
         );
     }
 

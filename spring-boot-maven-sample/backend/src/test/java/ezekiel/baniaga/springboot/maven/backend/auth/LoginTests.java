@@ -85,6 +85,32 @@ class LoginTests {
     }
 
     @Test
+    void accessTokenSidIsTheSessionIdAndSurvivesRefresh() throws Exception {
+        String body = login(user.getUsername(), PASSWORD)
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        String accessToken = JsonPath.read(body, "$.accessToken");
+        String refreshToken = JsonPath.read(body, "$.refreshToken");
+
+        UUID sessionId = userSessionRepository
+            .findByRefreshTokenHash(refreshTokenHasher.hash(refreshToken)).orElseThrow()
+            .getUniqueId();
+        assertThat(sessionId).isNotNull();
+        assertThat(jwtService.extractPrincipal(accessToken).sessionId()).isEqualTo(sessionId);
+
+        String refreshed = mockMvc.perform(post("/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"refreshToken\":\"" + refreshToken + "\"}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        // Rotation swaps the refresh token but keeps the session, so the sid stays the same
+        String refreshedAccessToken = JsonPath.read(refreshed, "$.accessToken");
+        assertThat(jwtService.extractPrincipal(refreshedAccessToken).sessionId()).isEqualTo(sessionId);
+    }
+
+    @Test
     void wrongPasswordIs401() throws Exception {
         login(user.getUsername(), "wrong-password").andExpect(status().isUnauthorized());
     }
