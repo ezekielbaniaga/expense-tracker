@@ -1,12 +1,40 @@
 # TODO
 
-Last investigation: 2026-10-15 00:51 — 7 new findings
+Last investigation: 2026-10-16 04:55 — 3 new findings
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `spring-boot-maven-sample/backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
 
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
+
+## Investigation 2026-10-16
+
+- [ ] **Login can create a live session after a password change or disable.** `auth/AuthController.login` checks the password
+      (BCrypt, ~100ms) before `session/UserSessionService.createSession` takes the user row lock, and `createSession` does not
+      re-check the locked user. A login that passed with the old password while `POST /users/me/password` commits (or while an admin
+      disables the user) waits on the lock, then inserts a fresh session after `revokeAllForUser` ran. After a password change that
+      session keeps refreshing for 30 days, so the "a stolen password stops working" promise breaks; after a disable the login still
+      returns a 15-minute access token. Verified with a throwaway test: authenticate, `changePassword`, `createSession`, then
+      `rotateRefreshToken` succeeds; `createSession` for a just-disabled user succeeds.
+      Fix idea: after `findLockedById`, reject (401, BadCredentials/DisabledException) when the locked user is disabled or its password
+      hash differs from the one in the authenticated `CustomUserDetails`; build the access token from the locked user so the role is current too.
+      Test: in `session/SessionCapTests` or a new `session/LoginRaceTests`, authenticate via `AuthenticationManager`, then `changePassword`
+      (or disable via `jdbcTemplate`), then `createSession` → throws and no active session exists; a normal login still works.
+      Careful: keep the lock order (user row, then sessions); compare the hash, not `lastModified` (a role change also sets it); the exception
+      must still map to 401 through the security entry point, not 500.
+- [ ] **Bulk session revokes count (and stamp) expired sessions.** `session/UserSessionRepository.revokeAllForUser` and
+      `revokeAllForUserExcept` filter only `revokedAt IS NULL`, not `expiresAt > now`. So `DELETE /users/me/sessions` and
+      `DELETE /users/{id}/sessions` return `{"revoked": n}` including long-expired sessions, contradicting `RevokedSessionsResponse`
+      Javadoc ("how many active sessions were ended"), `AdminUserController.revokeSessions` Javadoc ("every active session") and README
+      section 17 ("Active means not revoked and not expired"); a user with only expired sessions gets `revoked: 1`, not 0. Verified
+      with a throwaway test: one active + one expired session, revoke others from the active one → returned 1, list showed 1 active.
+      Fix: add `AND s.expiresAt > :now` to both queries (and pass `now`); password change, disable/demote use the same query and only
+      need active sessions too.
+      Test: extend `session/SessionRevokeTests` and `user/AdminSessionTests`: expire one session with `jdbcTemplate`, then revoke-all
+      → count excludes it; expired session's `revoked_at` stays null.
+      Careful: `UserSessionCleanup` uses `expires_at OR revoked_at` so leaving expired rows unrevoked does not change cleanup; keep
+      `revokedAt IS NULL` so first revocation times are kept.
 
 ## Needs you
 
@@ -20,6 +48,10 @@ commit hash. Items that need a human decision or action outside the code go in *
       rejected after a password change. But the password change item already revokes every session, and the
       JWT filter never reads the database, so the column would only help if you also add a per-request user
       check. Suggest dropping it unless you want that check.
+- [ ] **Decide whether the app runs behind a reverse proxy.** `AuthController.login` stores `request.getRemoteAddr()` as the
+      session `ipAddress`, and there is no `server.forward-headers-strategy` in `application.yml`. Behind nginx/a load balancer every
+      session in `GET /users/me/sessions` would show the proxy's IP. If you deploy behind one, set `server.forward-headers-strategy: native`
+      (or `framework`) and make sure only the proxy can set `X-Forwarded-For`; if not, nothing to do. Same decision as the login rate limit.
 
 ## Done
 
