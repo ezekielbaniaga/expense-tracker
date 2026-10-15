@@ -1,8 +1,11 @@
 package ezekiel.baniaga.springboot.maven.backend.session;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
+import ezekiel.baniaga.springboot.maven.backend.common.ResourceNotFoundException;
+import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UsedRefreshToken;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
+import ezekiel.baniaga.springboot.maven.backend.session.mapper.SessionMapper;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,6 +33,7 @@ public class UserSessionService {
     private final CustomUserDetailsMapper customUserDetailsMapper;
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHasher refreshTokenHasher;
+    private final SessionMapper sessionMapper;
 
     /**
      * Creates a new session and saves to db for
@@ -150,6 +155,25 @@ public class UserSessionService {
     @Transactional
     public int revokeAllForUser(Long userId) {
         return repository.revokeAllForUser(userId, LocalDateTime.now());
+    }
+
+    /**
+     * Active sessions of the user, most recently used first. The one whose
+     * unique_id equals currentSid is marked current; with no sid (older
+     * tokens) none is. No paging: active sessions are capped per user.
+     *
+     * Resolves the user by unique id because the JWT filter leaves the
+     * database id null. Uses UserRepository, not UserService, which already
+     * depends on this service.
+     */
+    @Transactional(readOnly = true)
+    public List<SessionResponse> listActiveSessions(UUID userUniqueId, UUID currentSid) {
+        User user = userRepository.findByUniqueId(userUniqueId)
+            .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
+
+        return repository.findActiveByUserId(user.getId(), LocalDateTime.now()).stream()
+            .map(session -> sessionMapper.toResponse(session, currentSid))
+            .toList();
     }
 
     /**

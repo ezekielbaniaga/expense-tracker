@@ -1,6 +1,8 @@
 package ezekiel.baniaga.springboot.maven.backend.user;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
+import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
+import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.ChangePasswordRequest;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.mapper.UserMapper;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * Self-service endpoints for the logged-in user. SecurityConfig lets any
  * authenticated user reach /users/me; the rest of /users/** is ADMIN only.
@@ -25,10 +29,21 @@ public class UserController {
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final UserSessionService userSessionService;
 
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal CustomUserDetails user) {
         return userMapper.toResponse(userService.getByUniqueId(user.getUniqueId()));
+    }
+
+    /**
+     * Your active sessions, most recently used first. The session of the
+     * access token used for this call has current: true (none for tokens
+     * without a sid claim).
+     */
+    @GetMapping("/me/sessions")
+    public List<SessionResponse> sessions(@AuthenticationPrincipal CustomUserDetails user) {
+        return userSessionService.listActiveSessions(user.getUniqueId(), user.getSessionId());
     }
 
     /**

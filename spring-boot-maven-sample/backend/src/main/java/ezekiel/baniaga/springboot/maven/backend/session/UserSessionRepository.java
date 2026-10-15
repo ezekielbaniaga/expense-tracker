@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
@@ -20,6 +21,16 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     // until the first one commits, then no longer matches the rotated hash
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<UserSession> findForUpdateByRefreshTokenHash(String refreshTokenHash);
+
+    // Active = not revoked and not expired. now is passed in from Java, like every other
+    // timestamp here, instead of SQL now(), so the app clock decides what has expired.
+    // id breaks ties so the order is stable when lastUsedAt is equal.
+    @Query("""
+        SELECT s FROM UserSession s
+        WHERE s.user.id = :userId AND s.revokedAt IS NULL AND s.expiresAt > :now
+        ORDER BY s.lastUsedAt DESC, s.id DESC
+    """)
+    List<UserSession> findActiveByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 
     // Keeps the first revocation time if the session was already revoked
     @Transactional
