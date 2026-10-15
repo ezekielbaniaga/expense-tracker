@@ -158,6 +158,27 @@ public class UserSessionService {
     }
 
     /**
+     * Revokes one session of the user, by its public unique id. A session
+     * that doesn't exist or belongs to someone else is 404 SESSION_NOT_FOUND,
+     * so other users' session ids can't be probed. One that is already
+     * revoked or expired is a no-op, so repeating the call is safe.
+     *
+     * Uses the bulk revoke query instead of setting revokedAt on the loaded
+     * entity: saving the entity would race with a concurrent refresh that
+     * holds the row lock and rotates the token.
+     */
+    @Transactional
+    public void revokeOwnSession(UUID userUniqueId, UUID sessionId) {
+        UserSession session = userRepository.findByUniqueId(userUniqueId)
+            .flatMap(user -> repository.findByUniqueIdAndUserId(sessionId, user.getId()))
+            .orElseThrow(() -> new ResourceNotFoundException("SESSION_NOT_FOUND", "Session not found."));
+
+        repository.revoke(session.getId(), LocalDateTime.now());
+
+        log.info("Revoked session {} of user {}", sessionId, userUniqueId);
+    }
+
+    /**
      * Active sessions of the user, most recently used first. The one whose
      * unique_id equals currentSid is marked current; with no sid (older
      * tokens) none is. No paging: active sessions are capped per user.

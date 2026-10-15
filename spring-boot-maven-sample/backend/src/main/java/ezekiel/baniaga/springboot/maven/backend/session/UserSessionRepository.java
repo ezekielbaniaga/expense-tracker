@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface UserSessionRepository extends JpaRepository<UserSession, Long> {
 
@@ -21,6 +22,9 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     // until the first one commits, then no longer matches the rotated hash
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<UserSession> findForUpdateByRefreshTokenHash(String refreshTokenHash);
+
+    // Ownership check: a session of another user is not found
+    Optional<UserSession> findByUniqueIdAndUserId(UUID uniqueId, Long userId);
 
     // Active = not revoked and not expired. now is passed in from Java, like every other
     // timestamp here, instead of SQL now(), so the app clock decides what has expired.

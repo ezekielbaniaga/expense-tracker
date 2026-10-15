@@ -10,13 +10,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Self-service endpoints for the logged-in user. SecurityConfig lets any
@@ -44,6 +47,22 @@ public class UserController {
     @GetMapping("/me/sessions")
     public List<SessionResponse> sessions(@AuthenticationPrincipal CustomUserDetails user) {
         return userSessionService.listActiveSessions(user.getUniqueId(), user.getSessionId());
+    }
+
+    /**
+     * Revokes one of your sessions: its refresh token stops working, its
+     * access token stays valid until it expires. 204, also when the session
+     * was already revoked; revoking the current one works like logout.
+     * 404 SESSION_NOT_FOUND if the session isn't yours.
+     */
+    @DeleteMapping("/me/sessions/{sessionId}")
+    public ResponseEntity<Void> revokeSession(
+        @AuthenticationPrincipal CustomUserDetails user,
+        @PathVariable UUID sessionId) {
+
+        userSessionService.revokeOwnSession(user.getUniqueId(), sessionId);
+
+        return ResponseEntity.noContent().build();
     }
 
     /**
