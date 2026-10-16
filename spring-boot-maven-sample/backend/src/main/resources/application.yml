@@ -1,3 +1,14 @@
+server:
+  # Behind a reverse proxy, take the client IP from X-Forwarded-For (Tomcat's RemoteIpValve).
+  # "native" trusts the header only from internal-proxies; "framework" would trust anyone.
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      # Regex of proxy IPs whose X-Forwarded-For is trusted. Tomcat's default trusts all private
+      # ranges, which includes the Docker bridge gateway a direct client arrives from, so pin it.
+      # Default: loopback only. An empty value trusts no one (the header is always ignored).
+      internal-proxies: ${TRUSTED_PROXIES:127[.]0[.]0[.]1|0:0:0:0:0:0:0:1}
+
 spring:
   application:
     name: backend

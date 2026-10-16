@@ -15,3 +15,15 @@ Copy the template and fill in real values (`.env` is git-ignored):
 cp .env.example .env
 ```
 
+
+## Behind a reverse proxy
+
+The app takes the client IP (stored with each login session) from `X-Forwarded-For`, but only
+when the request comes from an address matching `TRUSTED_PROXIES` (a regex, e.g.
+`172[.]18[.]0[.]10`; give the proxy a fixed IP on `app-network`). Empty, the default here, trusts
+no one and the header is ignored.
+
+Once the proxy is in front, **stop publishing `8080:8080`** (remove `ports:` from `app` and publish
+the proxy's port instead). Otherwise a client can still reach the app directly through the Docker
+port mapping; it arrives from the bridge gateway, and if `TRUSTED_PROXIES` is too broad (Tomcat's
+default trusts every private range, gateway included), it could spoof its IP.
