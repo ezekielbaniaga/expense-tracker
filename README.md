@@ -154,14 +154,25 @@ Access Token
 Refresh Token
 ```
 
-The response looks conceptually like:
+The response looks like:
 
 ```json
 {
   "accessToken": "...",
-  "refreshToken": "..."
+  "refreshToken": "...",
+  "accessTokenExpiresIn": 900,
+  "refreshTokenExpiresAt": "2026-11-15T08:00:00"
 }
 ```
+
+* `accessTokenExpiresIn` is the access token's lifetime in seconds (`app.jwt.expiration`, 15 minutes),
+  counted from now. A client can refresh a little before it runs out without decoding the JWT.
+* `refreshTokenExpiresAt` is when the session ends: its `expires_at`, login time plus
+  `app.session.lifetime` (30 days). Like every API timestamp it is UTC written without an offset (see
+  section 17), so read it as `2026-11-15T08:00:00Z`. After that the person has to log in again.
+
+`POST /auth/refresh` returns the same four fields. Refreshing does not extend the session, so its
+`refreshTokenExpiresAt` is always the value login returned.
 
 ### Login rate limit
 

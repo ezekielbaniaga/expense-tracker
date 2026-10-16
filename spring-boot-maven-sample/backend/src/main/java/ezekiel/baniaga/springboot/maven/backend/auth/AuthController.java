@@ -4,6 +4,7 @@ import ezekiel.baniaga.springboot.maven.backend.auth.dto.LoginRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.LoginResponse;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RegisterRequest;
+import ezekiel.baniaga.springboot.maven.backend.auth.props.JWTProperties;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
 import ezekiel.baniaga.springboot.maven.backend.auth.service.AuthEndpointRateLimiter;
@@ -37,6 +38,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
+    private final JWTProperties jwtProperties;
     private final LoginRateLimiter loginRateLimiter;
     private final AuthEndpointRateLimiter authEndpointRateLimiter;
 
@@ -100,7 +102,8 @@ public class AuthController {
 
         String token = jwtService.generateToken(created.userDetails(), created.sessionId());
 
-        return new LoginResponse(token, created.rawRefreshToken());
+        return new LoginResponse(
+            token, created.rawRefreshToken(), accessTokenExpiresIn(), created.expiresAt());
     }
 
     /**
@@ -120,8 +123,9 @@ public class AuthController {
         String accessToken =
             jwtService.generateToken(result.userDetails(), result.sessionId());
 
+        // Rotation keeps the session's expires_at, so this is the login's value
         return new LoginResponse(
-            accessToken, result.newRawRefreshToken());
+            accessToken, result.newRawRefreshToken(), accessTokenExpiresIn(), result.expiresAt());
     }
 
     /**
@@ -139,5 +143,13 @@ public class AuthController {
         userSessionService.revokeSession(request.refreshToken());
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * The access token's lifetime in seconds, so a client can refresh ahead of
+     * expiry without decoding the JWT. The token's exp is issue time plus this.
+     */
+    private long accessTokenExpiresIn() {
+        return jwtProperties.getExpiration().toSeconds();
     }
 }

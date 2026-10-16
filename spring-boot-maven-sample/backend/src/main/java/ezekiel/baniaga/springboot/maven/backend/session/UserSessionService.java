@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -82,7 +83,9 @@ public class UserSessionService {
 
         String rawRefreshToken = refreshTokenGenerator.generate();
         String hashedRefreshToken = refreshTokenHasher.hash(rawRefreshToken);
-        LocalDateTime now = LocalDateTime.now(clock);
+        // Postgres keeps microseconds; truncate so the expires_at returned to the
+        // client is exactly the one stored, not a nanosecond more
+        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
 
         Long userId = authenticated.getDatabaseId();
         User user = userRepository.findLockedById(userId)
@@ -117,7 +120,8 @@ public class UserSessionService {
         return new CreatedSession(
             rawRefreshToken,
             session.getUniqueId(),
-            customUserDetailsMapper.toCustomUserDetails(user)
+            customUserDetailsMapper.toCustomUserDetails(user),
+            session.getExpiresAt()
         );
     }
 
@@ -180,7 +184,8 @@ public class UserSessionService {
         return new RefreshTokenResult(
             customUserDetailsMapper.toCustomUserDetails(userSession.getUser()),
             newRawRefreshToken,
-            userSession.getUniqueId()
+            userSession.getUniqueId(),
+            userSession.getExpiresAt()
         );
     }
 
