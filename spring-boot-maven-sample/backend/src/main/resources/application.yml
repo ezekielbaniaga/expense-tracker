@@ -26,8 +26,9 @@ spring:
         # (setObject) instead of through java.sql.Timestamp in the JVM zone, which moves a
         # value that falls in a DST gap of that zone by an hour.
         # Don't set hibernate.jdbc.time_zone: it makes Hibernate read a LocalDateTime as JVM
-        # local time and convert it to that zone, shifting the UTC values on a non-UTC host
-        # (native query parameters, e.g. the cleanup cutoff, still take that path).
+        # local time and convert it to that zone, shifting the UTC values on a non-UTC host.
+        # This setting doesn't reach native query parameters, which are still bound through
+        # the JVM zone, so the native cleanup queries take their cutoff as ISO text and cast it.
         type:
           java_time_use_direct_jdbc: true
 

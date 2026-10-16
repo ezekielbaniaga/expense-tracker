@@ -118,6 +118,22 @@ class SessionClockTests {
         assertThat(userSessionRepository.existsById(revoked)).isFalse();
     }
 
+    // The cutoff 2031-03-30T02:30 falls in the Europe/Berlin DST gap. Bound through the JVM
+    // zone it would arrive as 03:30 and also delete the session revoked at 02:45
+    @Test
+    void cleanupCutoffInADstGapOfTheJvmZoneIsNotShifted() {
+        Long before = session(newSession()).getId();
+        Long after = session(newSession()).getId();
+        jdbcTemplate.update("UPDATE user_sessions SET revoked_at = '2031-03-30 02:15:00' WHERE id = ?", before);
+        jdbcTemplate.update("UPDATE user_sessions SET revoked_at = '2031-03-30 02:45:00' WHERE id = ?", after);
+
+        clock.advance(Duration.ofDays(7));
+        inJvmZone("Europe/Berlin", () -> userSessionService.cleanupEndedSessions(Duration.ofDays(7), 1000));
+
+        assertThat(userSessionRepository.existsById(before)).isFalse();
+        assertThat(userSessionRepository.existsById(after)).isTrue();
+    }
+
     private String newSession() {
         return userSessionService.createSession(
             customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();

@@ -90,14 +90,20 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
 
     // Native Query as JPQL does not support LIMIT in DELETE.
     // used_refresh_tokens rows go with their session (ON DELETE CASCADE).
+    // The cutoff goes in as ISO text and is cast in SQL: a LocalDateTime parameter of a
+    // native query is bound through the JVM zone, which moves a cutoff in a DST gap by an hour.
+    default int deleteEndedBefore(LocalDateTime cutoff, int limit) {
+        return deleteEndedBefore(cutoff.toString(), limit);
+    }
+
     @Modifying
     @Query(value = """
         DELETE FROM user_sessions
         WHERE id IN (
             SELECT id FROM user_sessions
-            WHERE expires_at < :cutoff OR revoked_at < :cutoff
+            WHERE expires_at < CAST(:cutoff AS timestamp) OR revoked_at < CAST(:cutoff AS timestamp)
             LIMIT :limit
         )
     """, nativeQuery = true)
-    int deleteEndedBefore(@Param("cutoff") LocalDateTime cutoff, @Param("limit") int limit);
+    int deleteEndedBefore(@Param("cutoff") String isoCutoff, @Param("limit") int limit);
 }

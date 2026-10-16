@@ -22,15 +22,21 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     List<Expense> findAllByOwnerIdAndArchivedIsTrue(UUID ownerId);
 
-    // Using Native Query as JPQL does not support LIMIT in DELETE
+    // Using Native Query as JPQL does not support LIMIT in DELETE.
+    // The cutoff goes in as ISO text and is cast in SQL: a LocalDateTime parameter of a
+    // native query is bound through the JVM zone, which moves a cutoff in a DST gap by an hour.
+    default int deleteOldExpense(LocalDateTime cutoff, int limit) {
+        return deleteOldExpense(cutoff.toString(), limit);
+    }
+
     @Modifying
     @Query(value = """
         DELETE FROM expense
         WHERE id IN (
             SELECT id FROM expense
-            WHERE archived = TRUE AND archived_at < :cutoff
+            WHERE archived = TRUE AND archived_at < CAST(:cutoff AS timestamp)
             LIMIT :limit
         )
     """, nativeQuery = true)
-    int deleteOldExpense(@Param("cutoff")LocalDateTime cutoff, @Param("limit") int limit);
+    int deleteOldExpense(@Param("cutoff") String isoCutoff, @Param("limit") int limit);
 }
