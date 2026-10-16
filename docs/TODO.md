@@ -13,12 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Pin the accepted access-token window with a test.** The 15-minute window after a revoke is a decided
-      design (see the session proposal), but no test says so, so a future "fix" could change it unnoticed.
-      Add one test: revoke a session (and separately log out), assert the refresh token gives 401 while the
-      old access token still gets 200 on `GET /users/me`, and `GET /users/me/sessions` no longer lists the
-      revoked session. If someone later adds a per-request `sid` check, this test is the one to change on
-      purpose.
 - [ ] **Remove the dead `DebugController`.** `auth/DebugController.java` has its `@RestController` and
       `@RequestMapping` commented out and is `@Deprecated`; it only generates an admin token and would be
       a token-minting endpoint if someone re-enabled the annotation. Delete the file (git has it).
@@ -145,3 +139,4 @@ All 176 tests passed at the time of the review.
 - [x] "Now" comes from a UTC `Clock` bean (`ClockConfig`) in `UserSessionService`, `UserService`, `ExpenseService` and the session cleanup; LocalDateTime is bound as-is (`hibernate.type.java_time_use_direct_jdbc`), `hibernate.jdbc.time_zone` left unset because it shifts LocalDateTime on a non-UTC JVM; README says API timestamps are UTC without offset; non-UTC deployments must convert existing rows (c2c7d60)
 - [x] Session lifetime, active-session cap and ended-session retention are `app.session.lifetime|max-active|retention` (30d, 10, 7d) in `SessionProperties` instead of constants; README says where they are set (6004673)
 - [x] Session cleanup runs once at 03:00 and deletes in batches of 1,000 (each its own transaction) until a batch is short, at most 100 batches; was 60 runs of 1,000 each (cb79386)
+- [x] Pinned the accepted 15-minute access-token window after revoke and logout with tests (26d1d5b)
