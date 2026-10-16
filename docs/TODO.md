@@ -8,17 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## To do
-
-Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
-All 176 tests passed at the time of the review.
-
-- [ ] **Login and refresh don't say when tokens expire.** `LoginResponse` is only `{accessToken, refreshToken}`;
-      the web UI proposal has the client decode the JWT `exp` to refresh early, and nothing tells it when the
-      30-day session ends. Add `accessTokenExpiresIn` (seconds) and `refreshTokenExpiresAt` to the response.
-      Adding fields is backward compatible for JSON clients. Test: login and refresh return both, the first
-      equal to `app.jwt.expiration`. Update README section 1 and the web UI proposal's step 4.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -109,3 +98,4 @@ All 176 tests passed at the time of the review.
 - [x] README section 14 lists the real `GlobalExceptionHandler` mappings; section 8 diagram has the reuse and disabled-user branches (16f08e3)
 - [x] Dropped the duplicate `index_users_unique_id` (V15); `uq_users_unique_id` is the only index on `users.unique_id` (cd98254)
 - [x] Login username (100), login password (1,000, no hint of the 72-byte rule) and refresh/logout token (128) are size-capped; oversize gives 400 `VALIDATION_ERROR` (d07587f)
+- [x] Login and refresh return `accessTokenExpiresIn` (seconds, `app.jwt.expiration`) and `refreshTokenExpiresAt` (the session's `expires_at`, UTC without offset, unchanged by rotation); README section 1 and web UI proposal step 4 updated (59acf64)
