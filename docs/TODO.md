@@ -10,18 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## To do
 
-- [ ] **Native query `LocalDateTime` parameters still go through the JVM zone and shift by an hour in a DST
-      gap.** `session/UserSessionRepository.java` (`deleteEndedBefore`), `expense/ExpenseRepository.java`
-      (`deleteOldExpense`); claim in `application.yml` (`java_time_use_direct_jdbc` comment) and README
-      "Timestamps are UTC". Verified with a throwaway test under `Europe/Berlin`: a native parameter
-      `2031-03-30T02:30` arrived as `2031-03-30 03:30:00`, while the same value in a JPQL `UPDATE` (`revokeAll`)
-      and in entity saves was stored unchanged. So on a non-UTC DST host the cleanup cutoffs are an hour late
-      for one hour a year. Small effect, but the "bound as-is" guarantee doesn't hold for native queries and
-      `SessionClockTests.cleanupCutoffFollowsTheClock` only runs under `Asia/Manila` (no DST). Fix: pass the
-      cutoff as an ISO string and `CAST(:cutoff AS timestamp)` in both native queries (no zone involved), or
-      select the ids in JPQL with a `Limit` and delete by id; correct the yml comment. Test: run the cleanup
-      under `Europe/Berlin` with the clock set so the cutoff is 2031-03-30T02:30 and check a session revoked
-      at 02:45 survives and one at 02:15 is deleted.
 - [ ] **Expense cleanup still runs 60 times at 2AM, 1,000 rows each.** `expense/job/ExpenseCleanup.java`
       (`cron = "0 * 2 * * *"`). Session cleanup was changed to one run with batches until a short one (cb79386);
       expense cleanup still logs 60 INFO pairs a night, mostly "Affected Rows: 0", and stops at 60,000 rows.
@@ -141,3 +129,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Startup rejects a negative `app.session.retention` and a non-positive `app.session.lifetime` or `app.jwt.expiration`, naming the property (24cd708)
 - [x] Expense date `@PastOrPresent` now validates against the UTC `Clock` offset to UTC+14 (e2c4941)
 - [x] Per-IP rate limits key an IPv6 client by its /64 (`ClientIpKey`); IPv4 unchanged, zone ids dropped, IPv4-mapped counts as IPv4 (03acb80)
+- [x] Native cleanup queries bind their cutoff as ISO text cast in SQL, so a JVM zone DST gap no longer shifts it by an hour (92221d0)
