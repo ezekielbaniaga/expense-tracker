@@ -13,11 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **A reuse-looking replay on an already ended session logs a WARN and re-stamps it.** `handleUnknownToken`
-      always calls `revoke` and logs "Refresh token reuse detected" even when the session is already revoked or
-      expired (e.g. an old token replayed after a normal logout). Only revoke and WARN when the session is still
-      active; otherwise answer 401 quietly (DEBUG). Keeps the WARN meaningful as an alert. Test: logout, replay
-      an old rotated token, assert `revoked_at` is unchanged.
 - [ ] **Overlong or odd `ip_address` can fail a login with 500.** `user_sessions.ip_address` is `VARCHAR(45)`
       and `getRemoteAddr()` is stored as is. An IPv6 address with a zone id, or any `X-Forwarded-For` value once
       the proxy decision in **Needs you** is made, can exceed 45 and fail the insert, like the User-Agent bug
@@ -212,3 +207,4 @@ All 176 tests passed at the time of the review.
 - [x] `changePassword` locks the user row (`findLockedById`) and flushes before revoking, so a concurrent login can't keep a session past a password change; admin disable pinned by the same test (dc47581)
 - [x] Logout with an already-rotated refresh token revokes that token's session (no reuse WARN); still always 204 (9961dce)
 - [x] Rotation keeps only the newest 20 used refresh token hashes per session; older tokens get a plain 401, not reuse (13a39a6)
+- [x] A rotated refresh token replayed on an already ended (logged out, revoked or expired) session is a quiet 401: no reuse WARN, no re-stamp; concurrent replays give exactly one WARN (05d0abb)
