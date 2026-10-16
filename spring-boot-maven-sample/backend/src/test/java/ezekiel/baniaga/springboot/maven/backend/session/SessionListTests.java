@@ -18,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ class SessionListTests {
     @Autowired UserRepository userRepository;
     @Autowired JWTService jwtService;
     @Autowired CustomUserDetailsMapper customUserDetailsMapper;
+    @Autowired Clock clock;
 
     @Test
     void twoLoginsListTwoSessionsWithExactlyOneCurrent() throws Exception {
@@ -95,7 +97,7 @@ class SessionListTests {
                 .content(json(Map.of("refreshToken", revoked.refreshToken()))))
             .andExpect(status().is2xxSuccessful());
         jdbcTemplate.update("UPDATE user_sessions SET expires_at = ? WHERE unique_id = ?",
-            LocalDateTime.now().minusMinutes(1), UUID.fromString(sidOf(expired)));
+            LocalDateTime.now(clock).minusMinutes(1), UUID.fromString(sidOf(expired)));
 
         List<String> ids = JsonPath.read(listSessions(kept.bearer()), "$[*].id");
         assertThat(ids).containsExactly(sidOf(kept));
@@ -116,7 +118,7 @@ class SessionListTests {
         Tokens older = login(username);
         Tokens newer = login(username);
         jdbcTemplate.update("UPDATE user_sessions SET last_used_at = ? WHERE unique_id = ?",
-            LocalDateTime.now().minusHours(1), UUID.fromString(sidOf(newer)));
+            LocalDateTime.now(clock).minusHours(1), UUID.fromString(sidOf(newer)));
 
         List<String> ids = JsonPath.read(listSessions(newer.bearer()), "$[*].id");
         assertThat(ids).containsExactly(sidOf(older), sidOf(newer));

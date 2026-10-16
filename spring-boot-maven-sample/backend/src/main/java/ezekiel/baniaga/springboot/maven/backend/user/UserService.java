@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,7 @@ public class UserService {
     private final PasswordValidator passwordValidator;
     private final UsernameValidator usernameValidator;
     private final UserSessionService userSessionService;
+    private final Clock clock;
 
     /**
      * Looks a user up by the unique_id from the access token. 404 if the
@@ -82,7 +84,7 @@ public class UserService {
         passwordValidator.validate(user.getUsername(), newPassword);
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        user.setLastModified(LocalDateTime.now());
+        user.setLastModified(LocalDateTime.now(clock));
         userRepository.saveAndFlush(user);
 
         userSessionService.revokeAllForUser(user.getId());
@@ -123,7 +125,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setRole(role);
         user.setEnabled(true);
-        user.setCreatedAt(LocalDateTime.now());
+        user.setCreatedAt(LocalDateTime.now(clock));
 
         return userRepository.save(user);
     }
@@ -223,7 +225,7 @@ public class UserService {
         if (role != null) {
             user.setRole(role);
         }
-        user.setLastModified(LocalDateTime.now());
+        user.setLastModified(LocalDateTime.now(clock));
 
         // saveAndFlush so the response carries the incremented version
         User saved = userRepository.saveAndFlush(user);

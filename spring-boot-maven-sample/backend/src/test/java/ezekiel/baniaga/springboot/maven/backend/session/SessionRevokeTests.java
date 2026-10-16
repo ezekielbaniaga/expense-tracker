@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ class SessionRevokeTests {
     @Autowired UserRepository userRepository;
     @Autowired CustomUserDetailsMapper customUserDetailsMapper;
     @Autowired JdbcTemplate jdbcTemplate;
+    @Autowired Clock clock;
 
     @Test
     void revokedSessionCannotRefreshButOtherSessionStillCan() throws Exception {
@@ -235,7 +237,7 @@ class SessionRevokeTests {
 
     private void expire(Tokens tokens) {
         jdbcTemplate.update("UPDATE user_sessions SET expires_at = ? WHERE unique_id = ?",
-            LocalDateTime.now().minusDays(1), UUID.fromString(sidOf(tokens)));
+            LocalDateTime.now(clock).minusDays(1), UUID.fromString(sidOf(tokens)));
     }
 
     private LocalDateTime revokedAt(Tokens tokens) {

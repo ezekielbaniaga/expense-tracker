@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ class AdminSessionTests {
     @Autowired JWTService jwtService;
     @Autowired CustomUserDetailsMapper mapper;
     @Autowired JdbcTemplate jdbcTemplate;
+    @Autowired Clock clock;
 
     private User admin;
     private Tokens adminTokens;
@@ -158,7 +160,7 @@ class AdminSessionTests {
         Tokens expired = login(target);
         Tokens active = login(target);
         jdbcTemplate.update("UPDATE user_sessions SET expires_at = ? WHERE unique_id = ?",
-            LocalDateTime.now().minusDays(1), UUID.fromString(sidOf(expired)));
+            LocalDateTime.now(clock).minusDays(1), UUID.fromString(sidOf(expired)));
 
         revokeAll(adminTokens.bearer(), target.getUniqueId())
             .andExpect(status().isOk())

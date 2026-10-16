@@ -16,6 +16,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -44,6 +45,7 @@ public class UserSessionService {
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHasher refreshTokenHasher;
     private final SessionMapper sessionMapper;
+    private final Clock clock;
 
     /**
      * Creates a new session and saves to db for
@@ -80,7 +82,7 @@ public class UserSessionService {
 
         String rawRefreshToken = refreshTokenGenerator.generate();
         String hashedRefreshToken = refreshTokenHasher.hash(rawRefreshToken);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         Long userId = authenticated.getDatabaseId();
         User user = userRepository.findLockedById(userId)
@@ -148,20 +150,20 @@ public class UserSessionService {
             throw new BadCredentialsException("Refresh token has been revoked");
         }
 
-        if (userSession.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (userSession.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
             throw new BadCredentialsException("Refresh token has expired");
         }
 
         // Access tokens can't be recalled, but a disabled user must not get new ones.
         // Revoke so re-enabling the account doesn't bring this session back.
         if (!userSession.getUser().isEnabled()) {
-            repository.revoke(userSession.getId(), LocalDateTime.now());
+            repository.revoke(userSession.getId(), LocalDateTime.now(clock));
             throw new DisabledException("User account is disabled");
         }
 
         String newRawRefreshToken = refreshTokenGenerator.generate();
         String newHash = refreshTokenHasher.hash(newRawRefreshToken);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         usedRefreshTokenRepository.save(
             new UsedRefreshToken(oldHash, userSession, now));
@@ -201,7 +203,7 @@ public class UserSessionService {
             .map(UserSession::getId)
             // Reading the id of a lazy proxy does not hit the database
             .or(() -> usedRefreshTokenRepository.findById(hash).map(used -> used.getSession().getId()))
-            .ifPresent(sessionId -> repository.revoke(sessionId, LocalDateTime.now()));
+            .ifPresent(sessionId -> repository.revoke(sessionId, LocalDateTime.now(clock)));
     }
 
     /**
@@ -211,7 +213,7 @@ public class UserSessionService {
      */
     @Transactional
     public int revokeAllForUser(Long userId) {
-        return repository.revokeAllForUser(userId, LocalDateTime.now());
+        return repository.revokeAllForUser(userId, LocalDateTime.now(clock));
     }
 
     /**
@@ -230,7 +232,7 @@ public class UserSessionService {
             .flatMap(user -> repository.findByUniqueIdAndUserId(sessionId, user.getId()))
             .orElseThrow(() -> new ResourceNotFoundException("SESSION_NOT_FOUND", "Session not found."));
 
-        repository.revoke(session.getId(), LocalDateTime.now());
+        repository.revoke(session.getId(), LocalDateTime.now(clock));
 
         log.info("Revoked session {} of user {}", sessionId, userUniqueId);
     }
@@ -249,7 +251,7 @@ public class UserSessionService {
         User user = userRepository.findByUniqueId(userUniqueId)
             .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         int revoked = currentSid == null
             ? repository.revokeAllForUser(user.getId(), now)
             : repository.revokeAllForUserExcept(user.getId(), currentSid, now);
@@ -272,7 +274,7 @@ public class UserSessionService {
         User user = userRepository.findByUniqueId(userUniqueId)
             .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
 
-        return repository.findActiveByUserId(user.getId(), LocalDateTime.now()).stream()
+        return repository.findActiveByUserId(user.getId(), LocalDateTime.now(clock)).stream()
             .map(session -> sessionMapper.toResponse(session, currentSid))
             .toList();
     }
@@ -283,7 +285,7 @@ public class UserSessionService {
      */
     @Transactional
     public int cleanupEndedSessions(int retentionDays, int limit) {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+        LocalDateTime cutoff = LocalDateTime.now(clock).minusDays(retentionDays);
         return repository.deleteEndedBefore(cutoff, limit);
     }
 
@@ -315,7 +317,7 @@ public class UserSessionService {
         return usedRefreshTokenRepository.findById(hash)
             .<BadCredentialsException>map(used -> {
                 UserSession session = used.getSession();
-                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime now = LocalDateTime.now(clock);
 
                 // revoke only stamps a session that isn't revoked yet, so of
                 // concurrent replays exactly one counts as the reuse

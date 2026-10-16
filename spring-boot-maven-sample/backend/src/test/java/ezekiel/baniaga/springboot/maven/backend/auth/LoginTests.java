@@ -22,6 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -45,6 +46,7 @@ class LoginTests {
     @Autowired RefreshTokenHasher refreshTokenHasher;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired JWTService jwtService;
+    @Autowired Clock clock;
 
     private User user;
 
@@ -81,7 +83,7 @@ class LoginTests {
         assertThat(session.getUserAgent()).isEqualTo("LoginTests");
         assertThat(session.getIpAddress()).isEqualTo("127.0.0.1");
         assertThat(session.getRevokedAt()).isNull();
-        assertThat(session.getExpiresAt()).isAfter(LocalDateTime.now().plusDays(29));
+        assertThat(session.getExpiresAt()).isAfter(LocalDateTime.now(clock).plusDays(29));
     }
 
     @Test

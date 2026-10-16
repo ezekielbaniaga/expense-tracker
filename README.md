@@ -921,6 +921,11 @@ The complete lifecycle can be summarized as:
 # 17. User Accounts, Roles and Admin Endpoints
 
 Every error below uses the same JSON body as the rest of the API: `{"code": "...", "messages": [...], "timestamp": "..."}`.
+
+**Timestamps are UTC.** Every timestamp in a response (`createdAt`, `lastModified`, `expiresAt`, the error
+`timestamp`, ...) is a UTC time written without an offset, e.g. `"2026-10-16T08:00:00"`: read it as
+`2026-10-16T08:00:00Z`. The app takes "now" from one UTC `Clock` bean, so the host's time zone doesn't matter.
+Adding the `Z` would change the response format, so it waits for a new API version.
 Request bodies that fail bean validation (blank fields, missing `version`) return `400 VALIDATION_ERROR`.
 So do a malformed path variable or query parameter (`/users/not-a-uuid`, `?page=abc`) and a missing
 required query parameter. An unreadable body (malformed JSON, unknown enum value) returns
@@ -1063,7 +1068,7 @@ Each list item is:
 }
 ```
 
-The list is ordered by most recent use, is not paged (the number of active sessions is capped, see
+The times are UTC without an offset (see above). The list is ordered by most recent use, is not paged (the number of active sessions is capped, see
 below), and never contains the refresh token hash.
 
 * **`sid` and `current`.** `current` is true for the session whose id is in the `sid` claim of the access

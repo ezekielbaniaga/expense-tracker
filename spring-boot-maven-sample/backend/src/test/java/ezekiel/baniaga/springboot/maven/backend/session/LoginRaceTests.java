@@ -107,7 +107,7 @@ class LoginRaceTests {
     private Integer activeSessions(User user) {
         return jdbcTemplate.queryForObject("""
             SELECT count(*) FROM user_sessions
-            WHERE user_id = ? AND revoked_at IS NULL AND expires_at > now()
+            WHERE user_id = ? AND revoked_at IS NULL AND expires_at > now() AT TIME ZONE 'UTC'
             """, Integer.class, user.getId());
     }
 }

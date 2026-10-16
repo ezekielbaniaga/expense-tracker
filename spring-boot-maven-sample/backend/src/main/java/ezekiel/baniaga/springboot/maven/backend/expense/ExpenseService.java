@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -24,6 +25,7 @@ public class ExpenseService {
     private final ExpenseRepository repository;
     private final ExpenseMapper expenseMapper;
     private final DefaultUUIDGenerator uuidGenerator;
+    private final Clock clock;
 
     public ExpenseResponse getExpenseByUniqueId(UUID uniqueId, UUID ownerId) {
         Expense expense = findExpenseOrThrow(uniqueId, ownerId);
@@ -42,7 +44,7 @@ public class ExpenseService {
         checkIfArchived(expense);
 
         expense = expenseMapper.toEntity(request, expense);
-        expense.setLastModified(LocalDateTime.now());
+        expense.setLastModified(LocalDateTime.now(clock));
 
         // Using saveAndFlush to get latest version field incremented by Hibernate
         return expenseMapper.toResponse(repository.saveAndFlush(expense));
@@ -56,7 +58,7 @@ public class ExpenseService {
         checkIfArchived(expense);
 
         expense.setDescription(request.description());
-        expense.setLastModified(LocalDateTime.now());
+        expense.setLastModified(LocalDateTime.now(clock));
 
         return expenseMapper.toResponse(repository.saveAndFlush(expense));
     }
@@ -71,7 +73,7 @@ public class ExpenseService {
 
         // repository.delete(expense); --> hard delete
         expense.setArchived(true);
-        expense.setArchivedAt(LocalDateTime.now());
+        expense.setArchivedAt(LocalDateTime.now(clock));
         repository.save(expense);
     }
 
@@ -109,7 +111,7 @@ public class ExpenseService {
 
         UUID uuid = uuidGenerator.generate();
         expense.setUniqueId(uuid);
-        expense.setCreatedAt(LocalDateTime.now());
+        expense.setCreatedAt(LocalDateTime.now(clock));
         return expenseMapper.toResponse(repository.save(expense));
     }
 
@@ -143,7 +145,7 @@ public class ExpenseService {
 
     @Transactional
     public int cleanupArchived(int retentionMaxDays, int limit) {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionMaxDays);
+        LocalDateTime cutoff = LocalDateTime.now(clock).minusDays(retentionMaxDays);
         return repository.deleteOldExpense(cutoff, limit);
     }
 

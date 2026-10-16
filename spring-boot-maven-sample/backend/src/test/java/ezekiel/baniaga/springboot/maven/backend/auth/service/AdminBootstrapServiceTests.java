@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -190,7 +191,7 @@ class AdminBootstrapServiceTests {
 
         UserService userService = new UserService(
             userRepository, passwordEncoder, new DefaultUUIDGenerator(), new PasswordValidator(), new UsernameValidator(),
-            mock(UserSessionService.class));
+            mock(UserSessionService.class), Clock.systemUTC());
         new AdminBootstrapService(userRepository, userService, properties)
             .createInitialAdminUser();
     }

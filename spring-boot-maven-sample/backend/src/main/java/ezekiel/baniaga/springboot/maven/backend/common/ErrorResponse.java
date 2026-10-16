@@ -3,6 +3,7 @@ package ezekiel.baniaga.springboot.maven.backend.common;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Getter
 public class ErrorResponse {
@@ -17,6 +18,7 @@ public class ErrorResponse {
     public ErrorResponse(String code, String[] messages) {
         this.code = code;
         this.messages = messages;
-        this.timestamp = LocalDateTime.now();
+        // UTC like every other timestamp; not a bean, so no injected Clock
+        this.timestamp = LocalDateTime.now(ZoneOffset.UTC);
     }
 }

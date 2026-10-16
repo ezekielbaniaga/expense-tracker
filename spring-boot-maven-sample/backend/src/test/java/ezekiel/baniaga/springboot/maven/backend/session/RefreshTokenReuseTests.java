@@ -18,6 +18,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,7 @@ class RefreshTokenReuseTests {
     @Autowired UserRepository userRepository;
     @Autowired CustomUserDetailsMapper customUserDetailsMapper;
     @Autowired MockMvc mockMvc;
+    @Autowired Clock clock;
 
     private User user;
 
@@ -139,7 +141,7 @@ class RefreshTokenReuseTests {
         String old = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
         String current = userSessionService.rotateRefreshToken(old).newRawRefreshToken();
         UserSession session = sessionFor(current);
-        session.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        session.setExpiresAt(LocalDateTime.now(clock).minusMinutes(1));
         userSessionRepository.save(session);
 
         assertThatThrownBy(() -> userSessionService.rotateRefreshToken(old))
@@ -165,7 +167,7 @@ class RefreshTokenReuseTests {
     void expiredSessionCannotRefresh() throws Exception {
         String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
         UserSession session = sessionFor(token);
-        session.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        session.setExpiresAt(LocalDateTime.now(clock).minusMinutes(1));
         userSessionRepository.save(session);
 
         assertThatThrownBy(() -> userSessionService.rotateRefreshToken(token))
@@ -183,7 +185,7 @@ class RefreshTokenReuseTests {
     @Test
     void revokedSessionCannotRefresh() throws Exception {
         String token = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
-        LocalDateTime revokedAt = LocalDateTime.now().minusMinutes(5);
+        LocalDateTime revokedAt = LocalDateTime.now(clock).minusMinutes(5);
         UserSession session = sessionFor(token);
         session.setRevokedAt(revokedAt);
         userSessionRepository.save(session);

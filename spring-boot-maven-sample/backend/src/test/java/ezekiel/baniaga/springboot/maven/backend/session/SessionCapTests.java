@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,7 @@ class SessionCapTests {
     @Autowired CustomUserDetailsMapper customUserDetailsMapper;
     @Autowired UserSessionService userSessionService;
     @Autowired JWTService jwtService;
+    @Autowired Clock clock;
 
     @Test
     void eleventhLoginRevokesTheLeastRecentlyUsedSession() throws Exception {
@@ -61,7 +63,7 @@ class SessionCapTests {
         // Not the oldest login: the cap goes by last use, not by creation
         Tokens leastRecentlyUsed = logins.get(4);
         jdbcTemplate.update("UPDATE user_sessions SET last_used_at = ? WHERE unique_id = ?",
-            LocalDateTime.now().minusHours(1), sidOf(leastRecentlyUsed));
+            LocalDateTime.now(clock).minusHours(1), sidOf(leastRecentlyUsed));
 
         Tokens eleventh = login(username);
 
@@ -120,7 +122,7 @@ class SessionCapTests {
     private Integer activeSessions(String username) {
         return jdbcTemplate.queryForObject("""
             SELECT count(*) FROM user_sessions s JOIN users u ON u.id = s.user_id
-            WHERE u.username = ? AND s.revoked_at IS NULL AND s.expires_at > now()
+            WHERE u.username = ? AND s.revoked_at IS NULL AND s.expires_at > now() AT TIME ZONE 'UTC'
             """, Integer.class, username);
     }
 

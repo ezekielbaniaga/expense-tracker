@@ -14,6 +14,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -32,6 +33,7 @@ class UserSessionCleanupTests {
     @Autowired RefreshTokenHasher refreshTokenHasher;
     @Autowired UserRepository userRepository;
     @Autowired CustomUserDetailsMapper customUserDetailsMapper;
+    @Autowired Clock clock;
 
     private User user;
 
@@ -49,7 +51,7 @@ class UserSessionCleanupTests {
 
     @Test
     void deletesOnlySessionsThatEndedBeforeRetention() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         Long active = sessionId(newSession());
 
