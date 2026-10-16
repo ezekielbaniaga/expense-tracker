@@ -110,11 +110,11 @@ class SessionClockTests {
         userSessionService.revokeAllForUser(user.getId());
 
         clock.advance(Duration.ofDays(7).minusMinutes(1));
-        inJvmZone("Asia/Manila", () -> userSessionService.cleanupEndedSessions(7, 1000));
+        inJvmZone("Asia/Manila", () -> userSessionService.cleanupEndedSessions(Duration.ofDays(7), 1000));
         assertThat(userSessionRepository.existsById(revoked)).isTrue();
 
         clock.advance(Duration.ofMinutes(2));
-        inJvmZone("Asia/Manila", () -> userSessionService.cleanupEndedSessions(7, 1000));
+        inJvmZone("Asia/Manila", () -> userSessionService.cleanupEndedSessions(Duration.ofDays(7), 1000));
         assertThat(userSessionRepository.existsById(revoked)).isFalse();
     }
 

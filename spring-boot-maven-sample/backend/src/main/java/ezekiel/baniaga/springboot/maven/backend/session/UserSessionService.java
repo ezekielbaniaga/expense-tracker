@@ -7,6 +7,7 @@ import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UsedRefreshToken;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.session.mapper.SessionMapper;
+import ezekiel.baniaga.springboot.maven.backend.session.props.SessionProperties;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -31,9 +33,6 @@ public class UserSessionService {
     private static final int MAX_USER_AGENT_LENGTH = 500;
     private static final int MAX_IP_ADDRESS_LENGTH = 45;
 
-    // Most active sessions a user can have; logging in past it ends the least recently used
-    static final int MAX_ACTIVE_SESSIONS = 10;
-
     // Used token hashes kept per session for reuse detection; older ones are
     // deleted on rotation, so an endless refresh loop can't grow the table
     static final int MAX_USED_TOKENS_PER_SESSION = 20;
@@ -45,6 +44,7 @@ public class UserSessionService {
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHasher refreshTokenHasher;
     private final SessionMapper sessionMapper;
+    private final SessionProperties sessionProperties;
     private final Clock clock;
 
     /**
@@ -61,7 +61,7 @@ public class UserSessionService {
            │
            └──▶ NEVER database
      *
-     * At most MAX_ACTIVE_SESSIONS stay active: when the user already has that
+     * At most app.session.max-active sessions stay active: when the user already has that
      * many, the least recently used ones are revoked first, so the new login
      * always succeeds. The user row is locked (SELECT ... FOR UPDATE) for the
      * transaction, so concurrent logins of one user count one after another;
@@ -110,7 +110,7 @@ public class UserSessionService {
         session.setIpAddress(truncate(ipAddress, MAX_IP_ADDRESS_LENGTH));
         session.setCreatedAt(now);
         session.setLastUsedAt(now);
-        session.setExpiresAt(now.plusDays(30));
+        session.setExpiresAt(now.plus(sessionProperties.getLifetime()));
 
         repository.save(session);
 
@@ -280,23 +280,23 @@ public class UserSessionService {
     }
 
     /**
-     * Deletes sessions that expired or were revoked more than retentionDays ago,
+     * Deletes sessions that expired or were revoked more than retention ago,
      * together with their used token hashes. Active sessions are never touched.
      */
     @Transactional
-    public int cleanupEndedSessions(int retentionDays, int limit) {
-        LocalDateTime cutoff = LocalDateTime.now(clock).minusDays(retentionDays);
+    public int cleanupEndedSessions(Duration retention, int limit) {
+        LocalDateTime cutoff = LocalDateTime.now(clock).minus(retention);
         return repository.deleteEndedBefore(cutoff, limit);
     }
 
     /**
      * Makes room for one more session: revokes the least recently used active
-     * sessions until MAX_ACTIVE_SESSIONS - 1 are left. Must run under the user
+     * sessions until app.session.max-active - 1 are left. Must run under the user
      * row lock taken by createSession.
      */
     private void revokeLeastRecentlyUsedOverCap(Long userId, LocalDateTime now) {
         List<Long> active = repository.findActiveIdsLeastRecentlyUsedFirst(userId, now);
-        int excess = active.size() - (MAX_ACTIVE_SESSIONS - 1);
+        int excess = active.size() - (sessionProperties.getMaxActive() - 1);
         if (excess <= 0) {
             return;
         }

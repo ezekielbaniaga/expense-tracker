@@ -379,6 +379,16 @@ The database contains something like:
 
 This means a database compromise does not immediately expose usable refresh tokens.
 
+A session, and so its refresh token, lasts 30 days from login; refreshing does not extend it. The session
+settings are in `application.yml` under `app.session` (a `Duration` like `30d` or `12h` for the times),
+next to `app.jwt.expiration` for the access token:
+
+| Property | Default | Meaning |
+| --- | --- | --- |
+| `app.session.lifetime` | `30d` | how long a session lasts from login |
+| `app.session.max-active` | `10` | most active sessions per user; a login past it revokes the least recently used |
+| `app.session.retention` | `7d` | how long expired or revoked sessions are kept before the nightly cleanup deletes them |
+
 ---
 
 # 6. User Sessions
@@ -666,7 +676,7 @@ Other details of `UserSessionService.rotateRefreshToken`:
 - A revoked or expired session is rejected with `401`.
 - If the user has been disabled, the session is revoked and the refresh is rejected, so re-enabling the account does not bring the session back.
 - `POST /auth/logout` revokes the session of the given refresh token, also when that token was already rotated (a lost refresh response or a stale tab); that is the owner logging out, so it is not treated as reuse. It always returns `204`, even for unknown tokens, and the access token stays valid until it expires.
-- A nightly job (`UserSessionCleanup`, from 3AM) deletes sessions that expired or were revoked more than 7 days ago, together with their used token hashes. Active sessions are never deleted.
+- A nightly job (`UserSessionCleanup`, from 3AM) deletes sessions that expired or were revoked more than 7 days ago (`app.session.retention`), together with their used token hashes. Active sessions are never deleted.
 
 ---
 
@@ -1092,7 +1102,7 @@ below), and never contains the refresh token hash.
   already issued keeps working until it expires, up to `app.jwt.expiration` (15 minutes). The JWT filter
   never reads the database, so it cannot know about the revoke. The `sid` claim would allow a
   per-request check later.
-* **Cap of 10 active sessions per user.** A login that would exceed the cap revokes the least recently
+* **Cap of 10 active sessions per user** (`app.session.max-active`). A login that would exceed the cap revokes the least recently
   used sessions first, so the new login always succeeds. The user row is locked during the check, so
   simultaneous logins cannot go over the cap.
 

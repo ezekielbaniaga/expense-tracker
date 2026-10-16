@@ -45,6 +45,13 @@ app:
   jwt:
     secret: ${JWT_SECRET:}
     expiration: 15m
+  session:
+    # How long a session (refresh token) lasts from login; refreshing does not extend it
+    lifetime: 30d
+    # Most active sessions per user; a login past it revokes the least recently used
+    max-active: 10
+    # How long expired or revoked sessions are kept before the nightly cleanup deletes them
+    retention: 7d
   # In memory, per instance: with several instances each counts on its own
   rate-limit:
     max-keys: 100000

@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -67,7 +68,7 @@ class UserSessionCleanupTests {
         Long revokedRecently = sessionId(newSession());
         update(revokedRecently, s -> s.setRevokedAt(now.minusDays(1)));
 
-        int deleted = userSessionService.cleanupEndedSessions(7, 1000);
+        int deleted = userSessionService.cleanupEndedSessions(Duration.ofDays(7), 1000);
 
         assertThat(deleted).isGreaterThanOrEqualTo(2);
         assertThat(userSessionRepository.existsById(expiredLongAgo)).isFalse();
