@@ -13,18 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Trust the reverse proxy's `X-Forwarded-For` (decided 2026-10-16: the app runs behind a proxy).**
-      Today `AuthController.login` stores `request.getRemoteAddr()`, which behind a proxy is the proxy's IP
-      for every session, and the rate-limit items below need the real client IP. Set
-      `server.forward-headers-strategy: native` (Tomcat's RemoteIpValve), not `framework`, which trusts the
-      header from anyone. `Careful:` the valve trusts private ranges by default (10/8, 172.16/12, 192.168/16,
-      127/8), and Compose publishes `8080:8080`, so a client hitting the app directly through the Docker port
-      mapping arrives from the bridge gateway (172.x), is treated as a trusted proxy, and can spoof its IP.
-      Pin `server.tomcat.remoteip.internal-proxies` to the proxy's address through an env var, and say in the
-      Compose README to stop publishing 8080 once the proxy is in front. Test: a `RANDOM_PORT`
-      `@SpringBootTest` (MockMvc skips the valve) logs in from 127.0.0.1 with `X-Forwarded-For: 203.0.113.7`
-      and the session lists `203.0.113.7`; with `internal-proxies` set to something else it lists 127.0.0.1.
-      Needs the `ip_address` truncation item above first, since the stored value now comes from a header.
 - [ ] **Rate limit `/auth/login` with Bucket4j (decided 2026-10-16).** Add `bucket4j_jdk17-core` and an
       in-memory limiter (per instance, which is fine for one instance; note it in the README). Two buckets per
       attempt: per normalized username (e.g. 5 failures per 15 minutes, so one account can't be guessed from
@@ -204,3 +192,4 @@ All 176 tests passed at the time of the review.
 - [x] Rotation keeps only the newest 20 used refresh token hashes per session; older tokens get a plain 401, not reuse (13a39a6)
 - [x] A rotated refresh token replayed on an already ended (logged out, revoked or expired) session is a quiet 401: no reuse WARN, no re-stamp; concurrent replays give exactly one WARN (05d0abb)
 - [x] Login truncates an `ip_address` over 45 characters (e.g. IPv6 with zone id) instead of failing with 500 (030adfe)
+- [x] Client IP comes from `X-Forwarded-For` via Tomcat's RemoteIpValve (`forward-headers-strategy: native`), trusted only from `TRUSTED_PROXIES` (loopback by default, empty in Compose); Compose README says to stop publishing 8080 behind a proxy (763ae30)
