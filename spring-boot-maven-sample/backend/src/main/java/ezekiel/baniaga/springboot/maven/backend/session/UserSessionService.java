@@ -304,17 +304,28 @@ public class UserSessionService {
 
     /**
      * Token is not the current one of any session. If it was rotated out
-     * before, someone is replaying it, so revoke the session it belonged to.
+     * before and its session is still active, someone is replaying it, so
+     * revoke the session and WARN. If the session already ended (logged out,
+     * revoked or expired), there is nothing left to protect: a plain 401,
+     * logged at DEBUG, so the WARN stays a meaningful theft alert and the
+     * original revocation time is kept.
      */
     private BadCredentialsException handleUnknownToken(String hash) {
         return usedRefreshTokenRepository.findById(hash)
             .<BadCredentialsException>map(used -> {
-                // Reading the id of a lazy proxy does not hit the database
-                Long sessionId = used.getSession().getId();
-                repository.revoke(sessionId, LocalDateTime.now());
+                UserSession session = used.getSession();
+                LocalDateTime now = LocalDateTime.now();
 
-                log.warn("Refresh token reuse detected, revoked session {}", sessionId);
-                return new RefreshTokenReuseException("Refresh token reuse detected");
+                // revoke only stamps a session that isn't revoked yet, so of
+                // concurrent replays exactly one counts as the reuse
+                boolean active = session.getExpiresAt().isAfter(now);
+                if (active && repository.revoke(session.getId(), now) > 0) {
+                    log.warn("Refresh token reuse detected, revoked session {}", session.getId());
+                    return new RefreshTokenReuseException("Refresh token reuse detected");
+                }
+
+                log.debug("Rotated refresh token replayed on ended session {}", session.getId());
+                return new BadCredentialsException("Refresh token has been revoked or expired");
             })
             .orElseGet(() -> new BadCredentialsException("Invalid Refresh Token"));
     }

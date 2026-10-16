@@ -120,6 +120,37 @@ class RefreshTokenReuseTests {
     }
 
     @Test
+    void replayAfterLogoutIsNotReuseAndKeepsRevocationTime() {
+        String old = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
+        String current = userSessionService.rotateRefreshToken(old).newRawRefreshToken();
+        userSessionService.revokeSession(current);
+        LocalDateTime revokedAt = sessionFor(current).getRevokedAt();
+
+        // The session already ended normally: plain 401, no reuse alert
+        assertThatThrownBy(() -> userSessionService.rotateRefreshToken(old))
+            .isInstanceOf(BadCredentialsException.class)
+            .isNotInstanceOf(RefreshTokenReuseException.class);
+
+        assertThat(sessionFor(current).getRevokedAt()).isEqualTo(revokedAt);
+    }
+
+    @Test
+    void replayOnExpiredSessionIsNotReuseAndDoesNotRevokeIt() {
+        String old = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
+        String current = userSessionService.rotateRefreshToken(old).newRawRefreshToken();
+        UserSession session = sessionFor(current);
+        session.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        userSessionRepository.save(session);
+
+        assertThatThrownBy(() -> userSessionService.rotateRefreshToken(old))
+            .isInstanceOf(BadCredentialsException.class)
+            .isNotInstanceOf(RefreshTokenReuseException.class);
+
+        // Expiry alone ended it; it is not stamped as revoked
+        assertThat(sessionFor(current).getRevokedAt()).isNull();
+    }
+
+    @Test
     void unknownTokenIsRejectedWithoutRevokingAnything() {
         String current = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
 
@@ -188,18 +219,24 @@ class RefreshTokenReuseTests {
 
             List<String> winners = new ArrayList<>();
             int rejected = 0;
+            int reuse = 0;
             for (Future<String> result : results) {
                 try {
                     winners.add(result.get(30, TimeUnit.SECONDS));
                 } catch (ExecutionException ex) {
-                    // Losers must be treated as reuse, not fail with a DB error
-                    assertThat(ex.getCause()).isInstanceOf(RefreshTokenReuseException.class);
+                    // Losers must be rejected with 401, not fail with a DB error
+                    assertThat(ex.getCause()).isInstanceOf(BadCredentialsException.class);
+                    if (ex.getCause() instanceof RefreshTokenReuseException) {
+                        reuse++;
+                    }
                     rejected++;
                 }
             }
 
             assertThat(winners).hasSize(1);
             assertThat(rejected).isEqualTo(threads - 1);
+            // The first replay revokes the session; later ones find it already ended
+            assertThat(reuse).isEqualTo(1);
             assertThat(sessionFor(winners.get(0)).getRevokedAt()).isNotNull();
         } finally {
             pool.shutdownNow();

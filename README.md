@@ -609,6 +609,7 @@ Revoke the Session
 ```
 
 The whole session is revoked, so both the attacker and the legitimate client are logged out and the real user must log in again.
+This only happens while the session is still active. If it already ended (logged out, revoked or expired), a replayed old token gets a plain `401`, logged at DEBUG: there is nothing left to protect, the original revocation time is kept, and the `Refresh token reuse detected` WARN stays a meaningful alert. Of several concurrent replays, only the one that actually revokes the session logs the WARN.
 A token the server has never issued is simply rejected with `401 Unauthorized`.
 
 Other details of `UserSessionService.rotateRefreshToken`:
