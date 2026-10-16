@@ -1,6 +1,6 @@
 # TODO
 
-Last investigation: 2026-10-16 16:40 — 21 new findings, Needs you settled
+Last investigation: 2026-10-16 20:21 — 8 new findings
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `spring-boot-maven-sample/backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
@@ -8,12 +8,99 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## To do
+
+- [ ] **`POST /users/me/password` has no limit on wrong current passwords.** `user/UserService.java`
+      (`changePassword`) and `user/UserController.java`. Verified 2026-10-16 with a throwaway test: 30 wrong
+      `currentPassword` attempts in a row were all `400 INVALID_CURRENT_PASSWORD`, never 429. Anyone holding an
+      access token (stolen, or a shared machine; it stays valid 15 minutes even after logout) can guess the
+      current password at BCrypt speed and then take the account over for good by setting a new one, and any
+      user can burn server CPU with unlimited BCrypt checks. Login has 5 failures per 15 minutes per username;
+      this path bypasses it. Fix: a `KeyedRateLimiter` keyed by the user's unique id (`app.rate-limit.password-change.failures`,
+      e.g. 5 per 15 minutes), consumed before `passwordEncoder.matches` and refunded on success like
+      `LoginRateLimiter`; 429 `TOO_MANY_REQUESTS` with `Retry-After`. Also cap `ChangePasswordRequest.currentPassword`
+      at 1,000 like `LoginRequest.password`. Test: sixth wrong current password is 429 with `Retry-After`; a
+      correct one after 5 wrong is 429 until the window passes (fake `TimeMeter`, as in `LoginRateLimitTests`);
+      successful changes don't count; another user is unaffected.
+- [ ] **The admin bootstrap accepts the `.env.example` placeholder `ADMIN_PASSWORD=change-me`.**
+      `auth/service/AdminBootstrapService.java`. Verified with a throwaway test: `createInitialAdminUser` with
+      password `change-me` created the ADMIN. `JWT_SECRET=change-me` is rejected (under 32 bytes), so a copied
+      `.env` fails on the secret, but once a real secret is set the app happily starts with an admin whose
+      password is in the repo, under the default username `admin`. Fix: refuse to start when `ADMIN_PASSWORD`
+      equals `change-me` (and, for new installs, apply a minimum length such as `PasswordValidator.MIN_LENGTH`
+      only when the admin is about to be created, so existing setups whose admin already exists still start).
+      Test: `AdminBootstrapServiceTests` cases for `change-me` (IllegalStateException naming the variable) and
+      for an existing admin with a short password still starting.
+- [ ] **Session durations are not validated; a negative `retention` deletes active sessions.**
+      `session/props/SessionProperties.java`, `session/UserSessionService.java` (`cleanupEndedSessions`). Spring
+      binds `-7d`, and the cutoff `now - retention` then lies in the future, so `expires_at < cutoff` matches live
+      sessions. Verified with a throwaway test: `cleanupEndedSessions(-1000h)` deleted the user's only active
+      session. A zero or negative `lifetime` makes every login create an already expired session. Fix: `@NotNull`
+      plus a check that `lifetime` is positive and `retention` is zero or positive (e.g. `@AssertTrue` methods or
+      `@DurationMin` from Hibernate Validator), failing startup with the property name; same for
+      `app.jwt.expiration` in `JWTProperties` (add `@Validated`). Test: `SessionPropertiesTests` cases for
+      `app.session.retention=-1d` and `app.session.lifetime=0s` failing the context with a message naming the
+      property, and `app.jwt.expiration=0s` likewise.
+- [ ] **`@PastOrPresent` on the expense date uses the JVM zone from startup, not the UTC `Clock`.**
+      `expense/dto/CreateExpenseRequest.java`, `expense/dto/UpdateExpenseRequest.java`. Hibernate Validator's
+      default `ClockProvider` captures `Clock.systemDefaultZone()` once, so the check ignores `ClockConfig` (and
+      a test clock) and changes with the host zone. In the UTC container a user in Manila (UTC+8) cannot record
+      an expense dated today before 08:00 local time. Verified with a throwaway test: the date that is today in
+      `Pacific/Kiritimati` (2026-10-17) got 400 while UTC was still 2026-10-16, whatever the JVM default zone was
+      set to at request time. Fix: a `ValidationConfigurationCustomizer` bean that sets a `ClockProvider` built
+      from the `Clock` bean, offset to UTC+14 (`clock.withZone(ZoneOffset.ofHours(14))`), so "present" means
+      today anywhere on Earth; document it next to the README UTC note. Test: with a fixed clock at
+      2031-03-30T12:00Z, date 2031-03-31 is accepted (today in UTC+14) and 2031-04-01 is 400, independent of
+      the JVM zone.
+- [ ] **Per-IP rate limits are keyed by the full IPv6 address.** `ratelimit/KeyedRateLimiter.java`,
+      `auth/service/LoginRateLimiter.java`, `auth/service/AuthEndpointRateLimiter.java`. A single IPv6 host
+      usually controls a whole /64 (2^64 addresses), so rotating source addresses gets a fresh bucket each time
+      and bypasses register (10/hour), login-per-IP (20/minute), refresh and logout limits; it also fills the
+      `max-keys` map. Not verified (Compose is IPv4 only today; it matters once a proxy forwards IPv6 clients).
+      Fix: normalize the client IP key in one place (e.g. `ClientIpKey.of(remoteAddr)`): IPv4 as is, IPv6
+      (including IPv4-mapped and zone ids) reduced to its /64 prefix. Test: unit test of the key function, and
+      a register test where `2001:db8::1` and `2001:db8::2` share one bucket while `2001:db8:0:1::1` does not.
+- [ ] **Native query `LocalDateTime` parameters still go through the JVM zone and shift by an hour in a DST
+      gap.** `session/UserSessionRepository.java` (`deleteEndedBefore`), `expense/ExpenseRepository.java`
+      (`deleteOldExpense`); claim in `application.yml` (`java_time_use_direct_jdbc` comment) and README
+      "Timestamps are UTC". Verified with a throwaway test under `Europe/Berlin`: a native parameter
+      `2031-03-30T02:30` arrived as `2031-03-30 03:30:00`, while the same value in a JPQL `UPDATE` (`revokeAll`)
+      and in entity saves was stored unchanged. So on a non-UTC DST host the cleanup cutoffs are an hour late
+      for one hour a year. Small effect, but the "bound as-is" guarantee doesn't hold for native queries and
+      `SessionClockTests.cleanupCutoffFollowsTheClock` only runs under `Asia/Manila` (no DST). Fix: pass the
+      cutoff as an ISO string and `CAST(:cutoff AS timestamp)` in both native queries (no zone involved), or
+      select the ids in JPQL with a `Limit` and delete by id; correct the yml comment. Test: run the cleanup
+      under `Europe/Berlin` with the clock set so the cutoff is 2031-03-30T02:30 and check a session revoked
+      at 02:45 survives and one at 02:15 is deleted.
+- [ ] **Expense cleanup still runs 60 times at 2AM, 1,000 rows each.** `expense/job/ExpenseCleanup.java`
+      (`cron = "0 * 2 * * *"`). Session cleanup was changed to one run with batches until a short one (cb79386);
+      expense cleanup still logs 60 INFO pairs a night, mostly "Affected Rows: 0", and stops at 60,000 rows.
+      Fix: same loop as `UserSessionCleanup` (once at 02:00, batches of 1,000 until short, at most 100, each its
+      own transaction through `ExpenseService`), retention in a property like `app.session.retention`. Test:
+      like `UserSessionCleanupTests`: 2,500 archived rows past retention are all deleted in one `cleanup()` call
+      in 3 batches; a recent archived and an active expense remain.
+- [ ] **Docs lag the code in three places.** (1) `CLAUDE.md` "Running locally" lists only `ADMIN_PASSWORD`
+      and `JWT_SECRET`; since 6953c86 a run outside Compose also needs `SPRING_PROFILES_ACTIVE=dev`
+      (`run_project.sh`, `debug_project.sh`) or `SPRING_DATASOURCE_*`, else startup fails on the datasource.
+      (2) `src/test/.../TestcontainersConfiguration.java` Javadoc says it overrides "the localhost settings in
+      application.yml", which no longer has any. (3) README "Security components" tree omits
+      `LoginRateLimiter`, `AuthEndpointRateLimiter`, the bootstrap services and the `ratelimit/` package, and
+      the Roadmap "Completed" list has no rate limiting, HS256/issuer pinning or the UTC clock. Fix: update the
+      three texts. Test: none (docs); check by reading against `application*.yml` and the package list.
+
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
 - [ ] **Untracked files in the repo root.** `to_delete_just_spring_boot_note` (a psql dump of a session row, its
       name says delete), `.claude/` (the skills) and `docs/jobs/` (the nightly loop notes, marked Draft). Delete
       the note, and commit or ignore the other two.
+- [ ] **Decide on login lockout abuse.** `auth/service/LoginRateLimiter.java`. The per-username bucket
+      (5 failures per 15 minutes, any IP) refills one token every 3 minutes, so one wrong guess every 3 minutes
+      keeps an account locked indefinitely, even for the right password; one IP within its 20/minute limit can
+      do that to about 60 accounts, including the default `admin`. README section 1 says "the IP limit slows that
+      down", which understates it. Options: accept (README wording fixed), or key the strict bucket by
+      username + client IP and add a looser global per-username bucket (e.g. 100 failures per hour), or let a
+      correct password through a locked username from an IP that has logged in successfully before.
 
 ## Done
 
