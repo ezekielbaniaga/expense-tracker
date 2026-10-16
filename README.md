@@ -484,14 +484,23 @@ SHA-256
       ▼
 Find UserSession
       │
-      ├── Not found ──► 401
+      ├── Not found ──► is it an old (rotated) token of a session?
+      │                   ├── No (never issued, or pruned beyond the newest 20) ──► 401
+      │                   ├── Yes, session already ended ──► 401 (quiet, DEBUG log)
+      │                   └── Yes, session still active ──► reuse detected:
+      │                                                     revoke the session ──► 401
       │
       ├── Revoked ────► 401
       │
       ├── Expired ────► 401
       │
+      ├── User disabled ──► revoke the session ──► 401
+      │
       ▼
 Valid Session
+      │
+      ▼
+Rotate the refresh token (old hash saved, newest 20 kept)
       │
       ▼
 Associated User
@@ -499,6 +508,8 @@ Associated User
       ▼
 Generate New Access Token
 ```
+
+Section 11 covers the reuse branch in detail.
 
 ---
 
@@ -808,11 +819,20 @@ Meanwhile, application-level exceptions are handled separately:
 ```text
 GlobalExceptionHandler
 │
-├── ResourceNotFoundException → 404
-├── ValidationException       → 400
-├── BusinessRuleException     → 409
-└── Other application errors
+├── ResourceNotFoundException                  → 404 (code from the exception)
+├── MethodArgumentNotValidException            → 400 VALIDATION_ERROR (one "field: message" per bean validation failure)
+├── BadRequestException                        → 400 (code from the exception)
+├── DateTimeParseException                     → 400 VALIDATION_ERROR
+├── MethodArgumentTypeMismatchException        → 400 VALIDATION_ERROR ("name: invalid value")
+├── MissingServletRequestParameterException    → 400 VALIDATION_ERROR ("name: is required")
+├── HttpMessageNotReadableException            → 400 MALFORMED_REQUEST
+├── BusinessRuleException                      → 409 (code from the exception)
+├── ObjectOptimisticLockingFailureException    → 409 CONCURRENT_MODIFICATION
+├── AccessDeniedException (@PreAuthorize)      → 403 ACCESS_DENIED
+└── TooManyRequestsException                   → 429 TOO_MANY_REQUESTS (with a Retry-After header)
 ```
+
+Failed authentication (bad credentials, bad or revoked refresh token, disabled user) is not handled here; it is a 401 from the authentication layer.
 
 This keeps security infrastructure separate from business-domain error handling.
 
