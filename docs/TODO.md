@@ -13,17 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Quieter, safer defaults in `application.yml`.** Set `spring.jpa.open-in-view: false`: it is on by
-      default (the test log warns about it on every context start), which keeps a database connection for the
-      whole request and lets lazy loading happen in controllers. Every service already maps entities inside
-      its transaction, so turning it off should change nothing; run the full suite to confirm.
-      Also, `logging.level.org.flywaydb: DEBUG` ships in the main
-      config (the Compose app logs every migration statement), and the datasource defaults
-      (`devuser`/`devpwd` on localhost) are in the main file too. Set Flyway to `INFO`, and move the dev
-      datasource to `application-dev.yml` (or leave only env-driven values), making sure `./mvnw test`,
-      `run_project.sh`, `debug_project.sh` and the Compose file (which sets `SPRING_DATASOURCE_*`) still work.
-      README/CLAUDE.md "Running locally" must say how to run without the default.
-
 - [ ] **Health endpoint for the proxy and Compose (decided 2026-10-16).** Add
       `spring-boot-starter-actuator` with `management.endpoints.web.exposure.include: health` and
       `management.endpoint.health.show-details: never`, and `permitAll` for `/actuator/health` only in
@@ -138,3 +127,4 @@ All 176 tests passed at the time of the review.
 - [x] Session cleanup runs once at 03:00 and deletes in batches of 1,000 (each its own transaction) until a batch is short, at most 100 batches; was 60 runs of 1,000 each (cb79386)
 - [x] Pinned the accepted 15-minute access-token window after revoke and logout with tests (26d1d5b)
 - [x] Removed the dead `DebugController` (71787e0)
+- [x] Quieter, safer application.yml defaults: open-in-view off, Flyway at INFO, dev datasource moved to application-dev.yml (6953c86)
