@@ -590,6 +590,8 @@ Refresh token reuse detected
 ```
 
 Every time a token is rotated, the hash of the old token is saved in `used_refresh_tokens`, linked to its session.
+Only the newest 20 used hashes per session are kept (`MAX_USED_TOKENS_PER_SESSION`); each rotation deletes older ones, so a client looping on `/auth/refresh` cannot grow the table without bound.
+A token older than that is no longer recognized: it gets a plain `401` like an unknown token, and the session is not revoked. That is acceptable because such a token stopped being current long ago.
 
 A previously valid token being presented again can indicate that a token was stolen, so the server:
 

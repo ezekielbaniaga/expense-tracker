@@ -32,6 +32,10 @@ public class UserSessionService {
     // Most active sessions a user can have; logging in past it ends the least recently used
     static final int MAX_ACTIVE_SESSIONS = 10;
 
+    // Used token hashes kept per session for reuse detection; older ones are
+    // deleted on rotation, so an endless refresh loop can't grow the table
+    static final int MAX_USED_TOKENS_PER_SESSION = 20;
+
     private final UserRepository userRepository;
     private final UserSessionRepository repository;
     private final UsedRefreshTokenRepository usedRefreshTokenRepository;
@@ -116,7 +120,9 @@ public class UserSessionService {
 
     /**
      * Swaps the refresh token for a new one. The old hash is remembered
-     * so presenting it again can be detected as token theft.
+     * so presenting it again can be detected as token theft. Only the newest
+     * MAX_USED_TOKENS_PER_SESSION hashes are kept; an older token is then
+     * unknown (plain 401, session untouched) instead of reuse.
      *
         old token reused?
            │
@@ -158,6 +164,9 @@ public class UserSessionService {
 
         usedRefreshTokenRepository.save(
             new UsedRefreshToken(oldHash, userSession, now));
+        // Bounded per session: /auth/refresh has no rate limit, and a token
+        // older than these is no longer current, so a plain 401 is enough
+        usedRefreshTokenRepository.deleteAllButNewest(userSession.getId(), MAX_USED_TOKENS_PER_SESSION);
 
         userSession.setRefreshTokenHash(newHash);
         userSession.setLastUsedAt(now);
