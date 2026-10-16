@@ -12,6 +12,7 @@ public class JWTProperties {
 
     /**
      * At least 256 bits (32 bytes) for HS256; checked at startup.
+     * Tokens are always HS256: a longer secret does not change the algorithm.
      * Generate it locally (never on a website): openssl rand -base64 32
      */
     private String secret;

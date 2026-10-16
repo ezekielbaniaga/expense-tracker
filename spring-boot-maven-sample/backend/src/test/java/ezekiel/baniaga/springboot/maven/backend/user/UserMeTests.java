@@ -2,6 +2,7 @@ package ezekiel.baniaga.springboot.maven.backend.user;
 
 import com.jayway.jsonpath.JsonPath;
 import ezekiel.baniaga.springboot.maven.backend.TestcontainersConfiguration;
+import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +79,7 @@ class UserMeTests {
         String token = Jwts.builder()
             .subject("alice")
             .claim("role", "USER")
+            .issuer(JWTService.ISSUER)
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plus(Duration.ofMinutes(15))))
             .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8)))

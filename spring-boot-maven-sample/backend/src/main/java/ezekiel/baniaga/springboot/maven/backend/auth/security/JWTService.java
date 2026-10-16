@@ -8,9 +8,11 @@ import java.util.UUID;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.props.JWTProperties;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,16 @@ import javax.crypto.SecretKey;
 @Service
 @RequiredArgsConstructor
 public class JWTService {
+
+    /**
+     * Written as {@code iss} and required when parsing, so a token from another service that
+     * happens to share the secret is rejected. Tokens issued before the claim existed have no
+     * {@code iss} and are rejected too; clients get a 401 and refresh once (no access token needed).
+     */
+    public static final String ISSUER = "expense-tracker";
+
+    // Pinned: signWith(key) alone lets jjwt pick HS384/HS512 for a 48+/64+ byte secret
+    private static final String ALGORITHM = Jwts.SIG.HS256.getId();
 
     private final JWTProperties jwtProperties;
 
@@ -45,9 +57,10 @@ public class JWTService {
             builder.claim("sid", sessionId.toString());
         }
         return builder
+            .issuer(ISSUER)
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plus(jwtProperties.getExpiration())))
-            .signWith(signingKey())
+            .signWith(signingKey(), Jwts.SIG.HS256)
             .compact();
     }
 
@@ -104,13 +117,20 @@ public class JWTService {
         return value;
     }
 
-    // parseSignedClaims also rejects expired tokens (ExpiredJwtException)
+    // parseSignedClaims also rejects expired tokens (ExpiredJwtException) and requireIssuer
+    // a missing or different iss (IncorrectClaimException / MissingClaimException).
+    // verifyWith accepts any HMAC algorithm the key is long enough for, so a 64-byte secret
+    // would also verify an HS512 token; the header alg is checked explicitly.
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
+        Jws<Claims> jws = Jwts.parser()
             .verifyWith(signingKey())
+            .requireIssuer(ISSUER)
             .build()
-            .parseSignedClaims(token)
-            .getPayload();
+            .parseSignedClaims(token);
+        if (!ALGORITHM.equals(jws.getHeader().getAlgorithm())) {
+            throw new UnsupportedJwtException("Token is not signed with " + ALGORITHM);
+        }
+        return jws.getPayload();
     }
 
     private SecretKey signingKey() {

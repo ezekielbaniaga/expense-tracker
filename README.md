@@ -205,7 +205,11 @@ the login buckets.
 
 ## 2. Access Token
 
-The access token is a signed JWT.
+The access token is a JWT signed with HS256 (HMAC-SHA256) using `JWT_SECRET`.
+
+The algorithm is pinned: jjwt would otherwise pick HS384 or HS512 for a secret of 48 or 64+ bytes, so a
+longer secret still gives `"alg": "HS256"`. The parser checks the header `alg` and rejects any other
+algorithm, even one that verifies with the same key.
 
 The current claims are approximately:
 
@@ -215,10 +219,15 @@ The current claims are approximately:
   "uid": "019f47ca-...",
   "role": "ADMIN",
   "sid": "5b0c1c1e-...",
+  "iss": "expense-tracker",
   "iat": 1783893415,
   "exp": 1783894315
 }
 ```
+
+`iss` is always `expense-tracker` and is required, so a token from another service that shares the secret
+is rejected. Tokens issued before `iss` was added have none and are rejected too: after that deploy each
+client gets one 401 and calls `/auth/refresh`, which needs no access token, so nobody is logged out.
 
 `sid` is the `unique_id` of the session the token belongs to. It is optional: tokens issued before the
 claim existed have none, and a `sid` that is not a UUID is rejected. It stays the same when the refresh

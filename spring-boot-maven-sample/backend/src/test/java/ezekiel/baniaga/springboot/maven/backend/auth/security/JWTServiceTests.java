@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
@@ -18,6 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class JWTServiceTests {
 
     private static final String SECRET = "test-secret-that-is-at-least-32-bytes-long";
+
+    // 64 bytes: long enough that jjwt would pick HS512 if the algorithm were not pinned
+    private static final String LONG_SECRET =
+        "test-secret-that-is-at-least-64-bytes-long-so-jjwt-could-pick-512";
 
     private final CustomUserDetails user =
         new CustomUserDetails(1L, UUID.randomUUID(), "alice", "pw", "USER", true);
@@ -88,6 +93,7 @@ class JWTServiceTests {
             .claim("uid", user.getUniqueId().toString())
             .claim("role", "USER")
             .claim("sid", "not-a-uuid")
+            .issuer(JWTService.ISSUER)
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plus(Duration.ofMinutes(15))))
             .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
@@ -128,8 +134,74 @@ class JWTServiceTests {
         assertThat(service.parsePrincipal(signedToken(" ", user.getUniqueId().toString(), "USER"))).isEmpty();
     }
 
-    // Builds a token signed with SECRET; a null argument leaves that claim out
+    // jjwt picks the algorithm by key length (64+ bytes would give HS512); it is pinned to HS256
+    @Test
+    void longSecretStillSignsWithHs256() {
+        JWTService service = service(LONG_SECRET, Duration.ofMinutes(15));
+        String token = service.generateToken(user);
+
+        assertThat(header(token)).contains("\"alg\":\"HS256\"");
+        assertThat(service.parsePrincipal(token)).isPresent();
+    }
+
+    // Same key, correct claims and issuer, valid HS512 signature: still rejected
+    @Test
+    void tokenSignedWithHs512IsRejected() {
+        Instant now = Instant.now();
+        String token = Jwts.builder()
+            .subject("alice")
+            .claim("uid", user.getUniqueId().toString())
+            .claim("role", "USER")
+            .issuer(JWTService.ISSUER)
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plus(Duration.ofMinutes(15))))
+            .signWith(Keys.hmacShaKeyFor(LONG_SECRET.getBytes(StandardCharsets.UTF_8)), Jwts.SIG.HS512)
+            .compact();
+        assertThat(header(token)).contains("\"alg\":\"HS512\"");
+
+        assertThat(service(LONG_SECRET, Duration.ofMinutes(15)).parsePrincipal(token)).isEmpty();
+    }
+
+    @Test
+    void generatedTokenCarriesTheIssuer() {
+        JWTService service = service(SECRET, Duration.ofMinutes(15));
+        String token = service.generateToken(user);
+
+        String issuer = Jwts.parser()
+            .verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+            .build()
+            .parseSignedClaims(token)
+            .getPayload()
+            .getIssuer();
+        assertThat(issuer).isEqualTo(JWTService.ISSUER);
+    }
+
+    // A token from another service sharing the secret, or one issued before iss existed
+    @Test
+    void tokenWithoutIssuerIsRejected() {
+        String token = signedToken("alice", user.getUniqueId().toString(), "USER", null);
+
+        assertThat(service(SECRET, Duration.ofMinutes(15)).parsePrincipal(token)).isEmpty();
+    }
+
+    @Test
+    void tokenWithAnotherIssuerIsRejected() {
+        String token = signedToken("alice", user.getUniqueId().toString(), "USER", "another-service");
+
+        assertThat(service(SECRET, Duration.ofMinutes(15)).parsePrincipal(token)).isEmpty();
+    }
+
+    private static String header(String token) {
+        return new String(Base64.getUrlDecoder().decode(token.substring(0, token.indexOf('.'))),
+            StandardCharsets.UTF_8);
+    }
+
     private static String signedToken(String subject, String uid, String role) {
+        return signedToken(subject, uid, role, JWTService.ISSUER);
+    }
+
+    // Builds a token signed with SECRET (HS256 for its 42 bytes); a null argument leaves that claim out
+    private static String signedToken(String subject, String uid, String role, String issuer) {
         Instant now = Instant.now();
         JwtBuilder builder = Jwts.builder();
         if (subject != null) {
@@ -140,6 +212,9 @@ class JWTServiceTests {
         }
         if (role != null) {
             builder.claim("role", role);
+        }
+        if (issuer != null) {
+            builder.issuer(issuer);
         }
         return builder
             .issuedAt(Date.from(now))
