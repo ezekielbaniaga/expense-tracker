@@ -28,6 +28,7 @@ public class UserSessionService {
 
     // Matches user_sessions.user_agent VARCHAR(500) (V7)
     private static final int MAX_USER_AGENT_LENGTH = 500;
+    private static final int MAX_IP_ADDRESS_LENGTH = 45;
 
     // Most active sessions a user can have; logging in past it ends the least recently used
     static final int MAX_ACTIVE_SESSIONS = 10;
@@ -103,8 +104,8 @@ public class UserSessionService {
         session.setUniqueId(UUID.randomUUID());
         session.setUser(user);
         session.setRefreshTokenHash(hashedRefreshToken);
-        session.setUserAgent(truncateUserAgent(userAgent));
-        session.setIpAddress(ipAddress);
+        session.setUserAgent(truncate(userAgent, MAX_USER_AGENT_LENGTH));
+        session.setIpAddress(truncate(ipAddress, MAX_IP_ADDRESS_LENGTH));
         session.setCreatedAt(now);
         session.setLastUsedAt(now);
         session.setExpiresAt(now.plusDays(30));
@@ -331,13 +332,14 @@ public class UserSessionService {
     }
 
     /**
-     * The User-Agent header is client-controlled metadata, so an overlong
-     * value is cut to fit the column instead of failing the login.
+     * The User-Agent and client address are metadata the client can influence
+     * (an IPv6 zone id, later a forwarded header), so an overlong value is cut
+     * to fit its column instead of failing the login.
      */
-    private static String truncateUserAgent(String userAgent) {
-        if (userAgent == null || userAgent.length() <= MAX_USER_AGENT_LENGTH) {
-            return userAgent;
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
         }
-        return userAgent.substring(0, MAX_USER_AGENT_LENGTH);
+        return value.substring(0, maxLength);
     }
 }

@@ -149,6 +149,29 @@ class LoginTests {
         assertThat(session.getUserAgent()).isEqualTo(longUserAgent.substring(0, 500));
     }
 
+    @Test
+    void overlongIpAddressIsTruncatedNotRejected() throws Exception {
+        // user_sessions.ip_address is VARCHAR(45); e.g. an IPv6 address with a zone id can be longer
+        String longIp = "fe80:0000:0000:0000:0000:0000:0000:0001%" + "e".repeat(20);
+        assertThat(longIp).hasSize(60);
+
+        String body = mockMvc.perform(post("/auth/login")
+                .with(request -> {
+                    request.setRemoteAddr(longIp);
+                    return request;
+                })
+                .header(HttpHeaders.USER_AGENT, "LoginTests")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + user.getUsername() + "\",\"password\":\"" + PASSWORD + "\"}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        String refreshToken = JsonPath.read(body, "$.refreshToken");
+        UserSession session = userSessionRepository
+            .findByRefreshTokenHash(refreshTokenHasher.hash(refreshToken)).orElseThrow();
+        assertThat(session.getIpAddress()).isEqualTo(longIp.substring(0, 45));
+    }
+
     private ResultActions login(String username, String password) throws Exception {
         return login(username, password, "LoginTests");
     }
