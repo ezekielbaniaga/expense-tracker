@@ -13,11 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Overlong or odd `ip_address` can fail a login with 500.** `user_sessions.ip_address` is `VARCHAR(45)`
-      and `getRemoteAddr()` is stored as is. An IPv6 address with a zone id, or any `X-Forwarded-For` value once
-      the proxy decision in **Needs you** is made, can exceed 45 and fail the insert, like the User-Agent bug
-      fixed in 077aedb. Truncate to 45 in `createSession` (next to `truncateUserAgent`). Test: login through
-      MockMvc with `remoteAddr` of 60 characters, assert 200 and a 45-character stored value.
 - [ ] **Trust the reverse proxy's `X-Forwarded-For` (decided 2026-10-16: the app runs behind a proxy).**
       Today `AuthController.login` stores `request.getRemoteAddr()`, which behind a proxy is the proxy's IP
       for every session, and the rate-limit items below need the real client IP. Set
@@ -208,3 +203,4 @@ All 176 tests passed at the time of the review.
 - [x] Logout with an already-rotated refresh token revokes that token's session (no reuse WARN); still always 204 (9961dce)
 - [x] Rotation keeps only the newest 20 used refresh token hashes per session; older tokens get a plain 401, not reuse (13a39a6)
 - [x] A rotated refresh token replayed on an already ended (logged out, revoked or expired) session is a quiet 401: no reuse WARN, no re-stamp; concurrent replays give exactly one WARN (05d0abb)
+- [x] Login truncates an `ip_address` over 45 characters (e.g. IPv6 with zone id) instead of failing with 500 (030adfe)
