@@ -84,15 +84,24 @@ public class JWTService {
     }
 
     // A missing sid is allowed (tokens issued before the claim existed); a malformed one
-    // throws IllegalArgumentException, which parsePrincipal turns into empty
+    // throws IllegalArgumentException, which parsePrincipal turns into empty.
+    // uid, role and subject are required: a token signed with our key but missing one
+    // (an older or hand-made token) is invalid, not a NullPointerException and a 500
     private JWTPrincipal toPrincipal(Claims claims) {
         String sid = claims.get("sid", String.class);
         return new JWTPrincipal(
-            UUID.fromString(claims.get("uid", String.class)),
-            claims.getSubject(),
-            claims.get("role", String.class),
+            UUID.fromString(requireClaim(claims.get("uid", String.class), "uid")),
+            requireClaim(claims.getSubject(), "sub"),
+            requireClaim(claims.get("role", String.class), "role"),
             sid == null ? null : UUID.fromString(sid)
         );
+    }
+
+    private static String requireClaim(String value, String name) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Token is missing the " + name + " claim");
+        }
+        return value;
     }
 
     // parseSignedClaims also rejects expired tokens (ExpiredJwtException)

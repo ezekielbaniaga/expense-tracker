@@ -16,6 +16,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 class UserMeTests {
 
+    private static final String JWT_SECRET = "test-secret-that-is-at-least-32-bytes-long";
     private static final String PASSWORD = "correct-horse-battery";
     private static final String NEW_PASSWORD = "staple-battery-horse-2";
 
@@ -59,6 +67,23 @@ class UserMeTests {
     @Test
     void meWithoutTokenIs401() throws Exception {
         mockMvc.perform(get("/users/me"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    // A token signed with our key but without the uid claim (an older or hand-made one)
+    // must be treated as invalid, not crash the filter with a 500
+    @Test
+    void meWithSignedTokenMissingUidIs401() throws Exception {
+        Instant now = Instant.now();
+        String token = Jwts.builder()
+            .subject("alice")
+            .claim("role", "USER")
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plus(Duration.ofMinutes(15))))
+            .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8)))
+            .compact();
+
+        mockMvc.perform(get("/users/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
             .andExpect(status().isUnauthorized());
     }
 
