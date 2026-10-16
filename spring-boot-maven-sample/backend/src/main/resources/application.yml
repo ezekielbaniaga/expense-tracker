@@ -34,6 +34,22 @@ spring:
   flyway:
     enabled: true
 
+# Actuator exposes only health, as a bare {"status":"UP"} (no db/disk details, not even to
+# admins). SecurityConfig permits /actuator/health without a token; nothing else is exposed.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      # No liveness/readiness groups: they would be listed in the response, and Compose and
+      # the proxy need only the overall status
+      probes:
+        enabled: false
+
 logging:
   level:
     org.flywaydb: INFO

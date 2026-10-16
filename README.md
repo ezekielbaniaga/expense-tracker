@@ -816,6 +816,15 @@ GlobalExceptionHandler
 
 This keeps security infrastructure separate from business-domain error handling.
 
+### Health endpoint
+
+`GET /actuator/health` is the one public endpoint outside `/auth`, for the Docker Compose
+healthcheck and a reverse proxy. It answers `{"status":"UP"}` (200) or `{"status":"DOWN"}` (503,
+e.g. when Postgres is unreachable) and nothing else: no component details, not even for admins
+(`show-details: never`). Only `health` is exposed, so other actuator endpoints such as
+`/actuator/env` or `/actuator/beans` are 401 without a token and 404 with one. The `permitAll`
+covers exactly `/actuator/health`; paths below it stay authenticated.
+
 ---
 
 # 15. Stateless API
@@ -1238,6 +1247,7 @@ The authentication system is being developed incrementally.
 * [x] Revoke individual sessions
 * [x] Revoke all sessions
 * [x] Session management API
+* [x] Public, detail-free `/actuator/health` for Compose and a proxy
 
 ### Next
 

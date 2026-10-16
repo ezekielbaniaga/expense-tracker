@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -45,6 +46,9 @@ public class SecurityConfig {
                 auth.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                     .requestMatchers(
                         "/auth/login","/auth/register","/auth/refresh","/auth/logout").permitAll()
+                    // For the Compose healthcheck and a reverse proxy. Exactly this path: the
+                    // health groups below it and other actuator endpoints stay authenticated
+                    .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                     // Order matters: /users/me must match before /users/** or regular users get 403
                     .requestMatchers("/users/me", "/users/me/**").authenticated()
                     .requestMatchers("/users", "/users/**").hasRole("ADMIN")

@@ -42,6 +42,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Actuator: only /actuator/health, for the Compose healthcheck and a reverse proxy -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

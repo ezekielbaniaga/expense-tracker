@@ -16,6 +16,15 @@ cp .env.example .env
 ```
 
 
+## Health
+
+The `app` service has a healthcheck on `GET /actuator/health` (public, answers only
+`{"status":"UP"}`, or 503 when e.g. Postgres is down). The image installs `curl` for it, since
+`eclipse-temurin` ships without curl or wget. `docker compose ps` shows `healthy` once the app
+is up (allow up to a minute for startup). A proxy service can wait for it with
+`depends_on: app: condition: service_healthy`. Rebuild the image (`build_docker_image.sh`) to
+get the healthcheck.
+
 ## Behind a reverse proxy
 
 The app takes the client IP (stored with each login session) from `X-Forwarded-For`, but only
