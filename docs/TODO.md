@@ -13,9 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Remove the dead `DebugController`.** `auth/DebugController.java` has its `@RestController` and
-      `@RequestMapping` commented out and is `@Deprecated`; it only generates an admin token and would be
-      a token-minting endpoint if someone re-enabled the annotation. Delete the file (git has it).
 - [ ] **Quieter, safer defaults in `application.yml`.** Set `spring.jpa.open-in-view: false`: it is on by
       default (the test log warns about it on every context start), which keeps a database connection for the
       whole request and lets lazy loading happen in controllers. Every service already maps entities inside
@@ -140,3 +137,4 @@ All 176 tests passed at the time of the review.
 - [x] Session lifetime, active-session cap and ended-session retention are `app.session.lifetime|max-active|retention` (30d, 10, 7d) in `SessionProperties` instead of constants; README says where they are set (6004673)
 - [x] Session cleanup runs once at 03:00 and deletes in batches of 1,000 (each its own transaction) until a batch is short, at most 100 batches; was 60 runs of 1,000 each (cb79386)
 - [x] Pinned the accepted 15-minute access-token window after revoke and logout with tests (26d1d5b)
+- [x] Removed the dead `DebugController` (71787e0)
