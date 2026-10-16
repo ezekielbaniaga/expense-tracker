@@ -59,10 +59,22 @@ public class UserService {
      *
      * A wrong current password is 400, not 401, so clients don't mistake it
      * for an expired login.
+     *
+     * The user row is locked first, like login (createSession) does, so a
+     * login that checked the old password either commits its session before
+     * this revoke runs, or waits and then sees the new hash. Taking the user
+     * row before session rows also keeps the lock order of every other path,
+     * so this can't deadlock with a login at the session cap. saveAndFlush
+     * writes the new hash before the revoke, as updateUser does.
      */
     @Transactional
     public void changePassword(UUID uniqueId, String currentPassword, String newPassword) {
-        User user = getByUniqueId(uniqueId);
+        // Only the id is read before the lock: a User loaded here would stay in
+        // the persistence context, and the locked query would hand back that
+        // copy instead of the row as it is once the lock is ours
+        User user = userRepository.findIdByUniqueId(uniqueId)
+            .flatMap(userRepository::findLockedById)
+            .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new BadRequestException("INVALID_CURRENT_PASSWORD", "Current password is incorrect.");
@@ -71,7 +83,7 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setLastModified(LocalDateTime.now());
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
 
         userSessionService.revokeAllForUser(user.getId());
     }

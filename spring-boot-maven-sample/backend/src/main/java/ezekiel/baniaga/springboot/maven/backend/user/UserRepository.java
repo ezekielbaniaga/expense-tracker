@@ -22,6 +22,10 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // The access token carries the unique_id, not the database id
     Optional<User> findByUniqueId(UUID uniqueId);
 
+    // Just the id, without loading the User, for callers that then lock the row
+    @Query("SELECT u.id FROM User u WHERE u.uniqueId = :uniqueId")
+    Optional<Long> findIdByUniqueId(@Param("uniqueId") UUID uniqueId);
+
     // SELECT ... FOR UPDATE on one user, so concurrent logins of that user count
     // their sessions one after another (session cap in UserSessionService)
     @Lock(LockModeType.PESSIMISTIC_WRITE)
