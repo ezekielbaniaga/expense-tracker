@@ -1,5 +1,6 @@
 package ezekiel.baniaga.springboot.maven.backend.auth.service;
 
+import ezekiel.baniaga.springboot.maven.backend.ratelimit.ClientIpKey;
 import ezekiel.baniaga.springboot.maven.backend.ratelimit.KeyedRateLimiter;
 import ezekiel.baniaga.springboot.maven.backend.ratelimit.RateLimitProperties;
 import ezekiel.baniaga.springboot.maven.backend.ratelimit.RateLimiterFactory;
@@ -11,7 +12,8 @@ import java.util.Locale;
 /**
  * Two limits on POST /auth/login:
  * <ul>
- *   <li>per client IP, every attempt counts (password spraying across many accounts)</li>
+ *   <li>per client IP (an IPv6 client by its /64, see {@link ClientIpKey}), every attempt
+ *       counts (password spraying across many accounts)</li>
  *   <li>per normalized username, only failures count (guessing one account from many IPs),
  *       so a user who logs in fine is never locked out by their own logins</li>
  * </ul>
@@ -36,7 +38,7 @@ public class LoginRateLimiter {
      * @throws TooManyRequestsException if either limit is reached
      */
     public void beforeAttempt(String username, String clientIp) {
-        byClientIp.consume(clientIp);
+        byClientIp.consume(ClientIpKey.of(clientIp));
         byUsernameFailures.consume(normalize(username));
     }
 

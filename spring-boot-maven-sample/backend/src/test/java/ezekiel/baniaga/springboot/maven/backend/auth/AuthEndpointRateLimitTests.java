@@ -60,6 +60,24 @@ class AuthEndpointRateLimitTests {
     }
 
     @Test
+    void ipv6AddressesInOneSlash64ShareARegisterBucket() throws Exception {
+        // One IPv6 host usually controls a whole /64, so rotating the last 64 bits must not
+        // give it a fresh bucket. Random /48 per test run, since the buckets outlive the test
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        String prefix = "2001:db8:" + Integer.toHexString(random.nextInt(1, 0x10000));
+
+        for (int i = 1; i <= 10; i++) {
+            register(newUsername(), prefix + "::" + Integer.toHexString(i)).andExpect(status().isCreated());
+        }
+
+        expect429(register(newUsername(), prefix + "::ffff"));
+        expect429(register(newUsername(), prefix + "::1%eth0"));
+
+        // The next /64 is another client
+        register(newUsername(), prefix + ":1::1").andExpect(status().isCreated());
+    }
+
+    @Test
     void sixtyFirstRefreshFromOneIpIs429() throws Exception {
         String ip = randomIp();
 

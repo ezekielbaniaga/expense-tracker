@@ -191,6 +191,11 @@ Over either limit the answer is `429 TOO_MANY_REQUESTS` (the usual `ErrorRespons
 * While a username is locked, even the right password gets 429 until a token comes back. An attacker can
   lock someone out this way for as long as they keep guessing; the IP limit slows that down.
 * The client IP is `request.getRemoteAddr()`, which behind a trusted proxy is the forwarded client IP.
+* The bucket key is that IP as is for IPv4, but an IPv6 client is keyed by its **/64 prefix**
+  (`ClientIpKey`): one host usually controls a whole /64, so per-address buckets could be dodged by
+  rotating addresses. A zone id (`%eth0`) is dropped, an IPv4-mapped address (`::ffff:192.0.2.1`) counts
+  as its IPv4 address, and a value that doesn't parse is used unchanged. Sessions still store the full
+  address. The same key is used by the per-IP limits below.
 * Limits are set in `app.rate-limit.*` (`application.yml`). Each map keeps at most
   `app.rate-limit.max-keys` entries and drops a key once its bucket is full again, so random usernames
   can't grow memory forever.
@@ -201,7 +206,7 @@ Over either limit the answer is `429 TOO_MANY_REQUESTS` (the usual `ErrorRespons
 
 `AuthEndpointRateLimiter` limits the other public auth endpoints per client IP, with one bucket per
 endpoint. Every request counts, failed or not, and the answer over the limit is the same `429` with
-`Retry-After`.
+`Retry-After`. An IPv6 client is counted by its /64, like at login.
 
 | Endpoint | Default | Why |
 | --- | --- | --- |
