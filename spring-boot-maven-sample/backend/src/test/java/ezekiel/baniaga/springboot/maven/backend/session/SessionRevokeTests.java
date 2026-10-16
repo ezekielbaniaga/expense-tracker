@@ -208,6 +208,46 @@ class SessionRevokeTests {
         mockMvc.perform(delete("/users/me/sessions")).andExpect(status().isUnauthorized());
     }
 
+    // The next two tests pin the decided access-token window (see the session
+    // proposal): a revoke or logout ends the session for refresh at once, but an
+    // access token already issued for it keeps working until it expires (15
+    // minutes). Access tokens are not checked against the session on every
+    // request. If a per-request sid check is ever added, change these tests on
+    // purpose: the old access token should then get 401.
+    @Test
+    void revokedSessionsAccessTokenStillWorksUntilItExpires() throws Exception {
+        String username = register("Liam");
+        Tokens revoked = login(username);
+        Tokens other = login(username);
+
+        revoke(other.bearer(), sidOf(revoked)).andExpect(status().isNoContent());
+
+        refresh(revoked.refreshToken()).andExpect(status().isUnauthorized());
+        me(revoked.bearer())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.username").value(username));
+
+        List<String> ids = JsonPath.read(listSessions(revoked.bearer()), "$[*].id");
+        assertThat(ids).containsExactly(sidOf(other));
+    }
+
+    @Test
+    void loggedOutSessionsAccessTokenStillWorksUntilItExpires() throws Exception {
+        String username = register("Mia");
+        Tokens loggedOut = login(username);
+        Tokens other = login(username);
+
+        logout(loggedOut.refreshToken()).andExpect(status().isNoContent());
+
+        refresh(loggedOut.refreshToken()).andExpect(status().isUnauthorized());
+        me(loggedOut.bearer())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.username").value(username));
+
+        List<String> ids = JsonPath.read(listSessions(loggedOut.bearer()), "$[*].id");
+        assertThat(ids).containsExactly(sidOf(other));
+    }
+
     private record Tokens(String accessToken, String refreshToken) {
         String bearer() {
             return "Bearer " + accessToken;
@@ -227,6 +267,16 @@ class SessionRevokeTests {
         return mockMvc.perform(post("/auth/refresh")
             .contentType(MediaType.APPLICATION_JSON)
             .content(json(Map.of("refreshToken", refreshToken))));
+    }
+
+    private ResultActions logout(String refreshToken) throws Exception {
+        return mockMvc.perform(post("/auth/logout")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json(Map.of("refreshToken", refreshToken))));
+    }
+
+    private ResultActions me(String bearer) throws Exception {
+        return mockMvc.perform(get("/users/me").header(HttpHeaders.AUTHORIZATION, bearer));
     }
 
     private String listSessions(String bearer) throws Exception {
