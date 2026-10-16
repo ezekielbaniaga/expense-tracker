@@ -10,13 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## To do
 
-- [ ] **Expense cleanup still runs 60 times at 2AM, 1,000 rows each.** `expense/job/ExpenseCleanup.java`
-      (`cron = "0 * 2 * * *"`). Session cleanup was changed to one run with batches until a short one (cb79386);
-      expense cleanup still logs 60 INFO pairs a night, mostly "Affected Rows: 0", and stops at 60,000 rows.
-      Fix: same loop as `UserSessionCleanup` (once at 02:00, batches of 1,000 until short, at most 100, each its
-      own transaction through `ExpenseService`), retention in a property like `app.session.retention`. Test:
-      like `UserSessionCleanupTests`: 2,500 archived rows past retention are all deleted in one `cleanup()` call
-      in 3 batches; a recent archived and an active expense remain.
 - [ ] **Docs lag the code in three places.** (1) `CLAUDE.md` "Running locally" lists only `ADMIN_PASSWORD`
       and `JWT_SECRET`; since 6953c86 a run outside Compose also needs `SPRING_PROFILES_ACTIVE=dev`
       (`run_project.sh`, `debug_project.sh`) or `SPRING_DATASOURCE_*`, else startup fails on the datasource.
@@ -130,3 +123,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Expense date `@PastOrPresent` now validates against the UTC `Clock` offset to UTC+14 (e2c4941)
 - [x] Per-IP rate limits key an IPv6 client by its /64 (`ClientIpKey`); IPv4 unchanged, zone ids dropped, IPv4-mapped counts as IPv4 (03acb80)
 - [x] Native cleanup queries bind their cutoff as ISO text cast in SQL, so a JVM zone DST gap no longer shifts it by an hour (92221d0)
+- [x] Expense cleanup runs once at 2AM in batches of 1,000 until short, capped at 100 (87a5f67)
