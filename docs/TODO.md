@@ -10,16 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## To do
 
-- [ ] **Session durations are not validated; a negative `retention` deletes active sessions.**
-      `session/props/SessionProperties.java`, `session/UserSessionService.java` (`cleanupEndedSessions`). Spring
-      binds `-7d`, and the cutoff `now - retention` then lies in the future, so `expires_at < cutoff` matches live
-      sessions. Verified with a throwaway test: `cleanupEndedSessions(-1000h)` deleted the user's only active
-      session. A zero or negative `lifetime` makes every login create an already expired session. Fix: `@NotNull`
-      plus a check that `lifetime` is positive and `retention` is zero or positive (e.g. `@AssertTrue` methods or
-      `@DurationMin` from Hibernate Validator), failing startup with the property name; same for
-      `app.jwt.expiration` in `JWTProperties` (add `@Validated`). Test: `SessionPropertiesTests` cases for
-      `app.session.retention=-1d` and `app.session.lifetime=0s` failing the context with a message naming the
-      property, and `app.jwt.expiration=0s` likewise.
 - [ ] **`@PastOrPresent` on the expense date uses the JVM zone from startup, not the UTC `Clock`.**
       `expense/dto/CreateExpenseRequest.java`, `expense/dto/UpdateExpenseRequest.java`. Hibernate Validator's
       default `ClockProvider` captures `Clock.systemDefaultZone()` once, so the check ignores `ClockConfig` (and
@@ -167,3 +157,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Login and refresh return `accessTokenExpiresIn` (seconds, `app.jwt.expiration`) and `refreshTokenExpiresAt` (the session's `expires_at`, UTC without offset, unchanged by rotation); README section 1 and web UI proposal step 4 updated (59acf64)
 - [x] `POST /users/me/password` limits wrong current passwords to 5 per 15 minutes per user (keyed by the token's unique_id, 429 with Retry-After) and caps `currentPassword` at 1,000 (2e226ed)
 - [x] Startup rejects the `.env.example` placeholder `ADMIN_PASSWORD=change-me`, and a password under 12 characters when it creates the admin (bdc6aef)
+- [x] Startup rejects a negative `app.session.retention` and a non-positive `app.session.lifetime` or `app.jwt.expiration`, naming the property (24cd708)
