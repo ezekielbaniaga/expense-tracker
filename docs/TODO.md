@@ -10,18 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## To do
 
-- [ ] **`POST /users/me/password` has no limit on wrong current passwords.** `user/UserService.java`
-      (`changePassword`) and `user/UserController.java`. Verified 2026-10-16 with a throwaway test: 30 wrong
-      `currentPassword` attempts in a row were all `400 INVALID_CURRENT_PASSWORD`, never 429. Anyone holding an
-      access token (stolen, or a shared machine; it stays valid 15 minutes even after logout) can guess the
-      current password at BCrypt speed and then take the account over for good by setting a new one, and any
-      user can burn server CPU with unlimited BCrypt checks. Login has 5 failures per 15 minutes per username;
-      this path bypasses it. Fix: a `KeyedRateLimiter` keyed by the user's unique id (`app.rate-limit.password-change.failures`,
-      e.g. 5 per 15 minutes), consumed before `passwordEncoder.matches` and refunded on success like
-      `LoginRateLimiter`; 429 `TOO_MANY_REQUESTS` with `Retry-After`. Also cap `ChangePasswordRequest.currentPassword`
-      at 1,000 like `LoginRequest.password`. Test: sixth wrong current password is 429 with `Retry-After`; a
-      correct one after 5 wrong is 429 until the window passes (fake `TimeMeter`, as in `LoginRateLimitTests`);
-      successful changes don't count; another user is unaffected.
 - [ ] **The admin bootstrap accepts the `.env.example` placeholder `ADMIN_PASSWORD=change-me`.**
       `auth/service/AdminBootstrapService.java`. Verified with a throwaway test: `createInitialAdminUser` with
       password `change-me` created the ADMIN. `JWT_SECRET=change-me` is rejected (under 32 bytes), so a copied
@@ -186,3 +174,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Dropped the duplicate `index_users_unique_id` (V15); `uq_users_unique_id` is the only index on `users.unique_id` (cd98254)
 - [x] Login username (100), login password (1,000, no hint of the 72-byte rule) and refresh/logout token (128) are size-capped; oversize gives 400 `VALIDATION_ERROR` (d07587f)
 - [x] Login and refresh return `accessTokenExpiresIn` (seconds, `app.jwt.expiration`) and `refreshTokenExpiresAt` (the session's `expires_at`, UTC without offset, unchanged by rotation); README section 1 and web UI proposal step 4 updated (59acf64)
+- [x] `POST /users/me/password` limits wrong current passwords to 5 per 15 minutes per user (keyed by the token's unique_id, 429 with Retry-After) and caps `currentPassword` at 1,000 (2e226ed)
