@@ -13,12 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Logout with an already-rotated refresh token does nothing.** `UserSessionService.revokeSession` only looks
-      in `user_sessions.refresh_token_hash`. A client that refreshed, lost the response (or has a stale token in
-      a second tab) and then logs out sends a used token: it gets 204 and the session stays active for up to 30
-      days. Fix: if the hash isn't a current token, look it up in `used_refresh_tokens` and revoke that token's
-      session (no reuse WARN; it is the owner logging out). Still always 204, unknown tokens still ignored.
-      Test: refresh, logout with the *old* token, assert the session is revoked and the new token can't refresh.
 - [ ] **`used_refresh_tokens` grows without bound inside one session.** Every refresh adds a row that stays
       until the session is deleted (30 days + 7). `/auth/refresh` has no rate limit, so anyone holding one valid
       refresh token can loop and fill the table; a normal client adds ~2,900 rows per session per month. On
@@ -223,3 +217,4 @@ All 176 tests passed at the time of the review.
 - [x] Decided 2026-10-16: no `users.password_changed_at`. Password change already revokes every session and the JWT filter never reads the database, so the column would add nothing
 - [x] Decided 2026-10-16: refresh token reuse stays strict, no grace window. A lost refresh response ends in a new login; raw refresh tokens are never stored
 - [x] `changePassword` locks the user row (`findLockedById`) and flushes before revoking, so a concurrent login can't keep a session past a password change; admin disable pinned by the same test (dc47581)
+- [x] Logout with an already-rotated refresh token revokes that token's session (no reuse WARN); still always 204 (9961dce)
