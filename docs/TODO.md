@@ -13,12 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **No size limits on the auth request bodies.** `RefreshTokenRequest.refreshToken` and
-      `LoginRequest.username/password` are only `@NotBlank`. A refresh token is always 43 characters, so add
-      `@Size(max = 128)` to it, and `@Size(max = 100)` to the login username (the column size). Leave the login
-      password unbounded in length rules but cap it (e.g. 1,000) so a multi-megabyte body isn't hashed and
-      logged around; it must not reveal the 72-byte rule, since old passwords may predate it. Tests: oversize
-      values give 400 `VALIDATION_ERROR`.
 - [ ] **Login and refresh don't say when tokens expire.** `LoginResponse` is only `{accessToken, refreshToken}`;
       the web UI proposal has the client decode the JWT `exp` to refresh early, and nothing tells it when the
       30-day session ends. Add `accessTokenExpiresIn` (seconds) and `refreshTokenExpiresAt` to the response.
@@ -114,3 +108,4 @@ All 176 tests passed at the time of the review.
 - [x] Public `GET /actuator/health` (only health exposed, `{"status":"UP"}` without details or groups, other actuator endpoints 401/404); image installs curl for a Dockerfile `HEALTHCHECK` and the Compose app healthcheck (584b964)
 - [x] README section 14 lists the real `GlobalExceptionHandler` mappings; section 8 diagram has the reuse and disabled-user branches (16f08e3)
 - [x] Dropped the duplicate `index_users_unique_id` (V15); `uq_users_unique_id` is the only index on `users.unique_id` (cd98254)
+- [x] Login username (100), login password (1,000, no hint of the 72-byte rule) and refresh/logout token (128) are size-capped; oversize gives 400 `VALIDATION_ERROR` (d07587f)
