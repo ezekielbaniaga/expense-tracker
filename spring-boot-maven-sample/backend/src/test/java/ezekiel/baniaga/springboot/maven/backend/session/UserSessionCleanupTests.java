@@ -3,6 +3,7 @@ package ezekiel.baniaga.springboot.maven.backend.session;
 import ezekiel.baniaga.springboot.maven.backend.TestcontainersConfiguration;
 import ezekiel.baniaga.springboot.maven.backend.auth.mapper.CustomUserDetailsMapper;
 import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
+import ezekiel.baniaga.springboot.maven.backend.session.job.UserSessionCleanup;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.User;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Clock;
@@ -35,6 +37,8 @@ class UserSessionCleanupTests {
     @Autowired UserRepository userRepository;
     @Autowired CustomUserDetailsMapper customUserDetailsMapper;
     @Autowired Clock clock;
+    @Autowired UserSessionCleanup userSessionCleanup;
+    @Autowired JdbcTemplate jdbcTemplate;
 
     private User user;
 
@@ -77,6 +81,25 @@ class UserSessionCleanupTests {
 
         assertThat(userSessionRepository.existsById(active)).isTrue();
         assertThat(userSessionRepository.existsById(revokedRecently)).isTrue();
+    }
+
+    @Test
+    void oneRunDeletesMoreThanOneBatch() {
+        // 2.5 batches of 1,000; the old job deleted only 1,000 per run
+        jdbcTemplate.update("""
+            INSERT INTO user_sessions (unique_id, user_id, refresh_token_hash, created_at, expires_at)
+            SELECT gen_random_uuid(), ?, encode(sha256(convert_to(gen_random_uuid()::text, 'UTF8')), 'hex'), ?, ?
+            FROM generate_series(1, 2500)
+        """, user.getId(), LocalDateTime.now(clock).minusDays(40), LocalDateTime.now(clock).minusDays(10));
+        assertThat(countSessionsOfUser()).isEqualTo(2500);
+
+        userSessionCleanup.cleanup();
+
+        assertThat(countSessionsOfUser()).isZero();
+    }
+
+    private long countSessionsOfUser() {
+        return jdbcTemplate.queryForObject("SELECT count(*) FROM user_sessions WHERE user_id = ?", Long.class, user.getId());
     }
 
     private String newSession() {

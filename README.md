@@ -676,7 +676,7 @@ Other details of `UserSessionService.rotateRefreshToken`:
 - A revoked or expired session is rejected with `401`.
 - If the user has been disabled, the session is revoked and the refresh is rejected, so re-enabling the account does not bring the session back.
 - `POST /auth/logout` revokes the session of the given refresh token, also when that token was already rotated (a lost refresh response or a stale tab); that is the owner logging out, so it is not treated as reuse. It always returns `204`, even for unknown tokens, and the access token stays valid until it expires.
-- A nightly job (`UserSessionCleanup`, from 3AM) deletes sessions that expired or were revoked more than 7 days ago (`app.session.retention`), together with their used token hashes. Active sessions are never deleted.
+- A nightly job (`UserSessionCleanup`, once at 3AM, in batches of 1,000 until none are left, at most 100 batches a run) deletes sessions that expired or were revoked more than 7 days ago (`app.session.retention`), together with their used token hashes. Active sessions are never deleted.
 
 ---
 
