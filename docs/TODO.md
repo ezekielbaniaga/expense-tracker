@@ -1,6 +1,6 @@
 # TODO
 
-Last investigation: 2026-10-16 04:55 — 3 new findings
+Last investigation: 2026-10-16 16:40 — 21 new findings, Needs you settled
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `spring-boot-maven-sample/backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
@@ -8,22 +8,173 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## To do
+
+Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
+All 176 tests passed at the time of the review.
+
+- [ ] **`changePassword` doesn't lock the user row, so a login can outlive a password change.** `createSession`
+      (login) locks the user and compares the password hash, but `UserService.changePassword` only reads the user
+      with `getByUniqueId`, then `save`s it and runs the bulk `revokeAllForUser`. Hibernate doesn't flush the
+      pending `users` UPDATE before that bulk update (different table), so the sessions are revoked *before* the
+      `users` row is written. A login that locked the user in that window passes the hash check (old hash still
+      in the table), commits a new session, and the password change then commits without revoking it. Fix: start
+      `changePassword` with `userRepository.findLockedById(...)` (the id comes from `getByUniqueId`) so it queues
+      behind or ahead of any login on the same row; also `saveAndFlush` before the revoke.
+      **Confirmed** with SQL logging: the statements run as `select users` (no `FOR UPDATE`), then
+      `update user_sessions`, then `update users`. The same order can also **deadlock**: a login at the session
+      cap holds the user row and waits to revoke a session row, while `changePassword` holds that session row
+      and waits for the user row. Postgres aborts one, which surfaces as a 500. Locking the user first fixes
+      both, since every other path already takes the user row before session rows. Test: hold
+      `SELECT ... FOR UPDATE` on the user in a second transaction, run `changePassword` on a thread, assert it
+      blocks until the lock is released, then assert logins started with the old password get 401 and no session
+      stays active. `LoginRaceTests` only runs the steps in sequence, so it can't see this. The admin disable
+      path already uses `saveAndFlush` before its revoke; confirm it in the same test class.
+- [ ] **Logout with an already-rotated refresh token does nothing.** `UserSessionService.revokeSession` only looks
+      in `user_sessions.refresh_token_hash`. A client that refreshed, lost the response (or has a stale token in
+      a second tab) and then logs out sends a used token: it gets 204 and the session stays active for up to 30
+      days. Fix: if the hash isn't a current token, look it up in `used_refresh_tokens` and revoke that token's
+      session (no reuse WARN; it is the owner logging out). Still always 204, unknown tokens still ignored.
+      Test: refresh, logout with the *old* token, assert the session is revoked and the new token can't refresh.
+- [ ] **`used_refresh_tokens` grows without bound inside one session.** Every refresh adds a row that stays
+      until the session is deleted (30 days + 7). `/auth/refresh` has no rate limit, so anyone holding one valid
+      refresh token can loop and fill the table; a normal client adds ~2,900 rows per session per month. On
+      each rotation, delete all but the newest 20 used hashes of that session (one DELETE ... WHERE session_id
+      = ? AND token_hash NOT IN (newest 20)). A token older than that is then "unknown" (plain 401) instead of
+      "reuse", which is acceptable: it is no longer current. Test: rotate 25 times, assert 20 rows remain and
+      the newest used token still triggers reuse detection. Update README section 11 (reuse) to say it.
+- [ ] **A reuse-looking replay on an already ended session logs a WARN and re-stamps it.** `handleUnknownToken`
+      always calls `revoke` and logs "Refresh token reuse detected" even when the session is already revoked or
+      expired (e.g. an old token replayed after a normal logout). Only revoke and WARN when the session is still
+      active; otherwise answer 401 quietly (DEBUG). Keeps the WARN meaningful as an alert. Test: logout, replay
+      an old rotated token, assert `revoked_at` is unchanged.
+- [ ] **Overlong or odd `ip_address` can fail a login with 500.** `user_sessions.ip_address` is `VARCHAR(45)`
+      and `getRemoteAddr()` is stored as is. An IPv6 address with a zone id, or any `X-Forwarded-For` value once
+      the proxy decision in **Needs you** is made, can exceed 45 and fail the insert, like the User-Agent bug
+      fixed in 077aedb. Truncate to 45 in `createSession` (next to `truncateUserAgent`). Test: login through
+      MockMvc with `remoteAddr` of 60 characters, assert 200 and a 45-character stored value.
+- [ ] **Trust the reverse proxy's `X-Forwarded-For` (decided 2026-10-16: the app runs behind a proxy).**
+      Today `AuthController.login` stores `request.getRemoteAddr()`, which behind a proxy is the proxy's IP
+      for every session, and the rate-limit items below need the real client IP. Set
+      `server.forward-headers-strategy: native` (Tomcat's RemoteIpValve), not `framework`, which trusts the
+      header from anyone. `Careful:` the valve trusts private ranges by default (10/8, 172.16/12, 192.168/16,
+      127/8), and Compose publishes `8080:8080`, so a client hitting the app directly through the Docker port
+      mapping arrives from the bridge gateway (172.x), is treated as a trusted proxy, and can spoof its IP.
+      Pin `server.tomcat.remoteip.internal-proxies` to the proxy's address through an env var, and say in the
+      Compose README to stop publishing 8080 once the proxy is in front. Test: a `RANDOM_PORT`
+      `@SpringBootTest` (MockMvc skips the valve) logs in from 127.0.0.1 with `X-Forwarded-For: 203.0.113.7`
+      and the session lists `203.0.113.7`; with `internal-proxies` set to something else it lists 127.0.0.1.
+      Needs the `ip_address` truncation item above first, since the stored value now comes from a header.
+- [ ] **Rate limit `/auth/login` with Bucket4j (decided 2026-10-16).** Add `bucket4j_jdk17-core` and an
+      in-memory limiter (per instance, which is fine for one instance; note it in the README). Two buckets per
+      attempt: per normalized username (e.g. 5 failures per 15 minutes, so one account can't be guessed from
+      many IPs) and per client IP (e.g. 20 attempts per minute, so many accounts can't be sprayed from one IP).
+      Count failures only for the username bucket, so a user who logs in fine is never locked out by their own
+      success. Over the limit: `429` with the `ErrorResponse` body, code `TOO_MANY_REQUESTS`, and a
+      `Retry-After` header; answer 429 for unknown usernames too, so the limit doesn't reveal which accounts
+      exist. Keep the maps bounded (Caffeine with expire-after-access, or Bucket4j's own expiring map) so
+      random usernames can't grow memory forever. Limits in `app.rate-limit.*`. Tests: the 6th wrong
+      password for one user is 429 with `Retry-After`, another user from the same IP is unaffected until the IP
+      limit, and a correct password after the window passes. Depends on the proxy item for the client IP.
+- [ ] **Extend the rate limit to `/auth/register`, `/auth/refresh` and `/auth/logout` (decided 2026-10-16).**
+      Per client IP, reusing the limiter from the login item; register stricter (mass account creation),
+      refresh and logout looser (a normal client refreshes every 15 minutes per tab). Same 429 body and
+      `Retry-After`. Tests: one per endpoint over its limit. Update the README's "no login throttling yet"
+      line in section 17 and the roles table.
+- [ ] **A signed token without `uid` or `role` gives 500, not 401.** `JWTService.toPrincipal` calls
+      `UUID.fromString(claims.get("uid", String.class))`; a missing claim is a `NullPointerException`, which
+      `parsePrincipal` doesn't catch (it catches `JwtException | IllegalArgumentException`). Only a token signed
+      with our key can hit it (an older or hand-made one), but the filter should never 500. Treat a missing or
+      blank `uid`/`role`/subject as invalid (throw `IllegalArgumentException` in `toPrincipal`). Test in
+      `JWTServiceTests` with a token built without `uid`, and one MockMvc call returning 401.
+- [ ] **Pin the JWT algorithm to HS256.** `signWith(signingKey())` lets jjwt choose the algorithm by key length: 32-47 bytes give HS256, 48-63 give
+      HS384, 64+ give HS512, so a longer secret silently changes `alg` while the README and `JWTProperties`
+      say HS256. Use
+      `signWith(signingKey(), Jwts.SIG.HS256)` and `.verifyWith(...)` with an explicit check of the header
+      `alg` (reject anything else). While there, add an `iss` claim (e.g. `expense-tracker`) and
+      `requireIssuer` in the parser, so a token from another service that shares the secret is rejected.
+      Test: a 64-byte secret still produces an `alg: HS256` token, a token signed HS512 with the same key is
+      rejected, and so is one without the issuer. Tokens issued before the change have no `iss`; accept a
+      missing `iss` for one access-token lifetime, or accept that everyone refreshes once after deploy (a
+      refresh needs no access token, so nobody is logged out).
+- [ ] **Time handling depends on the JVM time zone.** All timestamps are `LocalDateTime.now()` in
+      `TIMESTAMP WITHOUT TIME ZONE` columns, and the API returns them without an offset (`SessionResponse`
+      `createdAt`/`lastUsedAt`/`expiresAt`), so a client can't tell which zone they are in. They are, compared in Java (`expiresAt.isBefore(now)`) and in tests/SQL with
+      `now()`. A host or container with a non-UTC zone, or a DST change, shifts session expiry and the
+      cleanup cutoff, and two instances in different zones would disagree. Add a `Clock` bean (UTC), inject it
+      into `UserSessionService`, `UserService` and the cleanup, and set
+      `spring.jpa.properties.hibernate.jdbc.time_zone: UTC`. Existing rows were written in server local time;
+      the Compose image is UTC, so note in the commit that a non-UTC deployment needs its rows converted
+      (no migration needed for this repo's setup). A fixed `Clock` also lets tests stop rewriting
+      `expires_at` through JDBC. Returning UTC with an offset in the API is a response format change; leave
+      that for a new API version or note it in the README.
+- [ ] **Session lifetime, cap and retention are hard-coded.** `now.plusDays(30)`, `MAX_ACTIVE_SESSIONS = 10`
+      and `RETENTION_DAYS = 7` live in code, while the access token lifetime is `app.jwt.expiration`. Add
+      `app.session.lifetime` (30d), `app.session.max-active` (10) and `app.session.retention` (7d) in a
+      `@ConfigurationProperties` class like `JWTProperties`, keep the defaults, and have the README say where
+      they are set. Test: override the three in a `@SpringBootTest(properties=...)` and see them applied.
+- [ ] **Cleanup runs 60 times a night and drains only 1,000 rows each.** `UserSessionCleanup` fires every minute
+      from 03:00 to 03:59 and deletes at most 1,000 sessions per run, so it clears at most 60,000 a night and
+      does 59 empty runs on most nights. Run once at 03:00 (`0 0 3 * * *`) and loop `cleanupEndedSessions`
+      until a batch deletes fewer than the limit (each batch its own transaction, with a cap of e.g. 100
+      batches so one run can't spin forever). Update the log line and the README sentence ("from 3AM").
+      Do not edit the V10 comment that mentions the old schedule (applied migration). Test: seed 2,500 ended
+      sessions, call the job once, assert all deleted.
+- [ ] **Pin the accepted access-token window with a test.** The 15-minute window after a revoke is a decided
+      design (see the session proposal), but no test says so, so a future "fix" could change it unnoticed.
+      Add one test: revoke a session (and separately log out), assert the refresh token gives 401 while the
+      old access token still gets 200 on `GET /users/me`, and `GET /users/me/sessions` no longer lists the
+      revoked session. If someone later adds a per-request `sid` check, this test is the one to change on
+      purpose.
+- [ ] **Remove the dead `DebugController`.** `auth/DebugController.java` has its `@RestController` and
+      `@RequestMapping` commented out and is `@Deprecated`; it only generates an admin token and would be
+      a token-minting endpoint if someone re-enabled the annotation. Delete the file (git has it).
+- [ ] **Quieter, safer defaults in `application.yml`.** Set `spring.jpa.open-in-view: false`: it is on by
+      default (the test log warns about it on every context start), which keeps a database connection for the
+      whole request and lets lazy loading happen in controllers. Every service already maps entities inside
+      its transaction, so turning it off should change nothing; run the full suite to confirm.
+      Also, `logging.level.org.flywaydb: DEBUG` ships in the main
+      config (the Compose app logs every migration statement), and the datasource defaults
+      (`devuser`/`devpwd` on localhost) are in the main file too. Set Flyway to `INFO`, and move the dev
+      datasource to `application-dev.yml` (or leave only env-driven values), making sure `./mvnw test`,
+      `run_project.sh`, `debug_project.sh` and the Compose file (which sets `SPRING_DATASOURCE_*`) still work.
+      README/CLAUDE.md "Running locally" must say how to run without the default.
+
+- [ ] **Health endpoint for the proxy and Compose (decided 2026-10-16).** Add
+      `spring-boot-starter-actuator` with `management.endpoints.web.exposure.include: health` and
+      `management.endpoint.health.show-details: never`, and `permitAll` for `/actuator/health` only in
+      `SecurityConfig` (before `anyRequest`). Add a Compose `healthcheck` for the app; check whether the
+      `eclipse-temurin` image has `curl` or `wget` first, and if not, use a small `HEALTHCHECK` in the
+      Dockerfile that has one. Tests: `GET /actuator/health` without a token is 200 `{"status":"UP"}` with no
+      details, and `/actuator/env` and `/actuator/beans` are not reachable (404 or 401).
+- [ ] **README corrections.** Section 14 lists `ValidationException → 400`, but the class is
+      `BadRequestException` and bean validation goes through `MethodArgumentNotValidException`; list what
+      `GlobalExceptionHandler` really maps (404, 400s, 409, 403). Section 8's refresh flow diagram stops at
+      not found / revoked / expired and leaves out the disabled-user and reuse branches that section 11
+      describes. No code change.
+- [ ] **Duplicate index on `users.unique_id`.** V5 created `index_users_unique_id` and V9 added the
+      `uq_users_unique_id` unique constraint, which has its own index. Every user insert and update maintains
+      both. Add a migration that drops `index_users_unique_id` (`DROP INDEX IF EXISTS`). Test: like
+      `UserSessionCleanupIndexTests`, assert via `pg_indexes` that only the unique index remains and lookups
+      by `unique_id` still work.
+- [ ] **No size limits on the auth request bodies.** `RefreshTokenRequest.refreshToken` and
+      `LoginRequest.username/password` are only `@NotBlank`. A refresh token is always 43 characters, so add
+      `@Size(max = 128)` to it, and `@Size(max = 100)` to the login username (the column size). Leave the login
+      password unbounded in length rules but cap it (e.g. 1,000) so a multi-megabyte body isn't hashed and
+      logged around; it must not reveal the 72-byte rule, since old passwords may predate it. Tests: oversize
+      values give 400 `VALIDATION_ERROR`.
+- [ ] **Login and refresh don't say when tokens expire.** `LoginResponse` is only `{accessToken, refreshToken}`;
+      the web UI proposal has the client decode the JWT `exp` to refresh early, and nothing tells it when the
+      30-day session ends. Add `accessTokenExpiresIn` (seconds) and `refreshTokenExpiresAt` to the response.
+      Adding fields is backward compatible for JSON clients. Test: login and refresh return both, the first
+      equal to `app.jwt.expiration`. Update README section 1 and the web UI proposal's step 4.
+
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
-- [ ] **Decide on login brute-force protection.** `/auth/login` allows unlimited password attempts. Options:
-      per-username/IP throttling in the app (in-memory, so per instance), a library like Bucket4j, or rate
-      limiting at a reverse proxy. Which one depends on how you'll deploy. The user endpoints proposal says to
-      decide this before `POST /auth/register` ships, since the same limit should cover both (and stop mass
-      account creation). The register item is in the queue above.
-- [ ] **Decide whether to add `users.password_changed_at`.** The proposal lists it so old sessions can be
-      rejected after a password change. But the password change item already revokes every session, and the
-      JWT filter never reads the database, so the column would only help if you also add a per-request user
-      check. Suggest dropping it unless you want that check.
-- [ ] **Decide whether the app runs behind a reverse proxy.** `AuthController.login` stores `request.getRemoteAddr()` as the
-      session `ipAddress`, and there is no `server.forward-headers-strategy` in `application.yml`. Behind nginx/a load balancer every
-      session in `GET /users/me/sessions` would show the proxy's IP. If you deploy behind one, set `server.forward-headers-strategy: native`
-      (or `framework`) and make sure only the proxy can set `X-Forwarded-For`; if not, nothing to do. Same decision as the login rate limit.
+- [ ] **Untracked files in the repo root.** `to_delete_just_spring_boot_note` (a psql dump of a session row, its
+      name says delete), `.claude/` (the skills) and `docs/jobs/` (the nightly loop notes, marked Draft). Delete
+      the note, and commit or ignore the other two.
 
 ## Done
 
@@ -86,3 +237,5 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Session management documented: README (`sid`, `unique_id`, Sessions subsection, revocation table, roadmap) and six Bruno requests; proposal marked done (d9110fc)
 - [x] Login re-checks the user under its row lock: a password change or disable that commits during the password check gives 401 and no session; the access token uses the locked user's role (1b75457)
 - [x] Bulk session revokes (`DELETE /users/me/sessions`, `DELETE /users/{id}/sessions`, password change, disable/demote) skip expired sessions: not counted in `revoked`, `revoked_at` stays null (1d7d652)
+- [x] Decided 2026-10-16: no `users.password_changed_at`. Password change already revokes every session and the JWT filter never reads the database, so the column would add nothing
+- [x] Decided 2026-10-16: refresh token reuse stays strict, no grace window. A lost refresh response ends in a new login; raw refresh tokens are never stored
