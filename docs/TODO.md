@@ -13,16 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Pin the JWT algorithm to HS256.** `signWith(signingKey())` lets jjwt choose the algorithm by key length: 32-47 bytes give HS256, 48-63 give
-      HS384, 64+ give HS512, so a longer secret silently changes `alg` while the README and `JWTProperties`
-      say HS256. Use
-      `signWith(signingKey(), Jwts.SIG.HS256)` and `.verifyWith(...)` with an explicit check of the header
-      `alg` (reject anything else). While there, add an `iss` claim (e.g. `expense-tracker`) and
-      `requireIssuer` in the parser, so a token from another service that shares the secret is rejected.
-      Test: a 64-byte secret still produces an `alg: HS256` token, a token signed HS512 with the same key is
-      rejected, and so is one without the issuer. Tokens issued before the change have no `iss`; accept a
-      missing `iss` for one access-token lifetime, or accept that everyone refreshes once after deploy (a
-      refresh needs no access token, so nobody is logged out).
 - [ ] **Time handling depends on the JVM time zone.** All timestamps are `LocalDateTime.now()` in
       `TIMESTAMP WITHOUT TIME ZONE` columns, and the API returns them without an offset (`SessionResponse`
       `createdAt`/`lastUsedAt`/`expiresAt`), so a client can't tell which zone they are in. They are, compared in Java (`expiresAt.isBefore(now)`) and in tests/SQL with
@@ -174,3 +164,4 @@ All 176 tests passed at the time of the review.
 - [x] Rate limit `/auth/login` with Bucket4j: 5 failures per 15 minutes per normalized username, 20 attempts per minute per client IP, 429 `TOO_MANY_REQUESTS` with `Retry-After`, bounded Caffeine maps, limits in `app.rate-limit.*`, reusable `KeyedRateLimiter`/`RateLimiterFactory` (296d5ad)
 - [x] Rate limit `/auth/register` (10 per hour), `/auth/refresh` and `/auth/logout` (60 per minute each) per client IP via `AuthEndpointRateLimiter`; same 429 `TOO_MANY_REQUESTS` with `Retry-After`, limits in `app.rate-limit.register|refresh|logout.client-ip` (a7eb002)
 - [x] A token signed with our key but missing or blank `uid`, `role` or subject is rejected as invalid (401) instead of a `NullPointerException` and 500 (e786c91)
+- [x] Access tokens are always HS256 (explicit `Jwts.SIG.HS256`, header `alg` checked) and carry a required `iss: expense-tracker`; pre-change tokens without `iss` get 401 and refresh once (8c2af61)
