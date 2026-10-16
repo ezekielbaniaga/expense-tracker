@@ -10,15 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## To do
 
-- [ ] **The admin bootstrap accepts the `.env.example` placeholder `ADMIN_PASSWORD=change-me`.**
-      `auth/service/AdminBootstrapService.java`. Verified with a throwaway test: `createInitialAdminUser` with
-      password `change-me` created the ADMIN. `JWT_SECRET=change-me` is rejected (under 32 bytes), so a copied
-      `.env` fails on the secret, but once a real secret is set the app happily starts with an admin whose
-      password is in the repo, under the default username `admin`. Fix: refuse to start when `ADMIN_PASSWORD`
-      equals `change-me` (and, for new installs, apply a minimum length such as `PasswordValidator.MIN_LENGTH`
-      only when the admin is about to be created, so existing setups whose admin already exists still start).
-      Test: `AdminBootstrapServiceTests` cases for `change-me` (IllegalStateException naming the variable) and
-      for an existing admin with a short password still starting.
 - [ ] **Session durations are not validated; a negative `retention` deletes active sessions.**
       `session/props/SessionProperties.java`, `session/UserSessionService.java` (`cleanupEndedSessions`). Spring
       binds `-7d`, and the cutoff `now - retention` then lies in the future, so `expires_at < cutoff` matches live
@@ -175,3 +166,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Login username (100), login password (1,000, no hint of the 72-byte rule) and refresh/logout token (128) are size-capped; oversize gives 400 `VALIDATION_ERROR` (d07587f)
 - [x] Login and refresh return `accessTokenExpiresIn` (seconds, `app.jwt.expiration`) and `refreshTokenExpiresAt` (the session's `expires_at`, UTC without offset, unchanged by rotation); README section 1 and web UI proposal step 4 updated (59acf64)
 - [x] `POST /users/me/password` limits wrong current passwords to 5 per 15 minutes per user (keyed by the token's unique_id, 429 with Retry-After) and caps `currentPassword` at 1,000 (2e226ed)
+- [x] Startup rejects the `.env.example` placeholder `ADMIN_PASSWORD=change-me`, and a password under 12 characters when it creates the admin (bdc6aef)
