@@ -10,14 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## To do
 
-- [ ] **Per-IP rate limits are keyed by the full IPv6 address.** `ratelimit/KeyedRateLimiter.java`,
-      `auth/service/LoginRateLimiter.java`, `auth/service/AuthEndpointRateLimiter.java`. A single IPv6 host
-      usually controls a whole /64 (2^64 addresses), so rotating source addresses gets a fresh bucket each time
-      and bypasses register (10/hour), login-per-IP (20/minute), refresh and logout limits; it also fills the
-      `max-keys` map. Not verified (Compose is IPv4 only today; it matters once a proxy forwards IPv6 clients).
-      Fix: normalize the client IP key in one place (e.g. `ClientIpKey.of(remoteAddr)`): IPv4 as is, IPv6
-      (including IPv4-mapped and zone ids) reduced to its /64 prefix. Test: unit test of the key function, and
-      a register test where `2001:db8::1` and `2001:db8::2` share one bucket while `2001:db8:0:1::1` does not.
 - [ ] **Native query `LocalDateTime` parameters still go through the JVM zone and shift by an hour in a DST
       gap.** `session/UserSessionRepository.java` (`deleteEndedBefore`), `expense/ExpenseRepository.java`
       (`deleteOldExpense`); claim in `application.yml` (`java_time_use_direct_jdbc` comment) and README
@@ -148,3 +140,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Startup rejects the `.env.example` placeholder `ADMIN_PASSWORD=change-me`, and a password under 12 characters when it creates the admin (bdc6aef)
 - [x] Startup rejects a negative `app.session.retention` and a non-positive `app.session.lifetime` or `app.jwt.expiration`, naming the property (24cd708)
 - [x] Expense date `@PastOrPresent` now validates against the UTC `Clock` offset to UTC+14 (e2c4941)
+- [x] Per-IP rate limits key an IPv6 client by its /64 (`ClientIpKey`); IPv4 unchanged, zone ids dropped, IPv4-mapped counts as IPv4 (03acb80)
