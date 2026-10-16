@@ -1,0 +1,7 @@
+# Local development only: matches backend/run_postgres_container.sh. Activate with
+# SPRING_PROFILES_ACTIVE=dev (debug_project.sh and run_project.sh do). Never use in production.
+spring:
+  datasource:
+    url: "jdbc:postgresql://localhost:5432/appdb"
+    username: "devuser"
+    password: "devpwd"

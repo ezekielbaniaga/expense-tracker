@@ -12,11 +12,11 @@ server:
 spring:
   application:
     name: backend
-  datasource:
-    url: "jdbc:postgresql://localhost:5432/appdb"
-    username: "devuser"
-    password: "devpwd"
+  # No datasource here: set SPRING_DATASOURCE_URL/_USERNAME/_PASSWORD (as the Compose file does),
+  # or run with the "dev" profile (application-dev.yml) for the local dev Postgres container.
   jpa:
+    # Don't hold a database connection for the whole request or allow lazy loading in controllers
+    open-in-view: false
     hibernate:
       ddl-auto: none
     properties:
@@ -36,7 +36,7 @@ spring:
 
 logging:
   level:
-    org.flywaydb: DEBUG
+    org.flywaydb: INFO
 
 app:
   admin:

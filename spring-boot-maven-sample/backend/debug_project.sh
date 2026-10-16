@@ -18,6 +18,7 @@
 # Click Debug to attach.
 #
 
+SPRING_PROFILES_ACTIVE=dev \
 ADMIN_PASSWORD=devpassword \
 JWT_SECRET=8u7s2wUP0j_jsUEv_mXevTd2anWpecnnVzhhmkqfmTE \
 ./mvnw spring-boot:run -Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
