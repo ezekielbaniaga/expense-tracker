@@ -3,7 +3,10 @@ package ezekiel.baniaga.springboot.maven.backend.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.boot.validation.autoconfigure.ValidationConfigurationCustomizer;
+
 import java.time.Clock;
+import java.time.ZoneOffset;
 
 /**
  * The app's one source of "now". UTC, so session expiry, cleanup cutoffs and
@@ -17,5 +20,15 @@ public class ClockConfig {
     @Bean
     public Clock clock() {
         return Clock.systemUTC();
+    }
+
+    /**
+     * Bean validation's "now" (@PastOrPresent on the expense date) is the app Clock, not the JVM
+     * zone captured at startup. Offset to UTC+14, the earliest zone on Earth, so "present" is
+     * today anywhere: a user ahead of UTC can record an expense dated today.
+     */
+    @Bean
+    public ValidationConfigurationCustomizer validationClockCustomizer(Clock clock) {
+        return configuration -> configuration.clockProvider(() -> clock.withZone(ZoneOffset.ofHours(14)));
     }
 }
