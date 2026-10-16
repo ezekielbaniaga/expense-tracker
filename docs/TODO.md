@@ -13,13 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Health endpoint for the proxy and Compose (decided 2026-10-16).** Add
-      `spring-boot-starter-actuator` with `management.endpoints.web.exposure.include: health` and
-      `management.endpoint.health.show-details: never`, and `permitAll` for `/actuator/health` only in
-      `SecurityConfig` (before `anyRequest`). Add a Compose `healthcheck` for the app; check whether the
-      `eclipse-temurin` image has `curl` or `wget` first, and if not, use a small `HEALTHCHECK` in the
-      Dockerfile that has one. Tests: `GET /actuator/health` without a token is 200 `{"status":"UP"}` with no
-      details, and `/actuator/env` and `/actuator/beans` are not reachable (404 or 401).
 - [ ] **README corrections.** Section 14 lists `ValidationException → 400`, but the class is
       `BadRequestException` and bean validation goes through `MethodArgumentNotValidException`; list what
       `GlobalExceptionHandler` really maps (404, 400s, 409, 403). Section 8's refresh flow diagram stops at
@@ -128,3 +121,4 @@ All 176 tests passed at the time of the review.
 - [x] Pinned the accepted 15-minute access-token window after revoke and logout with tests (26d1d5b)
 - [x] Removed the dead `DebugController` (71787e0)
 - [x] Quieter, safer application.yml defaults: open-in-view off, Flyway at INFO, dev datasource moved to application-dev.yml (6953c86)
+- [x] Public `GET /actuator/health` (only health exposed, `{"status":"UP"}` without details or groups, other actuator endpoints 401/404); image installs curl for a Dockerfile `HEALTHCHECK` and the Compose app healthcheck (584b964)
