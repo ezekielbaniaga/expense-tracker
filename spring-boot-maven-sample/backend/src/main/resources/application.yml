@@ -46,3 +46,17 @@ app:
       client-ip:
         capacity: 20
         period: 1m
+    # Per client IP, every request counts. Register is strict (mass account creation);
+    # refresh and logout are loose (each tab refreshes every 15 minutes, NAT shares IPs)
+    register:
+      client-ip:
+        capacity: 10
+        period: 1h
+    refresh:
+      client-ip:
+        capacity: 60
+        period: 1m
+    logout:
+      client-ip:
+        capacity: 60
+        period: 1m

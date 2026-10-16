@@ -6,6 +6,7 @@ import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RegisterRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
+import ezekiel.baniaga.springboot.maven.backend.auth.service.AuthEndpointRateLimiter;
 import ezekiel.baniaga.springboot.maven.backend.auth.service.LoginRateLimiter;
 import ezekiel.baniaga.springboot.maven.backend.session.CreatedSession;
 import ezekiel.baniaga.springboot.maven.backend.session.RefreshTokenResult;
@@ -37,6 +38,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
     private final LoginRateLimiter loginRateLimiter;
+    private final AuthEndpointRateLimiter authEndpointRateLimiter;
 
     private final UserSessionService userSessionService;
 
@@ -47,10 +49,15 @@ public class AuthController {
      * Creates a USER account. Returns no tokens; the client logs in next.
      * 409 USERNAME_TAKEN if the name exists in any case, 400 INVALID_PASSWORD
      * if the password breaks the rules in PasswordValidator.
+     * 429 TOO_MANY_REQUESTS after too many registrations from one client IP.
      */
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(
-        @Valid @RequestBody RegisterRequest request) {
+        @Valid @RequestBody RegisterRequest request,
+        HttpServletRequest httpServletRequest) {
+
+        // Before hashing the password, so a flood costs no BCrypt work
+        authEndpointRateLimiter.register(httpServletRequest.getRemoteAddr());
 
         UserResponse user = userMapper.toResponse(
             userService.register(request.username(), request.password()));
@@ -96,9 +103,15 @@ public class AuthController {
         return new LoginResponse(token, created.rawRefreshToken());
     }
 
+    /**
+     * 429 TOO_MANY_REQUESTS after too many refreshes from one client IP.
+     */
     @PostMapping("/refresh")
     public LoginResponse refresh(
-        @Valid @RequestBody RefreshTokenRequest request){
+        @Valid @RequestBody RefreshTokenRequest request,
+        HttpServletRequest httpServletRequest) {
+
+        authEndpointRateLimiter.refresh(httpServletRequest.getRemoteAddr());
 
         RefreshTokenResult result =
             userSessionService.rotateRefreshToken(
@@ -113,11 +126,15 @@ public class AuthController {
 
     /**
      * Revokes the session of the given refresh token. Always 204, even for
-     * unknown tokens. The access token stays valid until it expires.
+     * unknown tokens, except 429 TOO_MANY_REQUESTS after too many logouts from one
+     * client IP. The access token stays valid until it expires.
      */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-        @Valid @RequestBody RefreshTokenRequest request) {
+        @Valid @RequestBody RefreshTokenRequest request,
+        HttpServletRequest httpServletRequest) {
+
+        authEndpointRateLimiter.logout(httpServletRequest.getRemoteAddr());
 
         userSessionService.revokeSession(request.refreshToken());
 

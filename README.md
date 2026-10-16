@@ -186,6 +186,21 @@ Over either limit the answer is `429 TOO_MANY_REQUESTS` (the usual `ErrorRespons
 * The buckets live in memory, **per instance**: fine for one instance, but with several each counts on its
   own (and a restart resets them). A shared limit would need a shared store such as Redis.
 
+### Other auth endpoints
+
+`AuthEndpointRateLimiter` limits the other public auth endpoints per client IP, with one bucket per
+endpoint. Every request counts, failed or not, and the answer over the limit is the same `429` with
+`Retry-After`.
+
+| Endpoint | Default | Why |
+| --- | --- | --- |
+| `POST /auth/register` | 10 per hour | strict: stops mass account creation from one IP |
+| `POST /auth/refresh` | 60 per minute | loose: each open tab refreshes every 15 minutes, and users behind NAT share an IP |
+| `POST /auth/logout` | 60 per minute | loose, like refresh |
+
+They are set in `app.rate-limit.register|refresh|logout.client-ip` and live in memory per instance like
+the login buckets.
+
 ---
 
 ## 2. Access Token
@@ -925,7 +940,8 @@ Content-Type: application/json
 * Login strips the username too, so ` alice ` logs in as `alice`. Login does not apply the character rule:
   it first tries the exact name, so accounts created before the rule (or the `ADMIN_USERNAME` admin) keep
   working.
-* Only `/auth/login` is rate limited so far (see [Login rate limit](#login-rate-limit)); registration is not.
+* Registration is rate limited to 10 per hour per client IP (`429 TOO_MANY_REQUESTS` with `Retry-After`,
+  see [Other auth endpoints](#other-auth-endpoints)).
 
 ## Roles
 
@@ -934,7 +950,7 @@ access token as the `role` claim.
 
 | Path | Who |
 | --- | --- |
-| `/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/logout` | anyone |
+| `/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/logout` | anyone, rate limited (see [Login rate limit](#login-rate-limit) and [Other auth endpoints](#other-auth-endpoints)) |
 | `/users/me`, `/users/me/**` | any authenticated user |
 | `/users`, `/users/**` | `ADMIN` only (`403 ACCESS_DENIED` otherwise) |
 | everything else (expenses) | any authenticated user |

@@ -24,6 +24,15 @@ public class RateLimitProperties {
 
     private Login login = new Login();
 
+    /** Registrations per client IP: strict, an account is rarely created twice from one place. */
+    private PerClientIp register = new PerClientIp(new Limit(10, Duration.ofHours(1)));
+
+    /** Refreshes per client IP: loose, each open tab refreshes every 15 minutes and many users may share an IP. */
+    private PerClientIp refresh = new PerClientIp(new Limit(60, Duration.ofMinutes(1)));
+
+    /** Logouts per client IP: loose like refresh. */
+    private PerClientIp logout = new PerClientIp(new Limit(60, Duration.ofMinutes(1)));
+
     @Getter @Setter
     public static class Login {
 
@@ -32,6 +41,13 @@ public class RateLimitProperties {
 
         /** Login attempts per client IP, so many accounts can't be sprayed from one address. */
         private Limit clientIp = new Limit(20, Duration.ofMinutes(1));
+    }
+
+    /** An endpoint limited only per client IP, where every request counts. */
+    @Getter @Setter
+    @NoArgsConstructor @AllArgsConstructor
+    public static class PerClientIp {
+        private Limit clientIp;
     }
 
     /** {@code capacity} requests per {@code period}, refilled gradually over the period. */
