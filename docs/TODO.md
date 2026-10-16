@@ -13,13 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Cleanup runs 60 times a night and drains only 1,000 rows each.** `UserSessionCleanup` fires every minute
-      from 03:00 to 03:59 and deletes at most 1,000 sessions per run, so it clears at most 60,000 a night and
-      does 59 empty runs on most nights. Run once at 03:00 (`0 0 3 * * *`) and loop `cleanupEndedSessions`
-      until a batch deletes fewer than the limit (each batch its own transaction, with a cap of e.g. 100
-      batches so one run can't spin forever). Update the log line and the README sentence ("from 3AM").
-      Do not edit the V10 comment that mentions the old schedule (applied migration). Test: seed 2,500 ended
-      sessions, call the job once, assert all deleted.
 - [ ] **Pin the accepted access-token window with a test.** The 15-minute window after a revoke is a decided
       design (see the session proposal), but no test says so, so a future "fix" could change it unnoticed.
       Add one test: revoke a session (and separately log out), assert the refresh token gives 401 while the
@@ -151,3 +144,4 @@ All 176 tests passed at the time of the review.
 - [x] Access tokens are always HS256 (explicit `Jwts.SIG.HS256`, header `alg` checked) and carry a required `iss: expense-tracker`; pre-change tokens without `iss` get 401 and refresh once (8c2af61)
 - [x] "Now" comes from a UTC `Clock` bean (`ClockConfig`) in `UserSessionService`, `UserService`, `ExpenseService` and the session cleanup; LocalDateTime is bound as-is (`hibernate.type.java_time_use_direct_jdbc`), `hibernate.jdbc.time_zone` left unset because it shifts LocalDateTime on a non-UTC JVM; README says API timestamps are UTC without offset; non-UTC deployments must convert existing rows (c2c7d60)
 - [x] Session lifetime, active-session cap and ended-session retention are `app.session.lifetime|max-active|retention` (30d, 10, 7d) in `SessionProperties` instead of constants; README says where they are set (6004673)
+- [x] Session cleanup runs once at 03:00 and deletes in batches of 1,000 (each its own transaction) until a batch is short, at most 100 batches; was 60 runs of 1,000 each (cb79386)
