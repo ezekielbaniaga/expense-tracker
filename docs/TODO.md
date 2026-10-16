@@ -13,13 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **`used_refresh_tokens` grows without bound inside one session.** Every refresh adds a row that stays
-      until the session is deleted (30 days + 7). `/auth/refresh` has no rate limit, so anyone holding one valid
-      refresh token can loop and fill the table; a normal client adds ~2,900 rows per session per month. On
-      each rotation, delete all but the newest 20 used hashes of that session (one DELETE ... WHERE session_id
-      = ? AND token_hash NOT IN (newest 20)). A token older than that is then "unknown" (plain 401) instead of
-      "reuse", which is acceptable: it is no longer current. Test: rotate 25 times, assert 20 rows remain and
-      the newest used token still triggers reuse detection. Update README section 11 (reuse) to say it.
 - [ ] **A reuse-looking replay on an already ended session logs a WARN and re-stamps it.** `handleUnknownToken`
       always calls `revoke` and logs "Refresh token reuse detected" even when the session is already revoked or
       expired (e.g. an old token replayed after a normal logout). Only revoke and WARN when the session is still
@@ -218,3 +211,4 @@ All 176 tests passed at the time of the review.
 - [x] Decided 2026-10-16: refresh token reuse stays strict, no grace window. A lost refresh response ends in a new login; raw refresh tokens are never stored
 - [x] `changePassword` locks the user row (`findLockedById`) and flushes before revoking, so a concurrent login can't keep a session past a password change; admin disable pinned by the same test (dc47581)
 - [x] Logout with an already-rotated refresh token revokes that token's session (no reuse WARN); still always 204 (9961dce)
+- [x] Rotation keeps only the newest 20 used refresh token hashes per session; older tokens get a plain 401, not reuse (13a39a6)
