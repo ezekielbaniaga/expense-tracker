@@ -13,17 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Rate limit `/auth/login` with Bucket4j (decided 2026-10-16).** Add `bucket4j_jdk17-core` and an
-      in-memory limiter (per instance, which is fine for one instance; note it in the README). Two buckets per
-      attempt: per normalized username (e.g. 5 failures per 15 minutes, so one account can't be guessed from
-      many IPs) and per client IP (e.g. 20 attempts per minute, so many accounts can't be sprayed from one IP).
-      Count failures only for the username bucket, so a user who logs in fine is never locked out by their own
-      success. Over the limit: `429` with the `ErrorResponse` body, code `TOO_MANY_REQUESTS`, and a
-      `Retry-After` header; answer 429 for unknown usernames too, so the limit doesn't reveal which accounts
-      exist. Keep the maps bounded (Caffeine with expire-after-access, or Bucket4j's own expiring map) so
-      random usernames can't grow memory forever. Limits in `app.rate-limit.*`. Tests: the 6th wrong
-      password for one user is 429 with `Retry-After`, another user from the same IP is unaffected until the IP
-      limit, and a correct password after the window passes. Depends on the proxy item for the client IP.
 - [ ] **Extend the rate limit to `/auth/register`, `/auth/refresh` and `/auth/logout` (decided 2026-10-16).**
       Per client IP, reusing the limiter from the login item; register stricter (mass account creation),
       refresh and logout looser (a normal client refreshes every 15 minutes per tab). Same 429 body and
@@ -193,3 +182,4 @@ All 176 tests passed at the time of the review.
 - [x] A rotated refresh token replayed on an already ended (logged out, revoked or expired) session is a quiet 401: no reuse WARN, no re-stamp; concurrent replays give exactly one WARN (05d0abb)
 - [x] Login truncates an `ip_address` over 45 characters (e.g. IPv6 with zone id) instead of failing with 500 (030adfe)
 - [x] Client IP comes from `X-Forwarded-For` via Tomcat's RemoteIpValve (`forward-headers-strategy: native`), trusted only from `TRUSTED_PROXIES` (loopback by default, empty in Compose); Compose README says to stop publishing 8080 behind a proxy (763ae30)
+- [x] Rate limit `/auth/login` with Bucket4j: 5 failures per 15 minutes per normalized username, 20 attempts per minute per client IP, 429 `TOO_MANY_REQUESTS` with `Retry-After`, bounded Caffeine maps, limits in `app.rate-limit.*`, reusable `KeyedRateLimiter`/`RateLimiterFactory` (296d5ad)
