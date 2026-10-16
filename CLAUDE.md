@@ -29,7 +29,11 @@ Run from `spring-boot-maven-sample/backend`:
 
 - `docker_compose/.env` is git-ignored. Create it with `cp .env.example .env`.
 - The app requires `ADMIN_PASSWORD` and `JWT_SECRET` (it refuses to start without them).
-  `ADMIN_USERNAME` defaults to `admin`.
+  `ADMIN_USERNAME` defaults to `admin`. `ADMIN_PASSWORD` must not be the `.env.example` placeholder
+  `change-me` and is at most 72 bytes (at least 12 characters when the admin is first created).
+  `JWT_SECRET` needs at least 256 bits (32 bytes) for HS256.
+- `TRUSTED_PROXIES` (regex, default loopback only) names the reverse proxies whose `X-Forwarded-For` is
+  trusted for the client IP; leave it empty when no proxy is in front.
 - There is no default datasource. `run_project.sh` and `debug_project.sh` activate the `dev` profile
   (`application-dev.yml`: `devuser`/`devpwd` on localhost, see `run_postgres_container.sh`). To run
   without it, set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`

@@ -9,7 +9,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * Starts a throwaway PostgreSQL container for tests.
  * <p>
  * {@code @ServiceConnection} makes Spring Boot point the datasource at the
- * container, overriding the localhost settings in application.yml.
+ * container, so the tests need no datasource settings (application.yml defines none).
  * Same image as docker_compose so Flyway migrations run against the real DB.
  */
 @TestConfiguration(proxyBeanMethods = false)

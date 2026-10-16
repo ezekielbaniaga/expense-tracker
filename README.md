@@ -1234,12 +1234,32 @@ auth/
 ├── mapper/
 │   └── CustomUserDetailsMapper
 │
-└── security/
-    ├── JWTAuthenticationFilter
-    ├── JWTService
-    ├── JWTPrincipal
-    ├── CustomUserDetails
-    └── DatabaseUserDetailsService
+├── security/
+│   ├── JWTAuthenticationFilter
+│   ├── JWTService
+│   ├── JWTPrincipal
+│   ├── CustomUserDetails
+│   └── DatabaseUserDetailsService
+│
+└── service/
+    ├── LoginRateLimiter
+    ├── AuthEndpointRateLimiter
+    ├── AdminBootstrapService
+    └── JWTBootstrapService
+
+bootstrap/
+├── AdminBootstrapRunner
+└── JWTBootstrapRunner
+
+ratelimit/
+├── KeyedRateLimiter
+├── RateLimiterFactory
+├── RateLimitProperties
+├── ClientIpKey
+└── TooManyRequestsException
+
+user/
+└── PasswordChangeRateLimiter
 
 session/
 ├── UserSessionService
@@ -1304,6 +1324,11 @@ The authentication system is being developed incrementally.
 * [x] Revoke all sessions
 * [x] Session management API
 * [x] Public, detail-free `/actuator/health` for Compose and a proxy
+* [x] Rate limiting: login (per username and per IP), register, refresh, logout and password change
+* [x] HS256 only, with the issuer pinned on validation
+* [x] UTC application clock for all timestamps
+* [x] `X-Forwarded-For` trusted only from `TRUSTED_PROXIES`
+* [x] Nightly session and expense cleanups, deleted in batches
 
 ### Next
 
