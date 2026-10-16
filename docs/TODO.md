@@ -8,17 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## To do
-
-- [ ] **Docs lag the code in three places.** (1) `CLAUDE.md` "Running locally" lists only `ADMIN_PASSWORD`
-      and `JWT_SECRET`; since 6953c86 a run outside Compose also needs `SPRING_PROFILES_ACTIVE=dev`
-      (`run_project.sh`, `debug_project.sh`) or `SPRING_DATASOURCE_*`, else startup fails on the datasource.
-      (2) `src/test/.../TestcontainersConfiguration.java` Javadoc says it overrides "the localhost settings in
-      application.yml", which no longer has any. (3) README "Security components" tree omits
-      `LoginRateLimiter`, `AuthEndpointRateLimiter`, the bootstrap services and the `ratelimit/` package, and
-      the Roadmap "Completed" list has no rate limiting, HS256/issuer pinning or the UTC clock. Fix: update the
-      three texts. Test: none (docs); check by reading against `application*.yml` and the package list.
-
 ## Needs you
 
 - [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
@@ -124,3 +113,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Per-IP rate limits key an IPv6 client by its /64 (`ClientIpKey`); IPv4 unchanged, zone ids dropped, IPv4-mapped counts as IPv4 (03acb80)
 - [x] Native cleanup queries bind their cutoff as ISO text cast in SQL, so a JVM zone DST gap no longer shifts it by an hour (92221d0)
 - [x] Expense cleanup runs once at 2AM in batches of 1,000 until short, capped at 100 (87a5f67)
+- [x] Docs lagged the code: CLAUDE.md env notes, TestcontainersConfiguration Javadoc, README security tree and roadmap (0f6ec0a)
