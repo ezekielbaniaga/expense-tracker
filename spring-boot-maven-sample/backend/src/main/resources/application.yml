@@ -94,3 +94,9 @@ app:
       client-ip:
         capacity: 60
         period: 1m
+    # Wrong current passwords on POST /users/me/password, per user (from the access token);
+    # right ones don't count
+    password-change:
+      failures:
+        capacity: 5
+        period: 15m

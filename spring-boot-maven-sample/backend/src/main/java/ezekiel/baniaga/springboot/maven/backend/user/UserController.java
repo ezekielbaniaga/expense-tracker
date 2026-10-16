@@ -80,7 +80,9 @@ public class UserController {
     /**
      * 204 on success. Every session of the user is revoked, so all refresh
      * tokens (including the caller's) stop working; log in again with the
-     * new password. 400 INVALID_CURRENT_PASSWORD or INVALID_PASSWORD otherwise.
+     * new password. 400 INVALID_CURRENT_PASSWORD or INVALID_PASSWORD otherwise;
+     * 429 TOO_MANY_REQUESTS (with Retry-After) after too many wrong current
+     * passwords for this user. See PasswordChangeRateLimiter.
      */
     @PostMapping("/me/password")
     public ResponseEntity<Void> changePassword(

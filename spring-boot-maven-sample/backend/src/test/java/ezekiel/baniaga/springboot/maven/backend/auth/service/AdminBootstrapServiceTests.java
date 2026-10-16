@@ -7,6 +7,7 @@ import ch.qos.logback.core.read.ListAppender;
 import ezekiel.baniaga.springboot.maven.backend.auth.props.AdminBootstrapProperties;
 import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
+import ezekiel.baniaga.springboot.maven.backend.user.PasswordChangeRateLimiter;
 import ezekiel.baniaga.springboot.maven.backend.user.PasswordValidator;
 import ezekiel.baniaga.springboot.maven.backend.user.UsernameValidator;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
@@ -191,7 +192,7 @@ class AdminBootstrapServiceTests {
 
         UserService userService = new UserService(
             userRepository, passwordEncoder, new DefaultUUIDGenerator(), new PasswordValidator(), new UsernameValidator(),
-            mock(UserSessionService.class), Clock.systemUTC());
+            mock(UserSessionService.class), mock(PasswordChangeRateLimiter.class), Clock.systemUTC());
         new AdminBootstrapService(userRepository, userService, properties)
             .createInitialAdminUser();
     }

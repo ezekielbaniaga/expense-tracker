@@ -33,6 +33,8 @@ public class RateLimitProperties {
     /** Logouts per client IP: loose like refresh. */
     private PerClientIp logout = new PerClientIp(new Limit(60, Duration.ofMinutes(1)));
 
+    private PasswordChange passwordChange = new PasswordChange();
+
     @Getter @Setter
     public static class Login {
 
@@ -41,6 +43,13 @@ public class RateLimitProperties {
 
         /** Login attempts per client IP, so many accounts can't be sprayed from one address. */
         private Limit clientIp = new Limit(20, Duration.ofMinutes(1));
+    }
+
+    @Getter @Setter
+    public static class PasswordChange {
+
+        /** Wrong current passwords per user (by unique_id); right ones don't count. */
+        private Limit failures = new Limit(5, Duration.ofMinutes(15));
     }
 
     /** An endpoint limited only per client IP, where every request counts. */

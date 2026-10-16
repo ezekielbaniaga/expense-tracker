@@ -212,6 +212,20 @@ endpoint. Every request counts, failed or not, and the answer over the limit is 
 They are set in `app.rate-limit.register|refresh|logout.client-ip` and live in memory per instance like
 the login buckets.
 
+### Password change rate limit
+
+`PasswordChangeRateLimiter` limits wrong current passwords on `POST /users/me/password` to **5 per 15
+minutes per user**, so someone holding a stolen access token can't guess the password at BCrypt speed and
+then take the account over by setting a new one.
+
+* The key is the user's `unique_id` from the access token, not a username from the request body, so only a
+  caller already authenticated as that user can use up the bucket. Nobody can lock someone else out.
+* Only failures count: a right current password gives its token back, even when the new password is
+  then rejected.
+* The token is taken before the password is checked, so while the limit holds even the right current
+  password gets `429 TOO_MANY_REQUESTS` with `Retry-After`.
+* Set in `app.rate-limit.password-change.failures`; in memory per instance like the other buckets.
+
 ---
 
 ## 2. Access Token
@@ -1044,6 +1058,8 @@ Content-Type: application/json
 * `400 INVALID_CURRENT_PASSWORD` if the current password is wrong. This is deliberately 400, not 401,
   so a client does not mistake it for an expired login.
 * `400 INVALID_PASSWORD` if the new password breaks the rules above.
+* `429 TOO_MANY_REQUESTS` (with `Retry-After`) after 5 wrong current passwords in 15 minutes for this user
+  (see [Password change rate limit](#password-change-rate-limit)).
 * A password change revokes **every** session of the user, including the caller's own. All refresh
   tokens stop working and the client must log in again with the new password. The current access token
   keeps working until it expires (at most 15 minutes).

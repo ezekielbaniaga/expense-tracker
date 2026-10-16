@@ -42,6 +42,7 @@ public class UserService {
     private final PasswordValidator passwordValidator;
     private final UsernameValidator usernameValidator;
     private final UserSessionService userSessionService;
+    private final PasswordChangeRateLimiter passwordChangeRateLimiter;
     private final Clock clock;
 
     /**
@@ -60,7 +61,9 @@ public class UserService {
      * caller's own session goes too; the client logs in with the new password.
      *
      * A wrong current password is 400, not 401, so clients don't mistake it
-     * for an expired login.
+     * for an expired login. Wrong current passwords are limited per user
+     * (429 TOO_MANY_REQUESTS, see PasswordChangeRateLimiter); while the
+     * limit holds, even the right password gets 429.
      *
      * The user row is locked first, like login (createSession) does, so a
      * login that checked the old password either commits its session before
@@ -71,6 +74,9 @@ public class UserService {
      */
     @Transactional
     public void changePassword(UUID uniqueId, String currentPassword, String newPassword) {
+        // Before the lock and the BCrypt check, so a locked-out caller costs neither
+        passwordChangeRateLimiter.beforeAttempt(uniqueId);
+
         // Only the id is read before the lock: a User loaded here would stay in
         // the persistence context, and the locked query would hand back that
         // copy instead of the row as it is once the lock is ours
@@ -81,6 +87,7 @@ public class UserService {
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new BadRequestException("INVALID_CURRENT_PASSWORD", "Current password is incorrect.");
         }
+        passwordChangeRateLimiter.succeeded(uniqueId);
         passwordValidator.validate(user.getUsername(), newPassword);
 
         user.setPassword(passwordEncoder.encode(newPassword));
