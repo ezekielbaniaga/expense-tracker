@@ -9,7 +9,7 @@ Spring Boot 4 expense tracker built to learn backend practices, mainly hand-roll
   - Packages by feature: `auth/`, `session/`, `user/`, `expense/`, plus `common/`, `config/`, `bootstrap/`
   - Migrations: `src/main/resources/db/migration/V*.sql` — never edit an applied migration, add a new one
 - `spring-boot-maven-sample/docker_compose/` — Postgres + app via Docker Compose
-- `spring-boot-maven-sample/*.yml` — Bruno API request collection
+- API requests (Bruno, with scripts) live in a separate repo, not here
 
 ## Build and test
 
