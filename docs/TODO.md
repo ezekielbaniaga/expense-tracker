@@ -13,11 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Duplicate index on `users.unique_id`.** V5 created `index_users_unique_id` and V9 added the
-      `uq_users_unique_id` unique constraint, which has its own index. Every user insert and update maintains
-      both. Add a migration that drops `index_users_unique_id` (`DROP INDEX IF EXISTS`). Test: like
-      `UserSessionCleanupIndexTests`, assert via `pg_indexes` that only the unique index remains and lookups
-      by `unique_id` still work.
 - [ ] **No size limits on the auth request bodies.** `RefreshTokenRequest.refreshToken` and
       `LoginRequest.username/password` are only `@NotBlank`. A refresh token is always 43 characters, so add
       `@Size(max = 128)` to it, and `@Size(max = 100)` to the login username (the column size). Leave the login
@@ -118,3 +113,4 @@ All 176 tests passed at the time of the review.
 - [x] Quieter, safer application.yml defaults: open-in-view off, Flyway at INFO, dev datasource moved to application-dev.yml (6953c86)
 - [x] Public `GET /actuator/health` (only health exposed, `{"status":"UP"}` without details or groups, other actuator endpoints 401/404); image installs curl for a Dockerfile `HEALTHCHECK` and the Compose app healthcheck (584b964)
 - [x] README section 14 lists the real `GlobalExceptionHandler` mappings; section 8 diagram has the reuse and disabled-user branches (16f08e3)
+- [x] Dropped the duplicate `index_users_unique_id` (V15); `uq_users_unique_id` is the only index on `users.unique_id` (cd98254)
