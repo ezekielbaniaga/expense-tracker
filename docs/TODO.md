@@ -13,23 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **`changePassword` doesn't lock the user row, so a login can outlive a password change.** `createSession`
-      (login) locks the user and compares the password hash, but `UserService.changePassword` only reads the user
-      with `getByUniqueId`, then `save`s it and runs the bulk `revokeAllForUser`. Hibernate doesn't flush the
-      pending `users` UPDATE before that bulk update (different table), so the sessions are revoked *before* the
-      `users` row is written. A login that locked the user in that window passes the hash check (old hash still
-      in the table), commits a new session, and the password change then commits without revoking it. Fix: start
-      `changePassword` with `userRepository.findLockedById(...)` (the id comes from `getByUniqueId`) so it queues
-      behind or ahead of any login on the same row; also `saveAndFlush` before the revoke.
-      **Confirmed** with SQL logging: the statements run as `select users` (no `FOR UPDATE`), then
-      `update user_sessions`, then `update users`. The same order can also **deadlock**: a login at the session
-      cap holds the user row and waits to revoke a session row, while `changePassword` holds that session row
-      and waits for the user row. Postgres aborts one, which surfaces as a 500. Locking the user first fixes
-      both, since every other path already takes the user row before session rows. Test: hold
-      `SELECT ... FOR UPDATE` on the user in a second transaction, run `changePassword` on a thread, assert it
-      blocks until the lock is released, then assert logins started with the old password get 401 and no session
-      stays active. `LoginRaceTests` only runs the steps in sequence, so it can't see this. The admin disable
-      path already uses `saveAndFlush` before its revoke; confirm it in the same test class.
 - [ ] **Logout with an already-rotated refresh token does nothing.** `UserSessionService.revokeSession` only looks
       in `user_sessions.refresh_token_hash`. A client that refreshed, lost the response (or has a stale token in
       a second tab) and then logs out sends a used token: it gets 204 and the session stays active for up to 30
@@ -239,3 +222,4 @@ All 176 tests passed at the time of the review.
 - [x] Bulk session revokes (`DELETE /users/me/sessions`, `DELETE /users/{id}/sessions`, password change, disable/demote) skip expired sessions: not counted in `revoked`, `revoked_at` stays null (1d7d652)
 - [x] Decided 2026-10-16: no `users.password_changed_at`. Password change already revokes every session and the JWT filter never reads the database, so the column would add nothing
 - [x] Decided 2026-10-16: refresh token reuse stays strict, no grace window. A lost refresh response ends in a new login; raw refresh tokens are never stored
+- [x] `changePassword` locks the user row (`findLockedById`) and flushes before revoking, so a concurrent login can't keep a session past a password change; admin disable pinned by the same test (dc47581)
