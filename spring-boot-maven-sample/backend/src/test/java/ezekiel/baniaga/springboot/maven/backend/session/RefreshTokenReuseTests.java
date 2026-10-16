@@ -237,6 +237,18 @@ class RefreshTokenReuseTests {
     }
 
     @Test
+    void logoutWithAlreadyRotatedTokenRevokesItsSession() throws Exception {
+        // A client that lost the refresh response (or a stale second tab) still holds the old token
+        String old = userSessionService.createSession(customUserDetailsMapper.toCustomUserDetails(user), "test", "127.0.0.1").rawRefreshToken();
+        String current = userSessionService.rotateRefreshToken(old).newRawRefreshToken();
+
+        logout(old).andExpect(status().isNoContent());
+
+        assertThat(sessionFor(current).getRevokedAt()).isNotNull();
+        refresh(current).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void logoutWithUnknownTokenStillReturns204() throws Exception {
         // Same answer either way, so the endpoint can't be used to probe tokens
         logout("never-issued").andExpect(status().isNoContent());

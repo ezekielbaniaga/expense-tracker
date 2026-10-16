@@ -174,14 +174,24 @@ public class UserSessionService {
 
     /**
      * Logout: revokes the session the refresh token belongs to.
-     * Unknown or already-rotated tokens are ignored, so the caller can't
-     * tell valid tokens from invalid ones.
+     *
+     * An already-rotated token still identifies its session: a client that
+     * lost a refresh response, or a stale second tab, logs out with the old
+     * token and expects to be logged out. That is the owner ending the
+     * session, not a replay, so no reuse warning is logged.
+     *
+     * Unknown tokens are ignored, and the controller always answers 204,
+     * so the caller can't tell valid tokens from invalid ones.
      */
+    @Transactional
     public void revokeSession(String rawRefreshToken) {
         String hash = refreshTokenHasher.hash(rawRefreshToken);
 
         repository.findByRefreshTokenHash(hash)
-            .ifPresent(session -> repository.revoke(session.getId(), LocalDateTime.now()));
+            .map(UserSession::getId)
+            // Reading the id of a lazy proxy does not hit the database
+            .or(() -> usedRefreshTokenRepository.findById(hash).map(used -> used.getSession().getId()))
+            .ifPresent(sessionId -> repository.revoke(sessionId, LocalDateTime.now()));
     }
 
     /**
