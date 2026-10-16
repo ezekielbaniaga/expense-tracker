@@ -13,17 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Time handling depends on the JVM time zone.** All timestamps are `LocalDateTime.now()` in
-      `TIMESTAMP WITHOUT TIME ZONE` columns, and the API returns them without an offset (`SessionResponse`
-      `createdAt`/`lastUsedAt`/`expiresAt`), so a client can't tell which zone they are in. They are, compared in Java (`expiresAt.isBefore(now)`) and in tests/SQL with
-      `now()`. A host or container with a non-UTC zone, or a DST change, shifts session expiry and the
-      cleanup cutoff, and two instances in different zones would disagree. Add a `Clock` bean (UTC), inject it
-      into `UserSessionService`, `UserService` and the cleanup, and set
-      `spring.jpa.properties.hibernate.jdbc.time_zone: UTC`. Existing rows were written in server local time;
-      the Compose image is UTC, so note in the commit that a non-UTC deployment needs its rows converted
-      (no migration needed for this repo's setup). A fixed `Clock` also lets tests stop rewriting
-      `expires_at` through JDBC. Returning UTC with an offset in the API is a response format change; leave
-      that for a new API version or note it in the README.
 - [ ] **Session lifetime, cap and retention are hard-coded.** `now.plusDays(30)`, `MAX_ACTIVE_SESSIONS = 10`
       and `RETENTION_DAYS = 7` live in code, while the access token lifetime is `app.jwt.expiration`. Add
       `app.session.lifetime` (30d), `app.session.max-active` (10) and `app.session.retention` (7d) in a
@@ -165,3 +154,4 @@ All 176 tests passed at the time of the review.
 - [x] Rate limit `/auth/register` (10 per hour), `/auth/refresh` and `/auth/logout` (60 per minute each) per client IP via `AuthEndpointRateLimiter`; same 429 `TOO_MANY_REQUESTS` with `Retry-After`, limits in `app.rate-limit.register|refresh|logout.client-ip` (a7eb002)
 - [x] A token signed with our key but missing or blank `uid`, `role` or subject is rejected as invalid (401) instead of a `NullPointerException` and 500 (e786c91)
 - [x] Access tokens are always HS256 (explicit `Jwts.SIG.HS256`, header `alg` checked) and carry a required `iss: expense-tracker`; pre-change tokens without `iss` get 401 and refresh once (8c2af61)
+- [x] "Now" comes from a UTC `Clock` bean (`ClockConfig`) in `UserSessionService`, `UserService`, `ExpenseService` and the session cleanup; LocalDateTime is bound as-is (`hibernate.type.java_time_use_direct_jdbc`), `hibernate.jdbc.time_zone` left unset because it shifts LocalDateTime on a non-UTC JVM; README says API timestamps are UTC without offset; non-UTC deployments must convert existing rows (c2c7d60)
