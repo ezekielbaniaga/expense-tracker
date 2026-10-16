@@ -1,0 +1,10 @@
+# Almost every test logs in from 127.0.0.1 and the Spring context (with the limiter) is shared
+# between test classes, so the production login limits would trip. LoginRateLimitTests sets
+# the real limits itself.
+app:
+  rate-limit:
+    login:
+      username-failures:
+        capacity: 1000000
+      client-ip:
+        capacity: 1000000

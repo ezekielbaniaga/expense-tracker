@@ -1,5 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.common;
 
+import ezekiel.baniaga.springboot.maven.backend.ratelimit.TooManyRequestsException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
@@ -119,5 +121,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleMissingParameter(MissingServletRequestParameterException ex) {
         ErrorResponse resp = new ErrorResponse("VALIDATION_ERROR", ex.getParameterName() + ": is required");
         return ResponseEntity.badRequest().body(resp);
+    }
+
+    /**
+     * A rate limit was hit. Retry-After says how many seconds until the next try is allowed.
+     *
+     * https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429
+     */
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<?> handleTooManyRequests(TooManyRequestsException ex) {
+        ErrorResponse resp = new ErrorResponse("TOO_MANY_REQUESTS", ex.getMessage());
+        return ResponseEntity.status(429)
+            .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+            .body(resp);
     }
 }

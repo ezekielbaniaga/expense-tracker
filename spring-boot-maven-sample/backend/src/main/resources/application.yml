@@ -34,3 +34,15 @@ app:
   jwt:
     secret: ${JWT_SECRET:}
     expiration: 15m
+  # In memory, per instance: with several instances each counts on its own
+  rate-limit:
+    max-keys: 100000
+    login:
+      # Failed logins per username (any case, any IP); successful logins don't count
+      username-failures:
+        capacity: 5
+        period: 15m
+      # Login attempts per client IP, failed or not
+      client-ip:
+        capacity: 20
+        period: 1m

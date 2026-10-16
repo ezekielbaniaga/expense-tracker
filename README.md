@@ -163,6 +163,29 @@ The response looks conceptually like:
 }
 ```
 
+### Login rate limit
+
+`LoginRateLimiter` checks two token buckets (Bucket4j) before the password is checked:
+
+| Bucket | Default | What it stops |
+| --- | --- | --- |
+| per username (stripped, any case), only failures count | 5 per 15 minutes | guessing one account's password from many IPs |
+| per client IP, every attempt counts | 20 per minute | trying many accounts from one IP |
+
+Over either limit the answer is `429 TOO_MANY_REQUESTS` (the usual `ErrorResponse` body) with a
+`Retry-After` header in seconds. Tokens come back gradually (5 per 15 minutes is one every 3 minutes).
+
+* A successful login gives its username token back, so a user is never locked out by their own logins.
+* Unknown usernames are limited the same way, so a 429 doesn't reveal which accounts exist.
+* While a username is locked, even the right password gets 429 until a token comes back. An attacker can
+  lock someone out this way for as long as they keep guessing; the IP limit slows that down.
+* The client IP is `request.getRemoteAddr()`, which behind a trusted proxy is the forwarded client IP.
+* Limits are set in `app.rate-limit.*` (`application.yml`). Each map keeps at most
+  `app.rate-limit.max-keys` entries and drops a key once its bucket is full again, so random usernames
+  can't grow memory forever.
+* The buckets live in memory, **per instance**: fine for one instance, but with several each counts on its
+  own (and a restart resets them). A shared limit would need a shared store such as Redis.
+
 ---
 
 ## 2. Access Token
@@ -902,7 +925,7 @@ Content-Type: application/json
 * Login strips the username too, so ` alice ` logs in as `alice`. Login does not apply the character rule:
   it first tries the exact name, so accounts created before the rule (or the `ADMIN_USERNAME` admin) keep
   working.
-* There is no login throttling yet, so registration is not rate limited either.
+* Only `/auth/login` is rate limited so far (see [Login rate limit](#login-rate-limit)); registration is not.
 
 ## Roles
 

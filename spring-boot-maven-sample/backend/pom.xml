@@ -162,6 +162,20 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Rate limiting: in-memory token buckets, per instance -->
+		<!-- Source: https://mvnrepository.com/artifact/com.bucket4j/bucket4j_jdk17-core -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j_jdk17-core</artifactId>
+			<version>8.20.0</version>
+		</dependency>
+
+		<!-- Bounded, expiring maps for the rate limit buckets (version managed by Spring Boot) -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>

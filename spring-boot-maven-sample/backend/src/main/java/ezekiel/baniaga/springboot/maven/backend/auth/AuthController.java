@@ -6,6 +6,7 @@ import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RegisterRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
+import ezekiel.baniaga.springboot.maven.backend.auth.service.LoginRateLimiter;
 import ezekiel.baniaga.springboot.maven.backend.session.CreatedSession;
 import ezekiel.baniaga.springboot.maven.backend.session.RefreshTokenResult;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
@@ -35,6 +36,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
+    private final LoginRateLimiter loginRateLimiter;
 
     private final UserSessionService userSessionService;
 
@@ -56,6 +58,10 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
+    /**
+     * 429 TOO_MANY_REQUESTS (with Retry-After) after too many attempts from one client IP,
+     * or too many failed ones for one username. See LoginRateLimiter.
+     */
     @PostMapping("/login")
     public LoginResponse login(
         @Valid @RequestBody LoginRequest loginRequest,
@@ -65,9 +71,13 @@ public class AuthController {
             UsernamePasswordAuthenticationToken.unauthenticated(
                 loginRequest.username(), loginRequest.password());
 
+        // Before the password check, so a locked-out username costs no BCrypt work
+        loginRateLimiter.beforeAttempt(loginRequest.username(), httpServletRequest.getRemoteAddr());
+
         // Internally, Spring Security will use the provided UserDetailsService and PasswordEncoder
         // to authenticate the credentials
         Authentication authentication = authenticationManager.authenticate(uptoken);
+        loginRateLimiter.succeeded(loginRequest.username());
 
         // Construct and response a JWT token if authentication was a success
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
