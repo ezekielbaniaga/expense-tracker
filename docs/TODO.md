@@ -13,12 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **A signed token without `uid` or `role` gives 500, not 401.** `JWTService.toPrincipal` calls
-      `UUID.fromString(claims.get("uid", String.class))`; a missing claim is a `NullPointerException`, which
-      `parsePrincipal` doesn't catch (it catches `JwtException | IllegalArgumentException`). Only a token signed
-      with our key can hit it (an older or hand-made one), but the filter should never 500. Treat a missing or
-      blank `uid`/`role`/subject as invalid (throw `IllegalArgumentException` in `toPrincipal`). Test in
-      `JWTServiceTests` with a token built without `uid`, and one MockMvc call returning 401.
 - [ ] **Pin the JWT algorithm to HS256.** `signWith(signingKey())` lets jjwt choose the algorithm by key length: 32-47 bytes give HS256, 48-63 give
       HS384, 64+ give HS512, so a longer secret silently changes `alg` while the README and `JWTProperties`
       say HS256. Use
@@ -179,3 +173,4 @@ All 176 tests passed at the time of the review.
 - [x] Client IP comes from `X-Forwarded-For` via Tomcat's RemoteIpValve (`forward-headers-strategy: native`), trusted only from `TRUSTED_PROXIES` (loopback by default, empty in Compose); Compose README says to stop publishing 8080 behind a proxy (763ae30)
 - [x] Rate limit `/auth/login` with Bucket4j: 5 failures per 15 minutes per normalized username, 20 attempts per minute per client IP, 429 `TOO_MANY_REQUESTS` with `Retry-After`, bounded Caffeine maps, limits in `app.rate-limit.*`, reusable `KeyedRateLimiter`/`RateLimiterFactory` (296d5ad)
 - [x] Rate limit `/auth/register` (10 per hour), `/auth/refresh` and `/auth/logout` (60 per minute each) per client IP via `AuthEndpointRateLimiter`; same 429 `TOO_MANY_REQUESTS` with `Retry-After`, limits in `app.rate-limit.register|refresh|logout.client-ip` (a7eb002)
+- [x] A token signed with our key but missing or blank `uid`, `role` or subject is rejected as invalid (401) instead of a `NullPointerException` and 500 (e786c91)
