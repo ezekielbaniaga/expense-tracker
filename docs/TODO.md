@@ -13,11 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Session lifetime, cap and retention are hard-coded.** `now.plusDays(30)`, `MAX_ACTIVE_SESSIONS = 10`
-      and `RETENTION_DAYS = 7` live in code, while the access token lifetime is `app.jwt.expiration`. Add
-      `app.session.lifetime` (30d), `app.session.max-active` (10) and `app.session.retention` (7d) in a
-      `@ConfigurationProperties` class like `JWTProperties`, keep the defaults, and have the README say where
-      they are set. Test: override the three in a `@SpringBootTest(properties=...)` and see them applied.
 - [ ] **Cleanup runs 60 times a night and drains only 1,000 rows each.** `UserSessionCleanup` fires every minute
       from 03:00 to 03:59 and deletes at most 1,000 sessions per run, so it clears at most 60,000 a night and
       does 59 empty runs on most nights. Run once at 03:00 (`0 0 3 * * *`) and loop `cleanupEndedSessions`
@@ -155,3 +150,4 @@ All 176 tests passed at the time of the review.
 - [x] A token signed with our key but missing or blank `uid`, `role` or subject is rejected as invalid (401) instead of a `NullPointerException` and 500 (e786c91)
 - [x] Access tokens are always HS256 (explicit `Jwts.SIG.HS256`, header `alg` checked) and carry a required `iss: expense-tracker`; pre-change tokens without `iss` get 401 and refresh once (8c2af61)
 - [x] "Now" comes from a UTC `Clock` bean (`ClockConfig`) in `UserSessionService`, `UserService`, `ExpenseService` and the session cleanup; LocalDateTime is bound as-is (`hibernate.type.java_time_use_direct_jdbc`), `hibernate.jdbc.time_zone` left unset because it shifts LocalDateTime on a non-UTC JVM; README says API timestamps are UTC without offset; non-UTC deployments must convert existing rows (c2c7d60)
+- [x] Session lifetime, active-session cap and ended-session retention are `app.session.lifetime|max-active|retention` (30d, 10, 7d) in `SessionProperties` instead of constants; README says where they are set (6004673)
