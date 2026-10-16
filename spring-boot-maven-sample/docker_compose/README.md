@@ -15,6 +15,10 @@ Copy the template and fill in real values (`.env` is git-ignored):
 cp .env.example .env
 ```
 
+Replace every `change-me`. The app refuses to start while `ADMIN_PASSWORD` is still `change-me`
+(and `JWT_SECRET` must be at least 32 bytes). On the first start, when the admin is created,
+`ADMIN_PASSWORD` must be at least 12 characters; after that it is not read again for that admin.
+
 
 ## Health
 

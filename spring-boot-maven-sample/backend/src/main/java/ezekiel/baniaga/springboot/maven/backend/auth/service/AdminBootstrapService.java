@@ -1,6 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.auth.service;
 
 import ezekiel.baniaga.springboot.maven.backend.auth.props.AdminBootstrapProperties;
+import ezekiel.baniaga.springboot.maven.backend.user.PasswordValidator;
 import ezekiel.baniaga.springboot.maven.backend.user.UserRepository;
 import ezekiel.baniaga.springboot.maven.backend.user.UserService;
 import ezekiel.baniaga.springboot.maven.backend.user.entity.Role;
@@ -27,10 +28,20 @@ public class AdminBootstrapService {
     // Spring's ${ADMIN_USERNAME:admin} default only covers an unset variable, not an empty one
     private static final String DEFAULT_USERNAME = "admin";
 
+    // The value docker_compose/.env.example ships with; it is in the repo, so never a real password
+    private static final String PLACEHOLDER_PASSWORD = "change-me";
+
     public void createInitialAdminUser() {
         if (adminBootstrapProperties.getPassword().isBlank()) {
             throw new IllegalStateException(
                 "ADMIN_PASSWORD environment variable is required."
+            );
+        }
+
+        if (adminBootstrapProperties.getPassword().strip().equalsIgnoreCase(PLACEHOLDER_PASSWORD)) {
+            throw new IllegalStateException(
+                "ADMIN_PASSWORD is still the .env.example placeholder '" + PLACEHOLDER_PASSWORD
+                    + "'. Set a real password in .env."
             );
         }
 
@@ -50,6 +61,16 @@ public class AdminBootstrapService {
         if (existing.isPresent()) {
             warnIfNotEnabledAdmin(username, existing.get());
             return;
+        }
+
+        // Only checked when the admin is about to be created: ADMIN_PASSWORD is not applied to an
+        // existing admin, so setups from before this minimum keep starting
+        int length = adminBootstrapProperties.getPassword().length();
+        if (length < PasswordValidator.MIN_LENGTH) {
+            throw new IllegalStateException(
+                "ADMIN_PASSWORD must be at least " + PasswordValidator.MIN_LENGTH
+                    + " characters to create the admin (got " + length + ")."
+            );
         }
 
         userService.createUser(username, adminBootstrapProperties.getPassword(), Role.ADMIN);

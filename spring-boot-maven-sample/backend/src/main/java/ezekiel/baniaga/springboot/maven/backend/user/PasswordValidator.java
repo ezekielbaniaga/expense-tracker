@@ -8,12 +8,12 @@ import java.nio.charset.StandardCharsets;
 /**
  * Password rules for passwords users choose (registration, and password
  * change later). The ADMIN_PASSWORD bootstrap keeps its own looser check
- * so existing setups still start.
+ * (MIN_LENGTH only when it creates the admin) so existing setups still start.
  */
 @Component
 public class PasswordValidator {
 
-    static final int MIN_LENGTH = 12;
+    public static final int MIN_LENGTH = 12;
 
     // BCrypt only hashes the first 72 bytes; BCryptPasswordEncoder rejects longer input
     static final int MAX_BYTES = 72;

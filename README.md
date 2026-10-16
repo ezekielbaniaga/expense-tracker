@@ -1036,7 +1036,9 @@ access token as the `role` claim.
 The admin controller methods also carry `@PreAuthorize("hasRole('ADMIN')")`, so a later change to the URL
 rules cannot open them up. A missing or invalid access token gives `401 AUTHENTICATION_REQUIRED`.
 The first admin is created at startup from `ADMIN_USERNAME` / `ADMIN_PASSWORD`; there is no endpoint that
-creates admins, but an existing admin can promote a user with `PATCH /users/{id}`.
+creates admins, but an existing admin can promote a user with `PATCH /users/{id}`. Startup fails while
+`ADMIN_PASSWORD` is the `.env.example` placeholder `change-me`, and, when the admin is about to be created,
+if it is shorter than 12 characters (an existing admin is left alone, so older setups still start).
 
 ## Self-service endpoints (any authenticated user)
 
