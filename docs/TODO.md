@@ -10,17 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## To do
 
-- [ ] **`@PastOrPresent` on the expense date uses the JVM zone from startup, not the UTC `Clock`.**
-      `expense/dto/CreateExpenseRequest.java`, `expense/dto/UpdateExpenseRequest.java`. Hibernate Validator's
-      default `ClockProvider` captures `Clock.systemDefaultZone()` once, so the check ignores `ClockConfig` (and
-      a test clock) and changes with the host zone. In the UTC container a user in Manila (UTC+8) cannot record
-      an expense dated today before 08:00 local time. Verified with a throwaway test: the date that is today in
-      `Pacific/Kiritimati` (2026-10-17) got 400 while UTC was still 2026-10-16, whatever the JVM default zone was
-      set to at request time. Fix: a `ValidationConfigurationCustomizer` bean that sets a `ClockProvider` built
-      from the `Clock` bean, offset to UTC+14 (`clock.withZone(ZoneOffset.ofHours(14))`), so "present" means
-      today anywhere on Earth; document it next to the README UTC note. Test: with a fixed clock at
-      2031-03-30T12:00Z, date 2031-03-31 is accepted (today in UTC+14) and 2031-04-01 is 400, independent of
-      the JVM zone.
 - [ ] **Per-IP rate limits are keyed by the full IPv6 address.** `ratelimit/KeyedRateLimiter.java`,
       `auth/service/LoginRateLimiter.java`, `auth/service/AuthEndpointRateLimiter.java`. A single IPv6 host
       usually controls a whole /64 (2^64 addresses), so rotating source addresses gets a fresh bucket each time
@@ -158,3 +147,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] `POST /users/me/password` limits wrong current passwords to 5 per 15 minutes per user (keyed by the token's unique_id, 429 with Retry-After) and caps `currentPassword` at 1,000 (2e226ed)
 - [x] Startup rejects the `.env.example` placeholder `ADMIN_PASSWORD=change-me`, and a password under 12 characters when it creates the admin (bdc6aef)
 - [x] Startup rejects a negative `app.session.retention` and a non-positive `app.session.lifetime` or `app.jwt.expiration`, naming the property (24cd708)
+- [x] Expense date `@PastOrPresent` now validates against the UTC `Clock` offset to UTC+14 (e2c4941)
