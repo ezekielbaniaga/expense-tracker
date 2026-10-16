@@ -13,11 +13,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 Session-management review of 2026-10-16 (afternoon). Ordered by importance; each is one commit with a test.
 All 176 tests passed at the time of the review.
 
-- [ ] **Extend the rate limit to `/auth/register`, `/auth/refresh` and `/auth/logout` (decided 2026-10-16).**
-      Per client IP, reusing the limiter from the login item; register stricter (mass account creation),
-      refresh and logout looser (a normal client refreshes every 15 minutes per tab). Same 429 body and
-      `Retry-After`. Tests: one per endpoint over its limit. Update the README's "no login throttling yet"
-      line in section 17 and the roles table.
 - [ ] **A signed token without `uid` or `role` gives 500, not 401.** `JWTService.toPrincipal` calls
       `UUID.fromString(claims.get("uid", String.class))`; a missing claim is a `NullPointerException`, which
       `parsePrincipal` doesn't catch (it catches `JwtException | IllegalArgumentException`). Only a token signed
@@ -183,3 +178,4 @@ All 176 tests passed at the time of the review.
 - [x] Login truncates an `ip_address` over 45 characters (e.g. IPv6 with zone id) instead of failing with 500 (030adfe)
 - [x] Client IP comes from `X-Forwarded-For` via Tomcat's RemoteIpValve (`forward-headers-strategy: native`), trusted only from `TRUSTED_PROXIES` (loopback by default, empty in Compose); Compose README says to stop publishing 8080 behind a proxy (763ae30)
 - [x] Rate limit `/auth/login` with Bucket4j: 5 failures per 15 minutes per normalized username, 20 attempts per minute per client IP, 429 `TOO_MANY_REQUESTS` with `Retry-After`, bounded Caffeine maps, limits in `app.rate-limit.*`, reusable `KeyedRateLimiter`/`RateLimiterFactory` (296d5ad)
+- [x] Rate limit `/auth/register` (10 per hour), `/auth/refresh` and `/auth/logout` (60 per minute each) per client IP via `AuthEndpointRateLimiter`; same 429 `TOO_MANY_REQUESTS` with `Retry-After`, limits in `app.rate-limit.register|refresh|logout.client-ip` (a7eb002)
