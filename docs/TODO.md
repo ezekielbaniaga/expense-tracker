@@ -14,13 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Scaffold `frontend/`.** Vite 7 + React + TypeScript, with `react-router-dom`, `@tanstack/react-query`,
-      `react-hook-form`, `zod`, and dev deps `vitest`, `jsdom`, `@testing-library/react`, `msw`. Exact versions.
-      Add `frontend/.gitignore` (`node_modules/`, `dist/`), `frontend/.nvmrc` (`24`), scripts `dev`, `build`,
-      `test`, `lint`, and a Vite `server.proxy` for `/api`, `/auth`, `/users` to `http://localhost:8080`.
-      Test: a smoke test rendering `<App/>`; `npm run build` passes. Careful: stop and report if
-      `node --version` is below 24. Leave the proxy's `Origin` header untouched, because cookie refresh checks
-      it (`http://localhost:5173`). Proposal: Frontend stack options.
 - [ ] **API error and expense mapping.** `frontend/src/api/errors.ts` parses `ErrorResponse` into `ApiError {status,
       code, messages, retryAfter?}`; `fieldErrors()` splits `field: message` on the first colon (others are
       form-level); a non-JSON body (proxy 502) still yields an `ApiError`. `frontend/src/api/expense.ts` has
@@ -227,3 +220,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Expense list version 1.2 returns category, date and version, newest date first (807fd73)
 - [x] Login with `X-Refresh-Token-Transport: cookie` sets the refresh token as an HttpOnly, Secure, SameSite=Strict cookie on /auth and leaves it out of the body (c9378fb)
 - [x] Refresh and logout read the refresh cookie when the body has no token, require an allowed `Origin` (else 403 `ORIGIN_NOT_ALLOWED`), rotate or clear the cookie (d25e097)
+- [x] Scaffolded `frontend/` (Vite 7.3.7, React 19, TypeScript, router, query, react-hook-form, zod, Vitest/msw, exact versions, `/api` `/auth` `/users` dev proxy without changeOrigin); `npm ci`, test, build and lint pass (c7f0275)
