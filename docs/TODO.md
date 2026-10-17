@@ -3,7 +3,7 @@
 Last investigation: 2026-10-16 20:21 — 8 new findings
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
-`spring-boot-maven-sample/backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
+`backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
 
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.

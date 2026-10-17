@@ -20,7 +20,7 @@ services:
       - app-network
 
   app:
-    image: spring-boot-sample:1.0
+    image: expense-tracker:1.0
     container_name: spring-app
     restart: unless-stopped
     ports:

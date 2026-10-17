@@ -49,7 +49,7 @@ The goal is a small, secure single-page app where a person logs in, manages thei
 - A hand-written `fetch` wrapper (not Axios). The wrapper is where refresh rotation lives, and it is small enough to own, in the spirit of the hand-rolled auth.
 - Plain CSS modules or Tailwind; no component library at first.
 
-Put the app in `spring-boot-maven-sample/frontend/`, next to `backend/` and `docker_compose/`.
+Put the app in `frontend/`, next to `backend/` and `docker_compose/`.
 
 ## Pages and screens
 
@@ -231,7 +231,7 @@ Run frontend unit and component tests in CI on every push; run Playwright agains
 
 ```yaml
   web:
-    image: spring-boot-sample-web:1.0
+    image: expense-tracker-web:1.0
     container_name: spring-web
     restart: unless-stopped
     ports:
@@ -242,7 +242,7 @@ Run frontend unit and component tests in CI on every push; run Playwright agains
       - app-network
 ```
 
-- Add a `build_frontend_image.sh` beside `backend/build_docker_image.sh`, tagging `spring-boot-sample-web:1.0`, and call it from `run_compose.sh`.
+- Add a `build_frontend_image.sh` beside `backend/build_docker_image.sh`, tagging `expense-tracker-web:1.0`, and call it from `run_compose.sh`.
 - Keep the app's `8080` port published for Bruno and debugging, or drop it once the UI is the main client; the `web` service reaches the app over the internal network either way.
 - TLS: terminate at a real reverse proxy (Caddy, Traefik, or nginx with certificates) when this leaves a laptop. The `Secure` cookie and HSTS options depend on it.
 - Update `docker_compose/README.md` and the repo `README.md` with the new service and ports, and add `frontend/` build output to `.gitignore`.

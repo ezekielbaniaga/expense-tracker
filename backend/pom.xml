@@ -6,13 +6,13 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>4.0.3</version>
-		<relativePath/> <!-- lookup parent expenseToListItemResponse repository -->
+		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>ezekiel.baniaga.springboot.maven</groupId>
-	<artifactId>backend</artifactId>
+	<artifactId>expense-tracker</artifactId>
 	<version>1.0</version>
-	<name>demo</name>
-	<description>Demo project for Spring Boot</description>
+	<name>expense-tracker</name>
+	<description>Expense tracker with hand-rolled JWT auth</description>
 	<url/>
 	<licenses>
 		<license/>
