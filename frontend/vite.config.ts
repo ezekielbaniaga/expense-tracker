@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 
 // No changeOrigin: the Origin header must stay http://localhost:5173,
 // because the backend checks it on cookie refresh/logout.
@@ -19,5 +20,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // e2e/ holds the Playwright specs, which run against the Compose stack (run_e2e.sh)
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
 });

@@ -1,0 +1,77 @@
+# Throwaway stack for the Playwright suite (frontend/run_e2e.sh starts and removes it).
+# Own project, containers, volume, subnet and host port, so it runs next to docker-compose.yml.
+# Every secret here is a public test value; never reuse one outside this stack.
+name: expense-tracker-e2e
+services:
+  postgres:
+    image: postgres:18.3-bookworm
+    container_name: e2e-postgres-db
+    environment:
+      POSTGRES_USER: e2euser
+      POSTGRES_PASSWORD: e2e-test-db-password
+      POSTGRES_DB: e2edb
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - e2e-network
+
+  app:
+    image: expense-tracker:1.0
+    container_name: e2e-spring-app
+    # No published port: the browser and the specs go through the web service, as in production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/e2edb
+      SPRING_DATASOURCE_USERNAME: e2euser
+      SPRING_DATASOURCE_PASSWORD: e2e-test-db-password
+      # Normal profile: the test profile skips the admin bootstrap. The specs log in with these
+      ADMIN_USERNAME: e2e-admin
+      ADMIN_PASSWORD: e2e-admin-test-password
+      JWT_SECRET: e2e-only-jwt-secret-not-for-production-use
+      TRUSTED_PROXIES: 172[.]29[.]0[.]10
+      # The refresh cookie's Origin check must accept the e2e web port
+      APP_AUTH_REFRESHCOOKIE_ALLOWEDORIGINS: http://localhost:18081
+      # Short, so the specs see scheduled refreshes. The UI refreshes 60 s before expiry, so
+      # anything under 60 s would make it refresh in a loop; 75 s refreshes every 15 s
+      APP_JWT_EXPIRATION: 75s
+      # Every spec request comes from one client IP (the Docker gateway)
+      APP_RATELIMIT_LOGIN_CLIENTIP_CAPACITY: 1000
+      APP_RATELIMIT_REGISTER_CLIENTIP_CAPACITY: 1000
+      APP_RATELIMIT_REFRESH_CLIENTIP_CAPACITY: 1000
+      APP_RATELIMIT_LOGOUT_CLIENTIP_CAPACITY: 1000
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    networks:
+      - e2e-network
+
+  web:
+    image: expense-tracker-web:1.0
+    container_name: e2e-spring-web
+    ports:
+      - "127.0.0.1:18081:8080"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      e2e-network:
+        ipv4_address: 172.29.0.10
+
+volumes:
+  pgdata:
+
+networks:
+  e2e-network:
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24
