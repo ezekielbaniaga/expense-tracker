@@ -25,6 +25,7 @@ export function Layout() {
           <NavLink to="/" end>
             Expenses
           </NavLink>{" "}
+          <NavLink to="/expenses/new">New expense</NavLink>{" "}
           <NavLink to="/archived">Archived</NavLink>{" "}
           <button
             type="button"

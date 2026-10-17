@@ -6,6 +6,7 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { LoginPage } from "./auth/LoginPage";
 import { RequireAuth } from "./auth/RequireAuth";
 import { ArchivedPage } from "./expenses/ArchivedPage";
+import { CreateExpensePage } from "./expenses/CreateExpensePage";
 import { ExpenseListPage } from "./expenses/ExpenseListPage";
 import { ExpenseDetailPage } from "./expenses/ExpenseDetailPage";
 import { queryClient as appQueryClient } from "./queryClient";
@@ -42,6 +43,7 @@ export function AppRoutes() {
       >
         <Route path="/" element={<ExpenseListPage />} />
         <Route path="/archived" element={<ArchivedPage />} />
+        <Route path="/expenses/new" element={<CreateExpensePage />} />
         <Route path="/expenses/:id" element={<ExpenseDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

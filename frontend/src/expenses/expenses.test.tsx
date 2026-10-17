@@ -221,3 +221,130 @@ describe("expense detail", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 });
+
+describe("create expense", () => {
+  const categories = () =>
+    http.get(`${BASE}/api/expense/categories`, () =>
+      HttpResponse.json({ supported_categories: ["FOOD", "TRANSPORT"] }),
+    );
+
+  function fill(values: { description?: string; amount?: string; category?: string; date?: string }) {
+    const set = (label: string, value?: string) => {
+      if (value !== undefined) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    };
+    set("Description", values.description);
+    set("Amount", values.amount);
+    set("Category", values.category);
+    set("Date", values.date);
+  }
+
+  it("shows client messages and sends nothing", async () => {
+    let posts = 0;
+    server.use(
+      categories(),
+      http.post(`${BASE}/api/expense`, () => {
+        posts++;
+        return HttpResponse.json({}, { status: 201 });
+      }),
+    );
+    renderAt("/expenses/new");
+    await screen.findByLabelText("Category");
+    fill({ description: "   ", amount: "0", date: "2999-01-01" });
+    fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    expect(await screen.findByText("Description is required")).toBeTruthy();
+    expect(screen.getByText("Amount must be greater than 0")).toBeTruthy();
+    expect(screen.getByText("Choose a category")).toBeTruthy();
+    expect(screen.getByText("Date must be today or earlier")).toBeTruthy();
+
+    fill({ description: "x".repeat(251), amount: "123456789", category: "FOOD", date: "2026-10-17" });
+    fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    expect(await screen.findByText("Description must be at most 250 characters")).toBeTruthy();
+    expect(screen.getByText(/at most 8 digits and 2 decimals/)).toBeTruthy();
+
+    fill({ amount: "1.234" });
+    fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    expect(await screen.findByText(/at most 8 digits and 2 decimals/)).toBeTruthy();
+    expect(posts).toBe(0);
+  });
+
+  it("posts the expense, invalidates the list and opens the new expense", async () => {
+    let body: unknown;
+    server.use(
+      categories(),
+      http.post(`${BASE}/api/expense`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(
+          {
+            id: "n1",
+            version: 0,
+            description: "Lunch",
+            amount: 12.5,
+            category: "FOOD",
+            date: "2026-10-17",
+            createdAt: "2026-10-18T09:00:00",
+            lastModified: "2026-10-18T09:00:00",
+          },
+          { status: 201 },
+        );
+      }),
+      http.get(`${BASE}/api/expense/n1`, () =>
+        HttpResponse.json({
+          id: "n1",
+          version: 0,
+          description: "Lunch",
+          amount: 12.5,
+          category: "FOOD",
+          date: "2026-10-17",
+          createdAt: "2026-10-18T09:00:00",
+          lastModified: "2026-10-18T09:00:00",
+        }),
+      ),
+    );
+    queryClient.setQueryData(["expenses"], { expenses: [], count: 0, totalAmount: 0 });
+    renderAt("/expenses/new");
+    await screen.findByLabelText("Category");
+    fill({ description: "Lunch", amount: "12.50", category: "FOOD", date: "2026-10-17" });
+    fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    expect(await screen.findByRole("heading", { name: "Lunch" })).toBeTruthy();
+    expect(body).toEqual({ description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17" });
+    expect(queryClient.getQueryState(["expenses"])?.isInvalidated).toBe(true);
+  });
+
+  it("attaches a server VALIDATION_ERROR to the fields", async () => {
+    server.use(
+      categories(),
+      http.post(`${BASE}/api/expense`, () =>
+        HttpResponse.json(
+          { code: "VALIDATION_ERROR", messages: ["description: size must be between 0 and 250", "other: odd"] },
+          { status: 400 },
+        ),
+      ),
+    );
+    renderAt("/expenses/new");
+    await screen.findByLabelText("Category");
+    fill({ description: "Lunch", amount: "5", category: "FOOD", date: "2026-10-17" });
+    fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    expect(await screen.findByText("size must be between 0 and 250")).toBeTruthy();
+    expect(screen.getByLabelText("Description").getAttribute("aria-invalid")).toBe("true");
+    expect((await screen.findByRole("alert")).textContent).toBe("other: odd");
+  });
+
+  it("shows INVALID_CATEGORY at form level and keeps the input", async () => {
+    server.use(
+      categories(),
+      http.post(`${BASE}/api/expense`, () =>
+        HttpResponse.json(
+          { code: "INVALID_CATEGORY", messages: ["Invalid category: FOOD"] },
+          { status: 400 },
+        ),
+      ),
+    );
+    renderAt("/expenses/new");
+    await screen.findByLabelText("Category");
+    fill({ description: "Lunch", amount: "5", category: "FOOD", date: "2026-10-17" });
+    fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("Invalid category: FOOD");
+    expect((screen.getByLabelText("Description") as HTMLInputElement).value).toBe("Lunch");
+    expect((screen.getByRole("button", { name: "Add expense" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
