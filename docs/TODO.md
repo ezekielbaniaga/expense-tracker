@@ -10,18 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Findings
 
-- [ ] **The web UI keeps the role from login after a refresh.** `frontend/src/auth/AuthProvider.tsx`
-      calls `stateFor(client.identity())` only after the boot refresh and after `login`; the scheduled and
-      401-driven refreshes in `frontend/src/api/client.ts` replace the access token but never tell React.
-      The server applies a promotion at the next `/auth/refresh` (README section 17), yet a promoted user gets
-      no Admin link and `RequireAdmin` sends them away from `/admin/users` until they reload the page.
-      Fix: let the client notify listeners when `applySession` stores a new token (e.g. `onSession(listener)`
-      next to `onSignedOut`) and have `AuthProvider` set `stateFor(client.identity())` from it. Test: in
-      `auth.test.tsx`, boot with a USER token, make `/auth/refresh` return an ADMIN token, call
-      `client.refresh()` inside `act`, and the "ADMIN" role text and Admin link appear (verified failing on
-      2026-10-18 with a scratch Vitest: `client.identity().role` was ADMIN, the page still showed none).
-      Careful: do not clear the Query cache on a refresh, only on sign-in and sign-out; same username, so the
-      cached data still belongs to this user.
 - [ ] **Docs contradict the code on `TRUSTED_PROXIES` and admin sessions.** `docker_compose/README.md`
       ("Behind a reverse proxy", line 36) says an empty `TRUSTED_PROXIES` is "the default here", but
       `docker-compose.yml` defaults it to `172[.]28[.]0[.]10` (the `web` service) and `.env.example` sets the
@@ -170,3 +158,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Admin users screen at `/admin/users` (Admin link and routes only for an `ADMIN` token): username/status filters and server paging in the URL, `INVALID_PAGE` resets page and size; `/admin/users/:id` PATCHes changed `enabled`/`role` with `version`, inline confirm before disable or demote; `CANNOT_MODIFY_SELF`, `LAST_ADMIN`, `EMPTY_PATCH` at the form, `CONCURRENT_MODIFICATION` keeps the input and offers Reload, 403 says "You no longer have admin access" (2df9ae4)
 - [x] Accessibility and responsive pass: error text tied to inputs (`aria-describedby`/`aria-invalid`), shared `PageHeading` takes focus after navigation (not on first load or refetch), failed submit focuses the first invalid field or the form alert, inline confirms focus Cancel and return focus, skip link, `src/styles.css` with focus rings, wrapping nav and scrollable tables for ~360px; `vitest-axe` on every screen with `color-contrast` off (047f573)
 - [x] Documented the web UI in README.md, CLAUDE.md and docker_compose/README.md, marked its proposal implemented (514b57b)
+- [x] The web UI shows a role change from any refresh: the client emits `onSession` when it stores a new token, `AuthProvider` updates only when role or user changed, keeps the Query cache for the same user and clears it if a refresh names another user (af997ca)
