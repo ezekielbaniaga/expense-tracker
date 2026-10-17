@@ -1,6 +1,12 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { createApiClient, type ApiClient, type Scheduler } from "./client";
+import {
+  createApiClient,
+  type ApiClient,
+  type AuthChannel,
+  type LockManagerLike,
+  type Scheduler,
+} from "./client";
 import { ApiError } from "./errors";
 
 const BASE = "http://localhost";
@@ -64,10 +70,19 @@ let timers: ReturnType<typeof fakeScheduler>;
 
 beforeEach(() => {
   timers = fakeScheduler();
-  client = createApiClient({ baseUrl: BASE, scheduler: timers.scheduler });
+  // No real lock or channel: Node's global BroadcastChannel would link every client in the file
+  client = createApiClient({
+    baseUrl: BASE,
+    scheduler: timers.scheduler,
+    locks: null,
+    createChannel: null,
+  });
 });
 
-afterEach(() => client.clearSession());
+afterEach(() => {
+  client.clearSession();
+  client.dispose();
+});
 
 describe("login", () => {
   it("asks for the cookie transport and keeps the access token for later calls", async () => {
@@ -281,5 +296,186 @@ describe("early refresh", () => {
     client.clearSession();
     expect(timers.active()).toHaveLength(0);
     expect(client.isSignedIn()).toBe(false);
+  });
+});
+
+/** An exclusive lock per name, granted in request order, like navigator.locks. */
+function fakeLocks() {
+  const tails = new Map<string, Promise<unknown>>();
+  const requested: string[] = [];
+  const locks: LockManagerLike = {
+    request(name, callback) {
+      requested.push(name);
+      const previous = tails.get(name) ?? Promise.resolve();
+      const run = previous.then(callback, callback);
+      tails.set(
+        name,
+        run.catch(() => {}),
+      );
+      return run;
+    },
+  };
+  return { locks, requested };
+}
+
+/** Channels with one name that deliver to every other member asynchronously, like BroadcastChannel. */
+function fakeChannelHub() {
+  const members = new Set<FakeChannel>();
+  const posted: unknown[] = [];
+  class FakeChannel implements AuthChannel {
+    private listeners = new Set<(event: MessageEvent) => void>();
+    constructor() {
+      members.add(this);
+    }
+    postMessage(data: unknown) {
+      posted.push(data);
+      for (const other of members) {
+        if (other === this) continue;
+        setTimeout(() => {
+          for (const l of other.listeners) l(new MessageEvent("message", { data }));
+        }, 0);
+      }
+    }
+    addEventListener(_type: "message", listener: (event: MessageEvent) => void) {
+      this.listeners.add(listener);
+    }
+    close() {
+      members.delete(this);
+    }
+  }
+  return { createChannel: () => new FakeChannel(), posted, members };
+}
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+describe("across tabs", () => {
+  let tabA: ApiClient;
+  let tabB: ApiClient;
+  let locks: ReturnType<typeof fakeLocks>;
+  let hub: ReturnType<typeof fakeChannelHub>;
+
+  beforeEach(() => {
+    locks = fakeLocks();
+    hub = fakeChannelHub();
+    const opts = {
+      baseUrl: BASE,
+      scheduler: fakeScheduler().scheduler,
+      locks: locks.locks,
+      createChannel: hub.createChannel,
+    };
+    tabA = createApiClient(opts);
+    tabB = createApiClient(opts);
+  });
+
+  afterEach(() => {
+    for (const tab of [tabA, tabB]) {
+      tab.clearSession();
+      tab.dispose();
+    }
+  });
+
+  it("overlapping refreshes in two tabs run one after the other, each with the latest cookie", async () => {
+    // The server rotates the cookie on each refresh and rejects a reused one
+    let cookie = 0;
+    let active = 0;
+    let maxActive = 0;
+    const firstHeld = deferred();
+    const sentCookies: number[] = [];
+    server.use(
+      http.post(`${BASE}/auth/refresh`, async () => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        // The browser sends whatever cookie the jar holds when the request starts
+        const sent = cookie;
+        sentCookies.push(sent);
+        if (sentCookies.length === 1) await firstHeld.promise;
+        active--;
+        if (sent !== cookie) return error(401, "AUTHENTICATION_REQUIRED");
+        cookie++;
+        return HttpResponse.json(session(`fresh-${cookie}`));
+      }),
+    );
+
+    const a = tabA.refresh();
+    const b = tabB.refresh();
+    await new Promise((r) => setTimeout(r, 20));
+    // Tab B waits on the lock while tab A's request is out
+    expect(sentCookies).toEqual([0]);
+    firstHeld.resolve();
+    await Promise.all([a, b]);
+
+    expect(maxActive).toBe(1);
+    expect(sentCookies).toEqual([0, 1]);
+    expect(tabA.isSignedIn()).toBe(true);
+    expect(tabB.isSignedIn()).toBe(true);
+  });
+
+  it("one tab's parallel 401s still take the lock once", async () => {
+    const refreshes = { n: 0 };
+    server.use(refreshHandler(refreshes), protectedHandler({ n: 0 }));
+    await Promise.all(Array.from({ length: 5 }, () => tabA.request("/api/expenses")));
+    expect(refreshes.n).toBe(1);
+    expect(locks.requested).toEqual(["refresh"]);
+  });
+
+  it("signed-out reaches the other tab, which clears and does not echo it", async () => {
+    server.use(
+      http.post(`${BASE}/auth/login`, () => HttpResponse.json(session("fresh-login"))),
+      refreshHandler({ n: 0 }, () => error(401, "AUTHENTICATION_REQUIRED")),
+    );
+    await tabA.login("alice", "secret-password");
+    await tabB.login("alice", "secret-password");
+    const signedOutA = vi.fn();
+    const signedOutB = vi.fn();
+    tabA.onSignedOut(signedOutA);
+    tabB.onSignedOut(signedOutB);
+
+    await expect(tabA.refresh()).rejects.toMatchObject({ status: 401 });
+    expect(signedOutA).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(signedOutB).toHaveBeenCalledTimes(1));
+
+    expect(tabB.isSignedIn()).toBe(false);
+    expect(hub.posted).toEqual([{ type: "signed-out" }]);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(signedOutA).toHaveBeenCalledTimes(1);
+  });
+
+  it("signOut ends the session here and in the other tab", async () => {
+    const signedOutB = vi.fn();
+    tabB.onSignedOut(signedOutB);
+    tabA.signOut();
+    await vi.waitFor(() => expect(signedOutB).toHaveBeenCalledTimes(1));
+    expect(hub.posted).toEqual([{ type: "signed-out" }]);
+  });
+
+  it("ignores other messages on the channel and stops listening after dispose", async () => {
+    const signedOutB = vi.fn();
+    tabB.onSignedOut(signedOutB);
+    const stranger = hub.createChannel();
+    stranger.postMessage({ type: "hello" });
+    stranger.postMessage("signed-out");
+    tabB.dispose();
+    tabA.signOut();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(signedOutB).not.toHaveBeenCalled();
+    stranger.close();
+  });
+
+  it("works without locks or BroadcastChannel", async () => {
+    const refreshes = { n: 0 };
+    server.use(refreshHandler(refreshes));
+    const bare = createApiClient({
+      baseUrl: BASE,
+      locks: null,
+      createChannel: null,
+    });
+    await bare.refresh();
+    bare.signOut();
+    bare.dispose();
+    expect(refreshes.n).toBe(1);
   });
 });

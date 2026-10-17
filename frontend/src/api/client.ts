@@ -8,7 +8,12 @@ import { parseApiError } from "./errors";
  * Refresh rotates the cookie and the backend treats a second use of the old
  * one as reuse, revoking the session. So all refreshes in this client go
  * through one shared promise: ten calls that get a 401 at once send one
- * `POST /auth/refresh`. Cross-tab locking wraps `refresh` in a later step.
+ * `POST /auth/refresh`. Other tabs share the cookie, so inside that promise the
+ * refresh holds the Web Lock "refresh": tabs refresh one at a time, and a tab
+ * that waited sends the cookie the previous tab just received.
+ *
+ * Signing out is announced as `signed-out` on the BroadcastChannel "auth", so
+ * every other tab clears its token and leaves too.
  */
 
 /** Login and refresh response (`LoginResponse`); in cookie mode it has no refreshToken. */
@@ -28,10 +33,26 @@ export interface SessionInfo {
 /** Runs `fn` after `ms` and returns a function that cancels it. */
 export type Scheduler = (fn: () => void, ms: number) => () => void;
 
+/** The part of `navigator.locks` the client uses. */
+export interface LockManagerLike {
+  request<T>(name: string, callback: () => Promise<T>): Promise<T>;
+}
+
+/** The part of `BroadcastChannel` the client uses. */
+export interface AuthChannel {
+  postMessage(data: unknown): void;
+  addEventListener(type: "message", listener: (event: MessageEvent) => void): void;
+  close(): void;
+}
+
 export interface ApiClientOptions {
   /** Prefix for every path. Empty in the browser, where the proxy makes the API same-origin. */
   baseUrl?: string;
   scheduler?: Scheduler;
+  /** Cross-tab refresh lock; defaults to `navigator.locks`. Null or absent: in-tab single flight only. */
+  locks?: LockManagerLike | null;
+  /** Opens the cross-tab channel; defaults to `new BroadcastChannel("auth")`. Null or absent: no broadcast. */
+  createChannel?: (() => AuthChannel) | null;
 }
 
 export interface RequestOptions {
@@ -47,6 +68,18 @@ export const DEFAULT_API_VERSION = "1.0";
 /** Refresh this many seconds before the access token runs out. */
 const REFRESH_AHEAD_SECONDS = 60;
 
+const REFRESH_LOCK = "refresh";
+const AUTH_CHANNEL = "auth";
+const SIGNED_OUT = "signed-out";
+
+function defaultLocks(): LockManagerLike | null {
+  return typeof navigator !== "undefined" && navigator.locks ? navigator.locks : null;
+}
+
+function defaultCreateChannel(): (() => AuthChannel) | null {
+  return typeof BroadcastChannel === "undefined" ? null : () => new BroadcastChannel(AUTH_CHANNEL);
+}
+
 const defaultScheduler: Scheduler = (fn, ms) => {
   const id = setTimeout(fn, ms);
   return () => clearTimeout(id);
@@ -55,6 +88,9 @@ const defaultScheduler: Scheduler = (fn, ms) => {
 export function createApiClient(options: ApiClientOptions = {}) {
   const baseUrl = options.baseUrl ?? "";
   const scheduler = options.scheduler ?? defaultScheduler;
+  const locks = options.locks === undefined ? defaultLocks() : options.locks;
+  const createChannel =
+    options.createChannel === undefined ? defaultCreateChannel() : options.createChannel;
 
   let accessToken: string | null = null;
   let refreshInFlight: Promise<void> | null = null;
@@ -88,9 +124,22 @@ export function createApiClient(options: ApiClientOptions = {}) {
     unschedule();
   }
 
-  function signOut() {
+  function notifySignedOut() {
     clearSession();
     for (const listener of signedOutListeners) listener();
+  }
+
+  const channel = createChannel?.() ?? null;
+  // Another tab signed out: clear here too, without broadcasting again
+  channel?.addEventListener("message", (event) => {
+    const data = event.data as { type?: unknown } | null;
+    if (typeof data === "object" && data !== null && data.type === SIGNED_OUT) notifySignedOut();
+  });
+
+  /** Ends the session in this tab and tells the other tabs to leave too. */
+  function signOut() {
+    notifySignedOut();
+    channel?.postMessage({ type: SIGNED_OUT });
   }
 
   function send(path: string, init: RequestInit, version: string): Promise<Response> {
@@ -119,7 +168,9 @@ export function createApiClient(options: ApiClientOptions = {}) {
    * the fetch TypeError on a network error, which keeps the session.
    */
   function refresh(): Promise<void> {
-    refreshInFlight ??= doRefresh().finally(() => {
+    // The lock sits inside the shared promise, so a tab asks for it once per refresh
+    const start = () => (locks ? locks.request(REFRESH_LOCK, doRefresh) : doRefresh());
+    refreshInFlight ??= start().finally(() => {
       refreshInFlight = null;
     });
     return refreshInFlight;
@@ -175,7 +226,10 @@ export function createApiClient(options: ApiClientOptions = {}) {
     return (text === "" ? undefined : JSON.parse(text)) as T;
   }
 
-  /** Called when the session ends: refresh 401/400 or a 401 after refreshing. */
+  /**
+   * Called when the session ends: refresh 401/400, a 401 after refreshing,
+   * `signOut()`, or `signed-out` from another tab.
+   */
   function onSignedOut(listener: () => void): () => void {
     signedOutListeners.add(listener);
     return () => signedOutListeners.delete(listener);
@@ -187,6 +241,9 @@ export function createApiClient(options: ApiClientOptions = {}) {
     request,
     onSignedOut,
     clearSession,
+    signOut,
+    /** Closes the cross-tab channel; the client no longer hears other tabs. */
+    dispose: () => channel?.close(),
     isSignedIn: () => accessToken !== null,
   };
 }
