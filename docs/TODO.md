@@ -14,17 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Refresh and logout accept the refresh cookie.** `AuthController.refresh` and `logout` take
-      `@RequestBody(required = false)`; a body token wins, otherwise the `refresh_token` cookie is used.
-      Cookie mode requires an `Origin` header listed in `app.auth.refresh-cookie.allowed-origins`, else 403
-      `ORIGIN_NOT_ALLOWED` (new code, via `ErrorResponse`). Refresh in cookie mode sets the rotated cookie and
-      omits `refreshToken` from the body; a failed cookie refresh (401) clears the cookie (`Max-Age=0`).
-      Logout in cookie mode revokes and clears the cookie, still 204. Neither body nor cookie: 401
-      `AUTHENTICATION_REQUIRED`, like an unknown token. Test: new `RefreshCookieTests`, rotation via cookie,
-      a replayed old cookie revokes the session, wrong or missing `Origin` gives 403, logout clears it.
-      Careful: keep the 128-character cap and `@NotBlank` for both sources (blank body stays 400); the rate
-      limiters run before either path; rotation locking in `UserSessionService` is unchanged; existing
-      body-based tests must stay green. Proposal: Auth flow.
 - [ ] **Scaffold `frontend/`.** Vite 7 + React + TypeScript, with `react-router-dom`, `@tanstack/react-query`,
       `react-hook-form`, `zod`, and dev deps `vitest`, `jsdom`, `@testing-library/react`, `msw`. Exact versions.
       Add `frontend/.gitignore` (`node_modules/`, `dist/`), `frontend/.nvmrc` (`24`), scripts `dev`, `build`,
@@ -237,3 +226,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Docs lagged the code: CLAUDE.md env notes, TestcontainersConfiguration Javadoc, README security tree and roadmap (0f6ec0a)
 - [x] Expense list version 1.2 returns category, date and version, newest date first (807fd73)
 - [x] Login with `X-Refresh-Token-Transport: cookie` sets the refresh token as an HttpOnly, Secure, SameSite=Strict cookie on /auth and leaves it out of the body (c9378fb)
+- [x] Refresh and logout read the refresh cookie when the body has no token, require an allowed `Origin` (else 403 `ORIGIN_NOT_ALLOWED`), rotate or clear the cookie (d25e097)
