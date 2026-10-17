@@ -14,10 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Expense detail screen.** `/expenses/:id` uses `GET /api/expense/{id}` and shows every `ExpenseResponse`
-      field. 404 `EXPENSE_NOT_FOUND` and 400 for an invalid id both show "Not found" with no hint the expense
-      exists. Test: MSW for 200, 404 and 400. Careful: archived expenses return 404 here, so the page never
-      shows one. Proposal: Pages and screens.
 - [ ] **Create expense form.** `/expenses/new` uses `GET /api/expense/categories` (`staleTime: Infinity`) and
       `POST /api/expense`. A zod schema mirrors the DTO: description 1 to 250, amount above 0 with at most 8
       integer digits and 2 decimals, category from the endpoint (fixed enum), date today or earlier as a
@@ -190,3 +186,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] `frontend/src/api/client.ts` refreshes inside `navigator.locks` "refresh" (one lock request per in-tab single flight) and broadcasts `signed-out` on `BroadcastChannel("auth")`; receiving tabs clear without re-broadcasting; both injectable and off when absent, plus `signOut()` and `dispose()`; Vitest with a fake lock and channel shared by two clients (1e32c4e)
 - [x] Auth UI: `AuthProvider` (`booting | anonymous | authenticated`, `role`/`username` decoded from the JWT payload for display only) boots with one refresh behind a splash; `/login` (react-hook-form; 401 "Invalid username or password", 429 with the Retry-After seconds); `RequireAuth` redirects with `from`; client `logout()` posts `/auth/logout` without a body and signs out whatever the result; login, logout and any signed-out event clear the one Query cache; placeholder home with sign-out; Testing Library + MSW tests (c4f927b)
 - [x] Expense list (`/`, version 1.2, server count and total) and archived (`/archived`, newest `archivedAt` first) screens with empty and error states, a minimal toast and a nav layout with Sign out, tested with MSW (900ad97)
+- [x] Expense detail screen at `/expenses/:id`: every `ExpenseResponse` field; 404 and 400 both show "Not found"; the query client no longer retries 4xx (7037264)
