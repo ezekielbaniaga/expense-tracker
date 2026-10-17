@@ -1326,7 +1326,7 @@ app, so the browser sees one origin (`http://localhost:8081`) and no CORS config
   expenses have their own screen.
 * **Screens.** Login and register; the expense list, archived list, create and detail/edit (optimistic
   locking through `version`); profile with password change and sessions; for admins, the user list and a
-  user's role, status and sessions.
+  user's role and status.
 
 Run it with Compose (`docker_compose/run_compose.sh`) and open `http://localhost:8081`; see
 `docker_compose/README.md`. For development, run the backend on `localhost:8080` and, from `frontend/`

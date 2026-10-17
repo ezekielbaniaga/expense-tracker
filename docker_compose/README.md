@@ -33,8 +33,8 @@ get the healthcheck.
 
 The app takes the client IP (stored with each login session) from `X-Forwarded-For`, but only
 when the request comes from an address matching `TRUSTED_PROXIES` (a regex, e.g.
-`172[.]18[.]0[.]10`; give the proxy a fixed IP on `app-network`). Empty, the default here, trusts
-no one and the header is ignored.
+`172[.]18[.]0[.]10`; give the proxy a fixed IP on `app-network`). Here it defaults to the `web`
+service's address (below); the app itself, given an empty value, trusts no one and the header is ignored.
 
 The `web` service (nginx, `expense-tracker-web:1.0`) is that proxy: it has the fixed IP
 `172.28.0.10` on `app-network` (subnet `172.28.0.0/24`), and `TRUSTED_PROXIES` defaults to
