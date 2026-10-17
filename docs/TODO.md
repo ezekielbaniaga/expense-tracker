@@ -9,14 +9,6 @@ Work items top to bottom, one per commit. When an item is fixed, move it to **Do
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
 ## Findings
-
-- [ ] **Docs contradict the code on `TRUSTED_PROXIES` and admin sessions.** `docker_compose/README.md`
-      ("Behind a reverse proxy", line 36) says an empty `TRUSTED_PROXIES` is "the default here", but
-      `docker-compose.yml` defaults it to `172[.]28[.]0[.]10` (the `web` service) and `.env.example` sets the
-      same; reword it to say the default is the web service's address and an empty value trusts no one.
-      `README.md` "Web UI" (line 1329) says admins can see "a user's role, status and sessions", but
-      `frontend/src/admin/AdminUserPage.tsx` only shows and PATCHes role and status; the admin
-      `GET/DELETE /users/{id}/sessions` endpoints have no screen. Drop "and sessions" there (building the
       screen is a separate feature). Acceptance: both sentences match the files they describe.
 - [ ] **`expense.unique_id` is not unique.** `V1__initial_tables.sql` created only a plain
       `index_expense_unique_id`, and no later migration adds a constraint, although `unique_id` is the public
@@ -159,3 +151,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Accessibility and responsive pass: error text tied to inputs (`aria-describedby`/`aria-invalid`), shared `PageHeading` takes focus after navigation (not on first load or refetch), failed submit focuses the first invalid field or the form alert, inline confirms focus Cancel and return focus, skip link, `src/styles.css` with focus rings, wrapping nav and scrollable tables for ~360px; `vitest-axe` on every screen with `color-contrast` off (047f573)
 - [x] Documented the web UI in README.md, CLAUDE.md and docker_compose/README.md, marked its proposal implemented (514b57b)
 - [x] The web UI shows a role change from any refresh: the client emits `onSession` when it stores a new token, `AuthProvider` updates only when role or user changed, keeps the Query cache for the same user and clears it if a refresh names another user (af997ca)
+- [x] Fixed docs that contradicted the code: Compose defaults `TRUSTED_PROXIES` to the web service's address, and the admin user screen has no sessions (8bd3db7)
