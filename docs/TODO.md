@@ -8,16 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Findings
-      screen is a separate feature). Acceptance: both sentences match the files they describe.
-- [ ] **Backend image uses the floating `eclipse-temurin:25` tag.** `backend/Dockerfile` line 1 pulls
-      whatever 25.x JDK is current at build time, while the frontend images are pinned
-      (`node:24.11-alpine`, `nginx-unprivileged:1.29.3-alpine`) and `package.json` uses exact versions, so a
-      rebuild of `expense-tracker:1.0` can silently change the JVM. Fix: pin an exact release tag, preferably
-      the JRE variant the app needs (e.g. `eclipse-temurin:25.0.<x>_<y>-jre`, look up the current one), and
-      keep the `apt-get install curl` step working on it. Acceptance: `build_docker_image.sh` builds, the
-      container turns `healthy` in a throwaway Compose project, and the Dockerfile names one exact version.
-
 ## Needs you
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
@@ -144,3 +134,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] The web UI shows a role change from any refresh: the client emits `onSession` when it stores a new token, `AuthProvider` updates only when role or user changed, keeps the Query cache for the same user and clears it if a refresh names another user (af997ca)
 - [x] Fixed docs that contradicted the code: Compose defaults `TRUSTED_PROXIES` to the web service's address, and the admin user screen has no sessions (8bd3db7)
 - [x] `expense.unique_id` is unique (V16 `ux_expense_unique_id`, failing with the duplicated ids if any exist); V1's plain `index_expense_unique_id` is dropped (38f8cc4)
+- [x] Pinned the backend image to `eclipse-temurin:25.0.4_7-jre-noble` (JRE; was the floating `eclipse-temurin:25`), so a rebuild cannot silently change the JVM (04032bb)
