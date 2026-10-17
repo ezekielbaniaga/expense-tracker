@@ -12,15 +12,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/web-ui-proposal.md. Work in order. Java paths are relative to the package root as above;
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
-need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
-
-- [ ] **Edit, patch description and delete.** On the detail page: edit form with `PUT /api/expense/{id}` and
-      `version`, inline description edit with `PATCH /api/expense/{id}/description`, delete with
-      `DELETE /api/expense/{id}?version=`. Success sets `['expense', id]` from the response and invalidates the
-      lists (plus `['archived']` after delete). 409 `CONCURRENT_MODIFICATION` offers "Reload" and keeps the
-      unsaved input; 409 `MODIFY_ARCHIVED` says the expense was deleted and goes to the list. Test: MSW,
-      success updates the version, 409 keeps input, delete sends `?version=`. Proposal: Validation and error
-      handling.
 - [ ] **Frontend image and nginx config.** `frontend/Dockerfile`: a `node:24` build stage and a pinned
       `nginxinc/nginx-unprivileged` runtime on 8080. `frontend/nginx.conf`: `try_files $uri /index.html`;
       `location /api/`, `/auth/`, `/users` proxy to `http://app:8080` with `X-Forwarded-For
@@ -182,3 +173,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Expense list (`/`, version 1.2, server count and total) and archived (`/archived`, newest `archivedAt` first) screens with empty and error states, a minimal toast and a nav layout with Sign out, tested with MSW (900ad97)
 - [x] Expense detail screen at `/expenses/:id`: every `ExpenseResponse` field; 404 and 400 both show "Not found"; the query client no longer retries 4xx (7037264)
 - [x] Create expense form at `/expenses/new` with zod validation, server field errors and `INVALID_CATEGORY` handling (2d27d8e)
+- [x] Edit (PUT with version), inline description edit (PATCH) and confirmed delete (`DELETE ?version=`) on the expense detail page; 409 `CONCURRENT_MODIFICATION` keeps the input and offers Reload, 409 `MODIFY_ARCHIVED` says it was deleted and goes to the list; the create form's fields and resolver are shared (a245640)
