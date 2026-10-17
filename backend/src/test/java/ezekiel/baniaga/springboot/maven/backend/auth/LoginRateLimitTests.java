@@ -35,13 +35,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * The production limits, set here explicitly because the test profile raises them so other
- * tests (which share 127.0.0.1) never trip them. Every test uses its own random client IP and
- * users, since the buckets live as long as the Spring context.
+ * tests (which share 127.0.0.1) never trip them. The exception is the any-IP username bucket,
+ * 8 per hour here instead of 100, so a test can drain it with a few requests. Every test uses
+ * its own random client IP and users, since the buckets live as long as the Spring context.
  */
 @SpringBootTest(properties = {
     "app.jwt.secret=test-secret-that-is-at-least-32-bytes-long",
-    "app.rate-limit.login.username-failures.capacity=5",
-    "app.rate-limit.login.username-failures.period=15m",
+    "app.rate-limit.login.username-client-ip-failures.capacity=5",
+    "app.rate-limit.login.username-client-ip-failures.period=15m",
+    "app.rate-limit.login.username-failures.capacity=8",
+    "app.rate-limit.login.username-failures.period=1h",
     "app.rate-limit.login.client-ip.capacity=20",
     "app.rate-limit.login.client-ip.period=1m"
 })
@@ -65,15 +68,14 @@ class LoginRateLimitTests {
     }
 
     @Test
-    void sixthWrongPasswordForOneUserIs429WithRetryAfter() throws Exception {
+    void sixthWrongPasswordForOneUserFromOneIpIs429WithRetryAfter() throws Exception {
         User user = createUser();
 
-        // From a different IP each time, so only the per-username bucket can stop it
         for (int i = 0; i < 5; i++) {
-            login(user.getUsername(), "wrong-password", randomIp()).andExpect(status().isUnauthorized());
+            login(user.getUsername(), "wrong-password", ip).andExpect(status().isUnauthorized());
         }
 
-        String retryAfter = login(user.getUsername(), "wrong-password", randomIp())
+        String retryAfter = login(user.getUsername(), "wrong-password", ip)
             .andExpect(status().isTooManyRequests())
             .andExpect(jsonPath("$.code").value("TOO_MANY_REQUESTS"))
             .andExpect(jsonPath("$.messages[0]").isNotEmpty())
@@ -81,7 +83,38 @@ class LoginRateLimitTests {
             .andReturn().getResponse().getHeader(HttpHeaders.RETRY_AFTER);
         assertThat(Long.parseLong(retryAfter)).isPositive();
 
-        // Locked out, so even the right password waits for the window
+        // Locked out from this IP, so even the right password waits for the window
+        login(user.getUsername(), PASSWORD, ip).andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void guessingFromOneIpDoesNotLockTheOwnerOutFromAnotherIp() throws Exception {
+        User user = createUser();
+
+        for (int i = 0; i < 5; i++) {
+            login(user.getUsername(), "wrong-password", ip).andExpect(status().isUnauthorized());
+        }
+        login(user.getUsername(), "wrong-password", ip).andExpect(status().isTooManyRequests());
+
+        login(user.getUsername(), PASSWORD, randomIp()).andExpect(status().isOk());
+    }
+
+    @Test
+    void guessingFromManyIpsDrainsTheAnyIpBucketAndLocksEveryone() throws Exception {
+        User user = createUser();
+
+        // A fresh IP each time, so only the any-IP username bucket can stop it
+        for (int i = 0; i < 8; i++) {
+            login(user.getUsername(), "wrong-password", randomIp()).andExpect(status().isUnauthorized());
+        }
+
+        String retryAfter = login(user.getUsername(), "wrong-password", randomIp())
+            .andExpect(status().isTooManyRequests())
+            .andExpect(jsonPath("$.code").value("TOO_MANY_REQUESTS"))
+            .andReturn().getResponse().getHeader(HttpHeaders.RETRY_AFTER);
+        assertThat(Long.parseLong(retryAfter)).isPositive();
+
+        // Even the owner, from an IP that never failed
         login(user.getUsername(), PASSWORD, randomIp()).andExpect(status().isTooManyRequests());
     }
 
@@ -92,10 +125,10 @@ class LoginRateLimitTests {
         String[] variants = { name, name.toUpperCase(Locale.ROOT), " " + name, name + " ", "  " + name.toUpperCase(Locale.ROOT) };
 
         for (String variant : variants) {
-            login(variant, "wrong-password", randomIp()).andExpect(status().isUnauthorized());
+            login(variant, "wrong-password", ip).andExpect(status().isUnauthorized());
         }
 
-        login(name, "wrong-password", randomIp()).andExpect(status().isTooManyRequests());
+        login(name, "wrong-password", ip).andExpect(status().isTooManyRequests());
     }
 
     @Test
@@ -104,10 +137,10 @@ class LoginRateLimitTests {
         String nobody = "nobody-" + UUID.randomUUID();
 
         for (int i = 0; i < 5; i++) {
-            login(nobody, PASSWORD, randomIp()).andExpect(status().isUnauthorized());
+            login(nobody, PASSWORD, ip).andExpect(status().isUnauthorized());
         }
 
-        login(nobody, PASSWORD, randomIp())
+        login(nobody, PASSWORD, ip)
             .andExpect(status().isTooManyRequests())
             .andExpect(jsonPath("$.code").value("TOO_MANY_REQUESTS"))
             .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
@@ -118,14 +151,14 @@ class LoginRateLimitTests {
         User user = createUser();
 
         for (int i = 0; i < 8; i++) {
-            login(user.getUsername(), PASSWORD, randomIp()).andExpect(status().isOk());
+            login(user.getUsername(), PASSWORD, ip).andExpect(status().isOk());
         }
 
         // All five failures are still available
         for (int i = 0; i < 5; i++) {
-            login(user.getUsername(), "wrong-password", randomIp()).andExpect(status().isUnauthorized());
+            login(user.getUsername(), "wrong-password", ip).andExpect(status().isUnauthorized());
         }
-        login(user.getUsername(), "wrong-password", randomIp()).andExpect(status().isTooManyRequests());
+        login(user.getUsername(), "wrong-password", ip).andExpect(status().isTooManyRequests());
     }
 
     @Test

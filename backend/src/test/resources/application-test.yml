@@ -4,6 +4,8 @@
 app:
   rate-limit:
     login:
+      username-client-ip-failures:
+        capacity: 1000000
       username-failures:
         capacity: 1000000
       client-ip:

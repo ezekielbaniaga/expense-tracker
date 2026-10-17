@@ -69,7 +69,7 @@ public class AuthController {
 
     /**
      * 429 TOO_MANY_REQUESTS (with Retry-After) after too many attempts from one client IP,
-     * or too many failed ones for one username. See LoginRateLimiter.
+     * or too many failed ones for one username (from that IP, or from all IPs). See LoginRateLimiter.
      */
     @PostMapping("/login")
     public LoginResponse login(
@@ -86,7 +86,7 @@ public class AuthController {
         // Internally, Spring Security will use the provided UserDetailsService and PasswordEncoder
         // to authenticate the credentials
         Authentication authentication = authenticationManager.authenticate(uptoken);
-        loginRateLimiter.succeeded(loginRequest.username());
+        loginRateLimiter.succeeded(loginRequest.username(), httpServletRequest.getRemoteAddr());
 
         // Construct and response a JWT token if authentication was a success
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();

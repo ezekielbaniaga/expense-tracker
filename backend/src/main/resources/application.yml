@@ -73,10 +73,15 @@ app:
   rate-limit:
     max-keys: 100000
     login:
-      # Failed logins per username (any case, any IP); successful logins don't count
-      username-failures:
+      # Failed logins per username (any case) and client IP; successful logins don't count
+      username-client-ip-failures:
         capacity: 5
         period: 15m
+      # Failed logins per username from any IP: a loose backstop, since draining it locks the
+      # account for its owner too
+      username-failures:
+        capacity: 100
+        period: 1h
       # Login attempts per client IP, failed or not
       client-ip:
         capacity: 20

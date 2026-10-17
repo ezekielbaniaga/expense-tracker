@@ -176,27 +176,34 @@ The response looks like:
 
 ### Login rate limit
 
-`LoginRateLimiter` checks two token buckets (Bucket4j) before the password is checked:
+`LoginRateLimiter` checks three token buckets (Bucket4j) before the password is checked:
 
 | Bucket | Default | What it stops |
 | --- | --- | --- |
-| per username (stripped, any case), only failures count | 5 per 15 minutes | guessing one account's password from many IPs |
+| per username (stripped, any case) **and** client IP, only failures count | 5 per 15 minutes | guessing one account's password from one place |
+| per username from any IP, only failures count | 100 per hour | guessing one account's password from many IPs |
 | per client IP, every attempt counts | 20 per minute | trying many accounts from one IP |
 
 Over either limit the answer is `429 TOO_MANY_REQUESTS` (the usual `ErrorResponse` body) with a
 `Retry-After` header in seconds. Tokens come back gradually (5 per 15 minutes is one every 3 minutes).
 
-* A successful login gives its username token back, so a user is never locked out by their own logins.
+* A successful login gives both username tokens back, so a user is never locked out by their own logins.
 * Unknown usernames are limited the same way, so a 429 doesn't reveal which accounts exist.
-* While a username is locked, even the right password gets 429 until a token comes back. An attacker can
-  lock someone out this way for as long as they keep guessing; the IP limit slows that down.
+* While a bucket is empty, even the right password gets 429 until a token comes back. The strict bucket
+  is keyed by IP as well, so an attacker's wrong guesses lock only their own address out of the account,
+  not its owner. The any-IP bucket is a loose backstop: draining it locks the account for everyone, so
+  it takes more than 100 failures in an hour, and keeping it drained costs one guess every 36 seconds
+  per account. One IP is held to 20 attempts a minute, so it can keep about 12 accounts locked this way
+  (the strict bucket alone allowed about 60). A botnet with many IPs can still do it; the per-instance,
+  in-memory limits can't tell it from real users.
 * The client IP is `request.getRemoteAddr()`, which behind a trusted proxy is the forwarded client IP.
 * The bucket key is that IP as is for IPv4, but an IPv6 client is keyed by its **/64 prefix**
   (`ClientIpKey`): one host usually controls a whole /64, so per-address buckets could be dodged by
   rotating addresses. A zone id (`%eth0`) is dropped, an IPv4-mapped address (`::ffff:192.0.2.1`) counts
   as its IPv4 address, and a value that doesn't parse is used unchanged. Sessions still store the full
   address. The same key is used by the per-IP limits below.
-* Limits are set in `app.rate-limit.*` (`application.yml`). Each map keeps at most
+* Limits are set in `app.rate-limit.*` (`application.yml`): `login.username-client-ip-failures`,
+  `login.username-failures` and `login.client-ip`. Each map keeps at most
   `app.rate-limit.max-keys` entries and drops a key once its bucket is full again, so random usernames
   can't grow memory forever.
 * The buckets live in memory, **per instance**: fine for one instance, but with several each counts on its

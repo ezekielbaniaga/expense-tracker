@@ -38,8 +38,17 @@ public class RateLimitProperties {
     @Getter @Setter
     public static class Login {
 
-        /** Failed logins per normalized username, from any IP, so one account can't be guessed. */
-        private Limit usernameFailures = new Limit(5, Duration.ofMinutes(15));
+        /**
+         * Failed logins per normalized username and client IP: strict, so one account can't be
+         * guessed from one place, and the guesser locks out only their own address.
+         */
+        private Limit usernameClientIpFailures = new Limit(5, Duration.ofMinutes(15));
+
+        /**
+         * Failed logins per normalized username from any IP: loose backstop against guessing one
+         * account from many IPs. Draining it locks the account for everyone.
+         */
+        private Limit usernameFailures = new Limit(100, Duration.ofHours(1));
 
         /** Login attempts per client IP, so many accounts can't be sprayed from one address. */
         private Limit clientIp = new Limit(20, Duration.ofMinutes(1));
