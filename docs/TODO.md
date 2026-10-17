@@ -14,12 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Cross-tab refresh lock and logout broadcast.** Wrap the refresh in
-      `navigator.locks.request('refresh', ...)` so tabs refresh one at a time, each with the latest cookie.
-      A `BroadcastChannel('auth')` carries `signed-out` so other tabs clear and leave. Test: Vitest with a fake
-      `navigator.locks` and two client instances, overlapping refreshes run one after the other; signed-out
-      reaches the other instance. Careful: the real browser behavior is proven by the e2e item.
-      Proposal: Auth flow.
 - [ ] **Auth context, boot, login page, route guard, logout.** `AuthProvider` with `{status: booting | anonymous |
       authenticated, role, username}`. Boot always tries one refresh (the cookie is invisible to JS) behind a
       splash. `/login`: 401 shows "Invalid username or password", 429 "Too many attempts, try again in N s".
@@ -207,3 +201,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Scaffolded `frontend/` (Vite 7.3.7, React 19, TypeScript, router, query, react-hook-form, zod, Vitest/msw, exact versions, `/api` `/auth` `/users` dev proxy without changeOrigin); `npm ci`, test, build and lint pass (c7f0275)
 - [x] `frontend/src/api/errors.ts` (ApiError, `parseApiError` incl. Retry-After and non-JSON bodies, `fieldErrors`) and `expense.ts` (DTO types, `total_amount`/`supported_categories` mapping, amount and date helpers) with Vitest tests (2640d61)
 - [x] `frontend/src/api/client.ts`: fetch client with the access token in memory, explicit `X-API-Version`, cookie-transport login, single-flight `POST /auth/refresh` shared by parallel 401s and the early refresh (`accessTokenExpiresIn - 60` s), one replay; refresh 401/400 or a second 401 emits signed-out, 429 (with `retryAfter`) and network errors keep the session; Vitest + MSW tests (7723832)
+- [x] `frontend/src/api/client.ts` refreshes inside `navigator.locks` "refresh" (one lock request per in-tab single flight) and broadcasts `signed-out` on `BroadcastChannel("auth")`; receiving tabs clear without re-broadcasting; both injectable and off when absent, plus `signOut()` and `dispose()`; Vitest with a fake lock and channel shared by two clients (1e32c4e)
