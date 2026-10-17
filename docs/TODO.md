@@ -12,6 +12,8 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/web-ui-proposal.md. Work in order. Java paths are relative to the package root as above;
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
+need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
+
 - [ ] **Frontend image and nginx config.** `frontend/Dockerfile`: a `node:24` build stage and a pinned
       `nginxinc/nginx-unprivileged` runtime on 8080. `frontend/nginx.conf`: `try_files $uri /index.html`;
       `location /api/`, `/auth/`, `/users` proxy to `http://app:8080` with `X-Forwarded-For
