@@ -10,13 +10,13 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Needs you
 
-- [ ] Old secrets from `docker_compose/.env` remain in git history. Rotate them before any real deployment.
 - [ ] **Untracked files in the repo root.** `to_delete_just_spring_boot_note` (a psql dump of a session row, its
       name says delete), `.claude/` (the skills) and `docs/jobs/` (the nightly loop notes, marked Draft). Delete
       the note, and commit or ignore the other two.
 
 ## Done
 
+- [x] Rotated the `POSTGRES_PASSWORD`, `ADMIN_PASSWORD` and `JWT_SECRET` that were committed to history (2026-10-17): new random values in the git-ignored `docker_compose/.env`. The old values still sit in public history and are dead only where nothing uses them; any other deployment or volume created with them (e.g. the old `spring-boot-sample_pgdata` volume) needs the same rotation
 - [x] Login lockout abuse: the strict failure bucket (5 per 15 minutes) is keyed by username and client IP, so a guesser locks out only their own address; a loose any-IP bucket (100 per hour) is the backstop, and one IP can keep about 12 accounts locked instead of 60; success refunds both (f9ad763)
 - [x] Compose passed `ADMIN_USER` but the app reads `ADMIN_USERNAME` (683ec2f)
 - [x] `logging` was nested under `spring` in `application.yml`, so it was ignored (ef0a319)
