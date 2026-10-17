@@ -40,3 +40,39 @@ export interface RevokedSessionsDto {
 export function formatTimestamp(value: string): string {
   return value.replace("T", " ").slice(0, 16);
 }
+
+/**
+ * What an admin sees of a user (`GET /users`, `GET /users/{id}`, `PATCH /users/{id}`).
+ * Send `version` back on PATCH. `lastModified` is null until the first change.
+ */
+export interface AdminUserDto {
+  id: string;
+  username: string;
+  role: Role;
+  enabled: boolean;
+  version: number;
+  createdAt: string;
+  lastModified: string | null;
+}
+
+/** One page of `GET /users`, oldest first. `page` is zero-based; `total` counts every match. */
+export interface UserListDto {
+  users: AdminUserDto[];
+  page: number;
+  size: number;
+  total: number;
+  totalPages: number;
+}
+
+/** The server's default page size; it allows 1 to 100, else 400 INVALID_PAGE. */
+export const DEFAULT_USER_PAGE_SIZE = 20;
+
+/**
+ * Body of `PATCH /users/{id}`. Omitted fields stay as they are, but one of
+ * enabled and role is needed (400 EMPTY_PATCH otherwise).
+ */
+export interface UpdateUserRequest {
+  version: number;
+  enabled?: boolean;
+  role?: Role;
+}

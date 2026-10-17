@@ -28,6 +28,12 @@ export function Layout() {
           <NavLink to="/expenses/new">New expense</NavLink>{" "}
           <NavLink to="/archived">Archived</NavLink>{" "}
           <NavLink to="/me">Profile</NavLink>{" "}
+          {/* Only hides the link; the server checks the role on every /users call */}
+          {state.role === "ADMIN" && (
+            <>
+              <NavLink to="/admin/users">Admin</NavLink>{" "}
+            </>
+          )}
           <button
             type="button"
             disabled={signingOut}

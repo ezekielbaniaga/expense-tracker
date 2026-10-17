@@ -1,10 +1,13 @@
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AdminUserPage } from "./admin/AdminUserPage";
+import { AdminUsersPage } from "./admin/AdminUsersPage";
 import { apiClient, type ApiClient } from "./api/client";
 import { AuthProvider } from "./auth/AuthProvider";
 import { LoginPage } from "./auth/LoginPage";
 import { RegisterPage } from "./auth/RegisterPage";
+import { RequireAdmin } from "./auth/RequireAdmin";
 import { RequireAuth } from "./auth/RequireAuth";
 import { ArchivedPage } from "./expenses/ArchivedPage";
 import { CreateExpensePage } from "./expenses/CreateExpensePage";
@@ -49,6 +52,22 @@ export function AppRoutes() {
         <Route path="/expenses/new" element={<CreateExpensePage />} />
         <Route path="/expenses/:id" element={<ExpenseDetailPage />} />
         <Route path="/me" element={<ProfilePage />} />
+        <Route
+          path="/admin/users"
+          element={
+            <RequireAdmin>
+              <AdminUsersPage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/users/:id"
+          element={
+            <RequireAdmin>
+              <AdminUserPage />
+            </RequireAdmin>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
