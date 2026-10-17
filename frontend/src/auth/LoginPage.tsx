@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import { useAuth } from "./AuthProvider";
 import type { FromState } from "./RequireAuth";
@@ -10,15 +10,18 @@ interface LoginForm {
   password: string;
 }
 
+/** The 429 text for the login and register pages. */
+export function tooManyAttemptsMessage(error: ApiError): string {
+  return error.retryAfter === undefined
+    ? "Too many attempts, try again later"
+    : `Too many attempts, try again in ${error.retryAfter} s`;
+}
+
 function loginErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     // Nothing more specific than this on 401, so the page never says which part was wrong
     if (error.status === 401) return "Invalid username or password";
-    if (error.status === 429) {
-      return error.retryAfter === undefined
-        ? "Too many attempts, try again later"
-        : `Too many attempts, try again in ${error.retryAfter} s`;
-    }
+    if (error.status === 429) return tooManyAttemptsMessage(error);
   }
   return "Something went wrong, try again";
 }
@@ -81,6 +84,9 @@ export function LoginPage() {
           Sign in
         </button>
       </form>
+      <p>
+        No account? <Link to="/register">Create an account</Link>
+      </p>
     </main>
   );
 }
