@@ -14,10 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Admin users screen.** `/admin/users`, linked only when `role` is `ADMIN`: `GET /users?page&size&username&enabled`,
-      `GET /users/{id}`, `PATCH /users/{id}` (`enabled`, `role`, `version`). Show `CANNOT_MODIFY_SELF`,
-      `LAST_ADMIN`, `CONCURRENT_MODIFICATION`, `EMPTY_PATCH`, `INVALID_PAGE`, and 403 for a demoted admin.
-      Test: MSW for each code. Proposal: Pages and screens.
 - [ ] **Accessibility and responsive pass.** Labels on every input, focus moved to the heading after navigation
       and to the first error after a failed submit, keyboard-only flows, a narrow-screen layout.
       Test: Testing Library role queries plus `vitest-axe` on each screen. The visual check is manual (see
@@ -148,3 +144,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] E2E stack and Playwright suite: `docker-compose.e2e.yml` (project `expense-tracker-e2e`, web on 127.0.0.1:18081, subnet 172.29.0.0/24, seeded `e2e-admin`, 75 s access tokens because the UI refreshes 60 s early, raised `APP_RATELIMIT_*`), six specs in `frontend/e2e/` and `run_e2e.sh` (093072e)
 - [x] Register page at `/register`: zod rules mirroring `UsernameValidator`/`PasswordValidator` (stripped ASCII name up to 100, password 12 chars to 72 bytes, not the username), then logs in through `AuthProvider`; `USERNAME_TAKEN`/`INVALID_USERNAME` on username, `INVALID_PASSWORD` on password, 429 form-level with `Retry-After`; login and register link to each other (7a3b811)
 - [x] Profile page at `/me`: account from `GET /users/me`; password change with zod rules shared with register (12 chars to 72 bytes, not the username), `INVALID_CURRENT_PASSWORD` on the current field, `INVALID_PASSWORD` on the new one, 429 form-level with `Retry-After`, success logs out to `/login`; "Your devices" from `GET /users/me/sessions` marks this device, inline-confirmed revoke one (this device logs out) and sign out other devices (08ff61a)
+- [x] Admin users screen at `/admin/users` (Admin link and routes only for an `ADMIN` token): username/status filters and server paging in the URL, `INVALID_PAGE` resets page and size; `/admin/users/:id` PATCHes changed `enabled`/`role` with `version`, inline confirm before disable or demote; `CANNOT_MODIFY_SELF`, `LAST_ADMIN`, `EMPTY_PATCH` at the form, `CONCURRENT_MODIFICATION` keeps the input and offers Reload, 403 says "You no longer have admin access" (2df9ae4)
