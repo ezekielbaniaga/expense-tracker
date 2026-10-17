@@ -348,3 +348,211 @@ describe("create expense", () => {
     expect((screen.getByRole("button", { name: "Add expense" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });
+
+describe("edit, patch description and delete", () => {
+  const stored = (over: Record<string, unknown> = {}) => ({
+    id: "e1",
+    version: 3,
+    description: "Lunch",
+    amount: 12.5,
+    category: "FOOD",
+    date: "2026-10-17",
+    createdAt: "2026-10-17T12:30:00",
+    lastModified: "2026-10-17T12:30:00",
+    ...over,
+  });
+  const detail = (over: Record<string, unknown> = {}) =>
+    http.get(`${BASE}/api/expense/e1`, () => HttpResponse.json(stored(over)));
+  const categories = () =>
+    http.get(`${BASE}/api/expense/categories`, () =>
+      HttpResponse.json({ supported_categories: ["FOOD", "TRANSPORT"] }),
+    );
+  const conflict = (code: string) =>
+    HttpResponse.json({ code, messages: ["nope"] }, { status: 409 });
+  const input = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
+
+  async function openEdit() {
+    renderAt("/expenses/e1");
+    await screen.findByRole("heading", { name: "Lunch" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await screen.findByLabelText("Category");
+  }
+
+  it("PUTs the form with the version, then shows the response and invalidates the list", async () => {
+    let body: unknown;
+    server.use(
+      detail(),
+      categories(),
+      http.put(`${BASE}/api/expense/e1`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(stored({ version: 4, description: "Dinner", amount: 20 }));
+      }),
+    );
+    queryClient.setQueryData(["expenses"], { expenses: [], count: 0, totalAmount: 0 });
+    await openEdit();
+    expect(input("Description").value).toBe("Lunch");
+    fireEvent.change(input("Description"), { target: { value: "Dinner" } });
+    fireEvent.change(input("Amount"), { target: { value: "20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("heading", { name: "Dinner" })).toBeTruthy();
+    expect(body).toEqual({
+      description: "Dinner",
+      amount: 20,
+      category: "FOOD",
+      date: "2026-10-17",
+      version: 3,
+    });
+    expect(screen.getByText("4")).toBeTruthy();
+    expect(queryClient.getQueryData<{ version: number }>(["expense", "e1"])?.version).toBe(4);
+    expect(queryClient.getQueryState(["expenses"])?.isInvalidated).toBe(true);
+  });
+
+  it("shows client messages and sends nothing", async () => {
+    let calls = 0;
+    server.use(
+      detail(),
+      categories(),
+      http.put(`${BASE}/api/expense/e1`, () => {
+        calls++;
+        return HttpResponse.json(stored());
+      }),
+    );
+    await openEdit();
+    fireEvent.change(input("Description"), { target: { value: " " } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("Description is required")).toBeTruthy();
+    expect(calls).toBe(0);
+  });
+
+  it("on 409 CONCURRENT_MODIFICATION keeps the input and Reload brings the new version", async () => {
+    const versions: unknown[] = [];
+    let current = 3;
+    server.use(
+      http.get(`${BASE}/api/expense/e1`, () => HttpResponse.json(stored({ version: current }))),
+      categories(),
+      http.put(`${BASE}/api/expense/e1`, async ({ request }) => {
+        const { version } = (await request.json()) as { version: number };
+        versions.push(version);
+        return version === current
+          ? HttpResponse.json(stored({ version: current + 1, description: "Dinner" }))
+          : conflict("CONCURRENT_MODIFICATION");
+      }),
+    );
+    await openEdit();
+    current = 4; // changed in another tab
+    fireEvent.change(input("Description"), { target: { value: "Dinner" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/changed elsewhere/);
+    expect(input("Description").value).toBe("Dinner");
+    fireEvent.click(screen.getByRole("button", { name: "Reload" }));
+    expect(await screen.findByText("4")).toBeTruthy();
+    expect(input("Description").value).toBe("Dinner");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("heading", { name: "Dinner" })).toBeTruthy();
+    expect(versions).toEqual([3, 4]);
+  });
+
+  it("on 409 MODIFY_ARCHIVED says it was deleted and goes to the list", async () => {
+    server.use(
+      detail(),
+      categories(),
+      http.put(`${BASE}/api/expense/e1`, () => conflict("MODIFY_ARCHIVED")),
+      http.get(`${BASE}/api/expense`, () =>
+        HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
+      ),
+    );
+    await openEdit();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("No expenses yet", { exact: false })).toBeTruthy();
+    expect(screen.getByText("This expense was deleted.")).toBeTruthy();
+    expect(queryClient.getQueryData(["expense", "e1"])).toBeUndefined();
+  });
+
+  it("attaches a server VALIDATION_ERROR to the fields", async () => {
+    server.use(
+      detail(),
+      categories(),
+      http.put(`${BASE}/api/expense/e1`, () =>
+        HttpResponse.json(
+          { code: "VALIDATION_ERROR", messages: ["description: size must be between 0 and 250"] },
+          { status: 400 },
+        ),
+      ),
+    );
+    await openEdit();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("size must be between 0 and 250")).toBeTruthy();
+    expect(input("Description").getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("PATCHes only the description with the version and updates the page", async () => {
+    let body: unknown;
+    server.use(
+      detail(),
+      http.patch(`${BASE}/api/expense/e1/description`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(stored({ version: 4, description: "Brunch" }));
+      }),
+    );
+    renderAt("/expenses/e1");
+    await screen.findByRole("heading", { name: "Lunch" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit description" }));
+    fireEvent.change(input("Description"), { target: { value: "Brunch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save description" }));
+    expect(await screen.findByRole("heading", { name: "Brunch" })).toBeTruthy();
+    expect(body).toEqual({ version: 3, description: "Brunch" });
+    expect(screen.getByText("4")).toBeTruthy();
+  });
+
+  it("keeps the typed description on a 409 and offers Reload", async () => {
+    server.use(
+      detail(),
+      http.patch(`${BASE}/api/expense/e1/description`, () => conflict("CONCURRENT_MODIFICATION")),
+    );
+    renderAt("/expenses/e1");
+    await screen.findByRole("heading", { name: "Lunch" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit description" }));
+    fireEvent.change(input("Description"), { target: { value: "Brunch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save description" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Reload/);
+    expect(input("Description").value).toBe("Brunch");
+  });
+
+  it("DELETEs with ?version=, invalidates both lists and returns to the list", async () => {
+    let query: string | null = null;
+    server.use(
+      detail(),
+      http.delete(`${BASE}/api/expense/e1`, ({ request }) => {
+        query = new URL(request.url).search;
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.get(`${BASE}/api/expense`, () =>
+        HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
+      ),
+    );
+    queryClient.setQueryData(["expenses"], { expenses: [], count: 0, totalAmount: 0 });
+    queryClient.setQueryData(["archived"], []);
+    renderAt("/expenses/e1");
+    await screen.findByRole("heading", { name: "Lunch" });
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
+    expect(await screen.findByText("No expenses yet", { exact: false })).toBeTruthy();
+    expect(query).toBe("?version=3");
+    expect(queryClient.getQueryState(["archived"])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryData(["expense", "e1"])).toBeUndefined();
+  });
+
+  it("offers Reload when the delete hits a stale version", async () => {
+    server.use(
+      detail(),
+      http.delete(`${BASE}/api/expense/e1`, () => conflict("CONCURRENT_MODIFICATION")),
+    );
+    renderAt("/expenses/e1");
+    await screen.findByRole("heading", { name: "Lunch" });
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/changed elsewhere/);
+    expect(screen.getByRole("button", { name: "Reload" })).toBeTruthy();
+  });
+});

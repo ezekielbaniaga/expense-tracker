@@ -60,3 +60,18 @@ export function toCreateRequest(values: ExpenseFormValues) {
     date: values.date,
   };
 }
+
+/** The description rule alone, for the inline description edit. */
+export function validateDescription(value: string): string | undefined {
+  const result = createExpenseSchema([]).shape.description.safeParse(value);
+  return result.success ? undefined : result.error.issues[0]?.message;
+}
+
+export function toFormValues(e: {
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+}): ExpenseFormValues {
+  return { description: e.description, amount: String(e.amount), category: e.category, date: e.date };
+}
