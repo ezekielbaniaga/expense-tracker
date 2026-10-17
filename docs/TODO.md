@@ -14,16 +14,10 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [ ] **Untracked files in the repo root.** `to_delete_just_spring_boot_note` (a psql dump of a session row, its
       name says delete), `.claude/` (the skills) and `docs/jobs/` (the nightly loop notes, marked Draft). Delete
       the note, and commit or ignore the other two.
-- [ ] **Decide on login lockout abuse.** `auth/service/LoginRateLimiter.java`. The per-username bucket
-      (5 failures per 15 minutes, any IP) refills one token every 3 minutes, so one wrong guess every 3 minutes
-      keeps an account locked indefinitely, even for the right password; one IP within its 20/minute limit can
-      do that to about 60 accounts, including the default `admin`. README section 1 says "the IP limit slows that
-      down", which understates it. Options: accept (README wording fixed), or key the strict bucket by
-      username + client IP and add a looser global per-username bucket (e.g. 100 failures per hour), or let a
-      correct password through a locked username from an IP that has logged in successfully before.
 
 ## Done
 
+- [x] Login lockout abuse: the strict failure bucket (5 per 15 minutes) is keyed by username and client IP, so a guesser locks out only their own address; a loose any-IP bucket (100 per hour) is the backstop, and one IP can keep about 12 accounts locked instead of 60; success refunds both (f9ad763)
 - [x] Compose passed `ADMIN_USER` but the app reads `ADMIN_USERNAME` (683ec2f)
 - [x] `logging` was nested under `spring` in `application.yml`, so it was ignored (ef0a319)
 - [x] `.env` with secrets was tracked; replaced with `.env.example` (3a188fd)
