@@ -14,15 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Expense list version 1.2 with category, date and version.** Add records `ExpenseListItemResponseV1_2`
-      (`id, description, amount, category, date, version`) and `ExpenseListResponseV1_2` (`expenses, count,
-      total_amount`), a mapper method in `ExpenseMapper`, `ExpenseService.getAllExpensesV1_2` (reuse
-      `findActiveByOwnerId`), `@GetMapping(version = "1.2")` in `ExpenseController`, and `"1.2"` in
-      `WebMVCConfig.configureApiVersioning`. Rows are ordered by `date` desc, then `createdAt` desc.
-      Test: `ExpenseApiVersionTests`, a 1.2 list returns the new fields in that order; 1.0 and 1.1 have no
-      `category` key. Careful: `ExpenseApiVersionTests` asserts `1.2` is rejected; change that case to `1.3`,
-      add `1.2` to its `VERSIONS` loops, and check `DefaultApiVersionParserTests`. Do not change the 1.0/1.1
-      DTOs. Update the README's API version notes. Proposal: CORS and backend changes.
 - [ ] **Login can set the refresh token as an HttpOnly cookie.** Add `RefreshCookieProperties`
       (`app.auth.refresh-cookie`: `name` = `refresh_token`, `secure` = true, `allowed-origins` =
       `http://localhost:5173,http://localhost:8081`). When `POST /auth/login` carries
@@ -253,3 +244,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Native cleanup queries bind their cutoff as ISO text cast in SQL, so a JVM zone DST gap no longer shifts it by an hour (92221d0)
 - [x] Expense cleanup runs once at 2AM in batches of 1,000 until short, capped at 100 (87a5f67)
 - [x] Docs lagged the code: CLAUDE.md env notes, TestcontainersConfiguration Javadoc, README security tree and roadmap (0f6ec0a)
+- [x] Expense list version 1.2 returns category, date and version, newest date first (807fd73)
