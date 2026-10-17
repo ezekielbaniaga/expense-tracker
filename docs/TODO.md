@@ -14,9 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Register page.** `/register` uses `POST /auth/register` (201, no tokens), then logs in. Map
-      `USERNAME_TAKEN` (409), `INVALID_USERNAME`, `INVALID_PASSWORD` and 429 (10 per hour per IP).
-      Test: MSW for each code. Proposal: Pages and screens.
 - [ ] **Profile, change password and sessions.** `/me` uses `GET /users/me`; password change via
       `POST /users/me/password` (400 `INVALID_CURRENT_PASSWORD`, 429 after 5 wrong; success ends every session,
       so clear and go to `/login`). A "Your devices" list via `GET /users/me/sessions` marks `current`, with
@@ -154,3 +151,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Frontend image and nginx config: multi-stage `frontend/Dockerfile` (node 24 to nginx-unprivileged on 8080), `nginx.conf` with API proxy, SPA fallback, cache and security headers, and `build_docker_image.sh` (6d958b3)
 - [x] Compose `web` service (`spring-web`, 8081) at fixed IP 172.28.0.10 on a pinned 172.28.0.0/24 `app-network`; `TRUSTED_PROXIES` is only that address; app port bound to 127.0.0.1; `run_compose.sh` builds both images (0696c25)
 - [x] E2E stack and Playwright suite: `docker-compose.e2e.yml` (project `expense-tracker-e2e`, web on 127.0.0.1:18081, subnet 172.29.0.0/24, seeded `e2e-admin`, 75 s access tokens because the UI refreshes 60 s early, raised `APP_RATELIMIT_*`), six specs in `frontend/e2e/` and `run_e2e.sh` (093072e)
+- [x] Register page at `/register`: zod rules mirroring `UsernameValidator`/`PasswordValidator` (stripped ASCII name up to 100, password 12 chars to 72 bytes, not the username), then logs in through `AuthProvider`; `USERNAME_TAKEN`/`INVALID_USERNAME` on username, `INVALID_PASSWORD` on password, 429 form-level with `Retry-After`; login and register link to each other (7a3b811)
