@@ -1,12 +1,51 @@
 # TODO
 
-Last investigation: 2026-10-16 20:21 — 8 new findings
+Last investigation: 2026-10-18 06:37 — 4 new findings
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
 
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
+
+## Findings
+
+- [ ] **The web UI keeps the role from login after a refresh.** `frontend/src/auth/AuthProvider.tsx`
+      calls `stateFor(client.identity())` only after the boot refresh and after `login`; the scheduled and
+      401-driven refreshes in `frontend/src/api/client.ts` replace the access token but never tell React.
+      The server applies a promotion at the next `/auth/refresh` (README section 17), yet a promoted user gets
+      no Admin link and `RequireAdmin` sends them away from `/admin/users` until they reload the page.
+      Fix: let the client notify listeners when `applySession` stores a new token (e.g. `onSession(listener)`
+      next to `onSignedOut`) and have `AuthProvider` set `stateFor(client.identity())` from it. Test: in
+      `auth.test.tsx`, boot with a USER token, make `/auth/refresh` return an ADMIN token, call
+      `client.refresh()` inside `act`, and the "ADMIN" role text and Admin link appear (verified failing on
+      2026-10-18 with a scratch Vitest: `client.identity().role` was ADMIN, the page still showed none).
+      Careful: do not clear the Query cache on a refresh, only on sign-in and sign-out; same username, so the
+      cached data still belongs to this user.
+- [ ] **Docs contradict the code on `TRUSTED_PROXIES` and admin sessions.** `docker_compose/README.md`
+      ("Behind a reverse proxy", line 36) says an empty `TRUSTED_PROXIES` is "the default here", but
+      `docker-compose.yml` defaults it to `172[.]28[.]0[.]10` (the `web` service) and `.env.example` sets the
+      same; reword it to say the default is the web service's address and an empty value trusts no one.
+      `README.md` "Web UI" (line 1329) says admins can see "a user's role, status and sessions", but
+      `frontend/src/admin/AdminUserPage.tsx` only shows and PATCHes role and status; the admin
+      `GET/DELETE /users/{id}/sessions` endpoints have no screen. Drop "and sessions" there (building the
+      screen is a separate feature). Acceptance: both sentences match the files they describe.
+- [ ] **`expense.unique_id` is not unique.** `V1__initial_tables.sql` created only a plain
+      `index_expense_unique_id`, and no later migration adds a constraint, although `unique_id` is the public
+      id every expense endpoint looks up through `ExpenseRepository.findByUniqueIdAndOwnerId` (an `Optional`;
+      two rows with one id would make it throw and answer 500). `users.unique_id` (V9) and
+      `user_sessions.unique_id` (V14) are unique. Fix: a new migration `V16__unique_expense_unique_id.sql`
+      that fails with a clear message if duplicates exist (like V11), creates a unique index on
+      `expense(unique_id)` and drops `index_expense_unique_id`. Test: like `UserUniqueIdIndexTests`, insert
+      two expenses with the same `unique_id` and expect a `DataIntegrityViolationException`, and
+      `pg_indexes` lists exactly one index on `expense.unique_id`. Careful: never edit V1; add the new file.
+- [ ] **Backend image uses the floating `eclipse-temurin:25` tag.** `backend/Dockerfile` line 1 pulls
+      whatever 25.x JDK is current at build time, while the frontend images are pinned
+      (`node:24.11-alpine`, `nginx-unprivileged:1.29.3-alpine`) and `package.json` uses exact versions, so a
+      rebuild of `expense-tracker:1.0` can silently change the JVM. Fix: pin an exact release tag, preferably
+      the JRE variant the app needs (e.g. `eclipse-temurin:25.0.<x>_<y>-jre`, look up the current one), and
+      keep the `apt-get install curl` step working on it. Acceptance: `build_docker_image.sh` builds, the
+      container turns `healthy` in a throwaway Compose project, and the Dockerfile names one exact version.
 
 ## Needs you
 
