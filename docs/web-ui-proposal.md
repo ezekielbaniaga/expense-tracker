@@ -209,7 +209,7 @@ Decided: run everything locally for now (`frontend/run_e2e.sh`); no CI yet.
 
 ## Build, deploy, and Docker Compose integration
 
-**Local development.** Node 22. `npm run dev` on Vite (port 5173) with a proxy for `/api`, `/auth` and `/users` to `http://localhost:8080`. The browser sees one origin, so no CORS config. The backend runs the usual way (`./mvnw spring-boot:run` or Compose).
+**Local development.** Node 24. `npm run dev` on Vite (port 5173) with a proxy for `/api`, `/auth` and `/users` to `http://localhost:8080`. The browser sees one origin, so no CORS config. The backend runs the usual way (`./mvnw spring-boot:run` or Compose).
 
 **Production-like build.** `npm run build` outputs static files in `dist/`.
 
@@ -277,4 +277,4 @@ The backend changes (list `1.2`, refresh cookie) come before the frontend. Updat
 - [x] **Cross-tab refresh.** Web Locks only (2026-10-18).
 - [x] **App port 8080 with nginx in front.** Kept, bound to `127.0.0.1` (2026-10-18).
 - [x] **Sessions on the profile screen.** Yes, list and revoke via `/users/me/sessions` (2026-10-18).
-- [x] **Node version.** Node 22 LTS with Vite 7 (2026-10-18).
+- [x] **Node version.** Node 24 LTS with Vite 7 (2026-10-18).

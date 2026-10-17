@@ -12,7 +12,7 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 From docs/web-ui-proposal.md. Work in order. Java paths are relative to the package root as above;
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
-need Node 22 (see Needs you): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
+need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
 - [ ] **Expense list version 1.2 with category, date and version.** Add records `ExpenseListItemResponseV1_2`
       (`id, description, amount, category, date, version`) and `ExpenseListResponseV1_2` (`expenses, count,
@@ -45,10 +45,10 @@ need Node 22 (see Needs you): `npm ci`, `npm test` (Vitest) and `npm run build` 
       body-based tests must stay green. Proposal: Auth flow.
 - [ ] **Scaffold `frontend/`.** Vite 7 + React + TypeScript, with `react-router-dom`, `@tanstack/react-query`,
       `react-hook-form`, `zod`, and dev deps `vitest`, `jsdom`, `@testing-library/react`, `msw`. Exact versions.
-      Add `frontend/.gitignore` (`node_modules/`, `dist/`), `frontend/.nvmrc` (`22`), scripts `dev`, `build`,
+      Add `frontend/.gitignore` (`node_modules/`, `dist/`), `frontend/.nvmrc` (`24`), scripts `dev`, `build`,
       `test`, `lint`, and a Vite `server.proxy` for `/api`, `/auth`, `/users` to `http://localhost:8080`.
       Test: a smoke test rendering `<App/>`; `npm run build` passes. Careful: stop and report if
-      `node --version` is below 22. Leave the proxy's `Origin` header untouched, because cookie refresh checks
+      `node --version` is below 24. Leave the proxy's `Origin` header untouched, because cookie refresh checks
       it (`http://localhost:5173`). Proposal: Frontend stack options.
 - [ ] **API error and expense mapping.** `frontend/src/api/errors.ts` parses `ErrorResponse` into `ApiError {status,
       code, messages, retryAfter?}`; `fieldErrors()` splits `field: message` on the first colon (others are
@@ -103,7 +103,7 @@ need Node 22 (see Needs you): `npm ci`, `npm test` (Vitest) and `npm run build` 
       unsaved input; 409 `MODIFY_ARCHIVED` says the expense was deleted and goes to the list. Test: MSW,
       success updates the version, 409 keeps input, delete sends `?version=`. Proposal: Validation and error
       handling.
-- [ ] **Frontend image and nginx config.** `frontend/Dockerfile`: a `node:22` build stage and a pinned
+- [ ] **Frontend image and nginx config.** `frontend/Dockerfile`: a `node:24` build stage and a pinned
       `nginxinc/nginx-unprivileged` runtime on 8080. `frontend/nginx.conf`: `try_files $uri /index.html`;
       `location /api/`, `/auth/`, `/users` proxy to `http://app:8080` with `X-Forwarded-For
       $proxy_add_x_forwarded_for`, `X-Forwarded-Proto` and `Host`, placed before `location /` so API 404s
@@ -145,16 +145,13 @@ need Node 22 (see Needs you): `npm ci`, `npm test` (Vitest) and `npm run build` 
       Test: Testing Library role queries plus `vitest-axe` on each screen. The visual check is manual (see
       Needs you). Proposal: Milestones (7).
 - [ ] **Docs for the web UI.** `README.md`: a web UI section (same-origin proxy, refresh cookie and Origin
-      check, cross-tab refresh, list 1.2) and a Roadmap entry. `CLAUDE.md`: `frontend/` in Layout, Node 22 and
+      check, cross-tab refresh, list 1.2) and a Roadmap entry. `CLAUDE.md`: `frontend/` in Layout, Node 24 and
       the npm commands in Build and test. `docker_compose/README.md`: the `web` service, port 8081, app port
       on 127.0.0.1, `TRUSTED_PROXIES`, the e2e stack. Mark the proposal done. Test: every path and command
       named exists. Proposal: Milestones.
 
 ## Needs you
 
-- [ ] **Upgrade Node to 22 LTS before the Web UI frontend items.** Local Node is 20.15.1 and Vite 7
-      needs 22. The loop also needs network access for `npm ci`. Blocks every Web UI item from
-      "Scaffold `frontend/`" on; the three backend items before it don't need it.
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
       `docker_compose/.env`, log in through `:8081` and check that `user_sessions.ip_address` holds your client
       IP, not nginx's. (2) Run `frontend/run_e2e.sh` (needs `npx playwright install`). (3) Click through every
@@ -162,6 +159,7 @@ need Node 22 (see Needs you): `npm ci`, `npm test` (Vitest) and `npm run build` 
 
 ## Done
 
+- [x] Node 24 LTS (v24.22.0) installed for the Web UI frontend items; Node 20.15.1 was too old for Vite 7
 - [x] Cleaned up the untracked files in the repo root
 - [x] Rotated the `POSTGRES_PASSWORD`, `ADMIN_PASSWORD` and `JWT_SECRET` that were committed to history (2026-10-17): new random values in the git-ignored `docker_compose/.env`. The old values still sit in public history and are dead only where nothing uses them; the Compose database volume `spring-boot-sample_pgdata`, created with them, was deleted, and any other deployment needs the same rotation
 - [x] Login lockout abuse: the strict failure bucket (5 per 15 minutes) is keyed by username and client IP, so a guesser locks out only their own address; a loose any-IP bucket (100 per hour) is the backstop, and one IP can keep about 12 accounts locked instead of 60; success refunds both (f9ad763)
