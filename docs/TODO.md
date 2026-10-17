@@ -8,18 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Web UI
-
-From docs/web-ui-proposal.md. Work in order. Java paths are relative to the package root as above;
-`frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
-need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
-
-- [ ] **Docs for the web UI.** `README.md`: a web UI section (same-origin proxy, refresh cookie and Origin
-      check, cross-tab refresh, list 1.2) and a Roadmap entry. `CLAUDE.md`: `frontend/` in Layout, Node 24 and
-      the npm commands in Build and test. `docker_compose/README.md`: the `web` service, port 8081, app port
-      on 127.0.0.1, `TRUSTED_PROXIES`, the e2e stack. Mark the proposal done. Test: every path and command
-      named exists. Proposal: Milestones.
-
 ## Needs you
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
@@ -142,3 +130,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Profile page at `/me`: account from `GET /users/me`; password change with zod rules shared with register (12 chars to 72 bytes, not the username), `INVALID_CURRENT_PASSWORD` on the current field, `INVALID_PASSWORD` on the new one, 429 form-level with `Retry-After`, success logs out to `/login`; "Your devices" from `GET /users/me/sessions` marks this device, inline-confirmed revoke one (this device logs out) and sign out other devices (08ff61a)
 - [x] Admin users screen at `/admin/users` (Admin link and routes only for an `ADMIN` token): username/status filters and server paging in the URL, `INVALID_PAGE` resets page and size; `/admin/users/:id` PATCHes changed `enabled`/`role` with `version`, inline confirm before disable or demote; `CANNOT_MODIFY_SELF`, `LAST_ADMIN`, `EMPTY_PATCH` at the form, `CONCURRENT_MODIFICATION` keeps the input and offers Reload, 403 says "You no longer have admin access" (2df9ae4)
 - [x] Accessibility and responsive pass: error text tied to inputs (`aria-describedby`/`aria-invalid`), shared `PageHeading` takes focus after navigation (not on first load or refetch), failed submit focuses the first invalid field or the form alert, inline confirms focus Cancel and return focus, skip link, `src/styles.css` with focus rings, wrapping nav and scrollable tables for ~360px; `vitest-axe` on every screen with `color-contrast` off (047f573)
+- [x] Documented the web UI in README.md, CLAUDE.md and docker_compose/README.md, marked its proposal implemented (514b57b)
