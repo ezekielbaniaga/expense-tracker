@@ -5,8 +5,11 @@ import { apiClient, type ApiClient } from "./api/client";
 import { AuthProvider } from "./auth/AuthProvider";
 import { LoginPage } from "./auth/LoginPage";
 import { RequireAuth } from "./auth/RequireAuth";
-import { HomePage } from "./HomePage";
+import { ArchivedPage } from "./expenses/ArchivedPage";
+import { ExpenseListPage } from "./expenses/ExpenseListPage";
 import { queryClient as appQueryClient } from "./queryClient";
+import { Layout } from "./ui/Layout";
+import { ToastProvider } from "./ui/Toast";
 
 interface ProviderProps {
   client: ApiClient;
@@ -18,7 +21,9 @@ interface ProviderProps {
 export function AppProviders({ client, queryClient, children }: ProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider client={client}>{children}</AuthProvider>
+      <AuthProvider client={client}>
+        <ToastProvider>{children}</ToastProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
@@ -28,13 +33,15 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route
-        path="/"
         element={
           <RequireAuth>
-            <HomePage />
+            <Layout />
           </RequireAuth>
         }
-      />
+      >
+        <Route path="/" element={<ExpenseListPage />} />
+        <Route path="/archived" element={<ArchivedPage />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

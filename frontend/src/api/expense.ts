@@ -83,3 +83,38 @@ export function todayIso(now: Date = new Date()): string {
 export function isFutureDate(date: string, now: Date = new Date()): boolean {
   return date > todayIso(now);
 }
+
+/** Item of `GET /api/expense/archived`; `archivedAt` is UTC without offset. */
+export interface ArchivedExpenseDto {
+  id: string;
+  description: string;
+  amount: number;
+  archivedAt: string;
+}
+
+export interface ArchivedExpenseListDto {
+  expenses: ArchivedExpenseDto[];
+  count: number;
+}
+
+export const CATEGORY_LABELS: Record<Category, string> = {
+  FOOD: "Food",
+  TRANSPORT: "Transport",
+  BILLS: "Bills",
+  ENTERTAINMENT: "Entertainment",
+};
+
+/** Label for display; an unknown value from a newer server is shown as sent. */
+export function categoryLabel(category: string): string {
+  return (CATEGORY_LABELS as Record<string, string>)[category] ?? category;
+}
+
+/** Newest `archivedAt` first; the server returns them unordered. Does not mutate. */
+export function sortArchivedDesc(expenses: ArchivedExpenseDto[]): ArchivedExpenseDto[] {
+  return [...expenses].sort((a, b) => Date.parse(b.archivedAt) - Date.parse(a.archivedAt));
+}
+
+/** "2026-10-18T09:05:03.123" to "2026-10-18 09:05". */
+export function formatArchivedAt(archivedAt: string): string {
+  return archivedAt.replace("T", " ").slice(0, 16);
+}

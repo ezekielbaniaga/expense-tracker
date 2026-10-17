@@ -14,6 +14,8 @@ export type AuthState =
 
 export interface AuthContextValue {
   state: AuthState;
+  /** The API client, for data calls (it attaches the token and refreshes on 401). */
+  client: ApiClient;
   /** Rejects with the ApiError from `/auth/login`; the page shows it. */
   login(username: string, password: string): Promise<void>;
   /** Never rejects: the client is cleared whatever the server says. */
@@ -75,7 +77,10 @@ export function AuthProvider({ client, children }: { client: ApiClient; children
     setState(ANONYMOUS);
   }, [client, queryClient]);
 
-  const value = useMemo(() => ({ state, login, logout }), [state, login, logout]);
+  const value = useMemo(
+    () => ({ state, client, login, logout }),
+    [state, client, login, logout],
+  );
 
   return (
     <AuthContext.Provider value={value}>
