@@ -36,7 +36,11 @@ when the request comes from an address matching `TRUSTED_PROXIES` (a regex, e.g.
 `172[.]18[.]0[.]10`; give the proxy a fixed IP on `app-network`). Empty, the default here, trusts
 no one and the header is ignored.
 
-Once the proxy is in front, **stop publishing `8080:8080`** (remove `ports:` from `app` and publish
-the proxy's port instead). Otherwise a client can still reach the app directly through the Docker
-port mapping; it arrives from the bridge gateway, and if `TRUSTED_PROXIES` is too broad (Tomcat's
-default trusts every private range, gateway included), it could spoof its IP.
+The `web` service (nginx, `expense-tracker-web:1.0`) is that proxy: it has the fixed IP
+`172.28.0.10` on `app-network` (subnet `172.28.0.0/24`), and `TRUSTED_PROXIES` defaults to
+`172[.]28[.]0[.]10`, only that address, never the subnet. Browsers use `web` on port 8081. The
+app's port is published on `127.0.0.1:8080` only (Bruno and debugging); published on all
+interfaces, a client could reach the app directly through the Docker port mapping, arrive from the
+bridge gateway, and if `TRUSTED_PROXIES` were too broad (Tomcat's default trusts every private
+range, gateway included), spoof its IP. Changing the subnet recreates `app-network`, so run
+`./stop_compose.sh` first.
