@@ -14,14 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Compose `web` service with a trusted proxy IP.** In `docker_compose/docker-compose.yml` add `web`
-      (`expense-tracker-web:1.0`, `container_name: spring-web`, `8081:8080`, `depends_on: app: condition:
-      service_healthy`) with a fixed `ipv4_address` on `app-network`, which gets an `ipam` subnet. Set
-      `TRUSTED_PROXIES` to that address as an escaped regex in `.env.example` and the Compose default. Bind
-      the app's port to `127.0.0.1:8080:8080` (Bruno and debugging only). Have `run_compose.sh` build both
-      images first. Test: `docker compose config` is valid. Careful: never trust the whole subnet; the subnet
-      change recreates the network. The client-IP check is manual (see Needs you). Proposal: Build, deploy,
-      and Docker Compose integration.
 - [ ] **E2E stack and Playwright suite (local).** `docker_compose/docker-compose.e2e.yml`: its own project name
       and volume, a known test `ADMIN_PASSWORD` (12+ characters, not `change-me`) and `JWT_SECRET`, normal
       profile (the `test` profile creates no admin), `APP_JWT_EXPIRATION=20s` and raised `APP_RATE_LIMIT_*`.
@@ -168,3 +160,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Create expense form at `/expenses/new` with zod validation, server field errors and `INVALID_CATEGORY` handling (2d27d8e)
 - [x] Edit (PUT with version), inline description edit (PATCH) and confirmed delete (`DELETE ?version=`) on the expense detail page; 409 `CONCURRENT_MODIFICATION` keeps the input and offers Reload, 409 `MODIFY_ARCHIVED` says it was deleted and goes to the list; the create form's fields and resolver are shared (a245640)
 - [x] Frontend image and nginx config: multi-stage `frontend/Dockerfile` (node 24 to nginx-unprivileged on 8080), `nginx.conf` with API proxy, SPA fallback, cache and security headers, and `build_docker_image.sh` (6d958b3)
+- [x] Compose `web` service (`spring-web`, 8081) at fixed IP 172.28.0.10 on a pinned 172.28.0.0/24 `app-network`; `TRUSTED_PROXIES` is only that address; app port bound to 127.0.0.1; `run_compose.sh` builds both images (0696c25)
