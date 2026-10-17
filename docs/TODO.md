@@ -14,15 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **`fetch` client with single-flight cookie refresh.** `frontend/src/api/client.ts`: the access token lives in a
-      module variable only. Every call adds `Authorization` and an explicit `X-API-Version`. On a 401 it awaits
-      one shared refresh promise (`POST /auth/refresh`, no body, the browser sends the cookie), replays once,
-      and a second 401 means signed out. Refresh 401 or 400: signed out (emit an event). 429: keep the session,
-      reject with `retryAfter`. Network error: keep the session. Schedule an early refresh
-      `accessTokenExpiresIn - 60` seconds after each success, through the same single-flight path.
-      `login()` sends `X-Refresh-Token-Transport: cookie`. Test: Vitest + MSW, ten parallel 401s give one
-      refresh; replay happens once; 401 emits signed-out; 429 does not. Careful: a second refresh with the
-      same cookie is reuse and revokes the session. Proposal: Auth flow.
 - [ ] **Cross-tab refresh lock and logout broadcast.** Wrap the refresh in
       `navigator.locks.request('refresh', ...)` so tabs refresh one at a time, each with the latest cookie.
       A `BroadcastChannel('auth')` carries `signed-out` so other tabs clear and leave. Test: Vitest with a fake
@@ -215,3 +206,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Refresh and logout read the refresh cookie when the body has no token, require an allowed `Origin` (else 403 `ORIGIN_NOT_ALLOWED`), rotate or clear the cookie (d25e097)
 - [x] Scaffolded `frontend/` (Vite 7.3.7, React 19, TypeScript, router, query, react-hook-form, zod, Vitest/msw, exact versions, `/api` `/auth` `/users` dev proxy without changeOrigin); `npm ci`, test, build and lint pass (c7f0275)
 - [x] `frontend/src/api/errors.ts` (ApiError, `parseApiError` incl. Retry-After and non-JSON bodies, `fieldErrors`) and `expense.ts` (DTO types, `total_amount`/`supported_categories` mapping, amount and date helpers) with Vitest tests (2640d61)
+- [x] `frontend/src/api/client.ts`: fetch client with the access token in memory, explicit `X-API-Version`, cookie-transport login, single-flight `POST /auth/refresh` shared by parallel 401s and the early refresh (`accessTokenExpiresIn - 60` s), one replay; refresh 401/400 or a second 401 emits signed-out, 429 (with `retryAfter`) and network errors keep the session; Vitest + MSW tests (7723832)
