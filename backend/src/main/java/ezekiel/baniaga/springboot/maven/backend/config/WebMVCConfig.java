@@ -13,7 +13,7 @@ public class WebMVCConfig implements WebMvcConfigurer {
 
     @Override
     public void configureApiVersioning(ApiVersionConfigurer configurer) {
-        configurer.addSupportedVersions("1.0", "1.1");
+        configurer.addSupportedVersions("1.0", "1.1", "1.2");
 
         configurer.setDefaultVersion("1.0");
         configurer.setVersionParser(apiVersionParser);

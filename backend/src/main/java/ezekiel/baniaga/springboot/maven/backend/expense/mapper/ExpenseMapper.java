@@ -46,6 +46,16 @@ public class ExpenseMapper {
             expense.getAmount());
     }
 
+    public ExpenseListItemResponseV1_2 toListItemV1_2(Expense expense) {
+        return new ExpenseListItemResponseV1_2(
+            expense.getUniqueId(),
+            expense.getDescription(),
+            expense.getAmount(),
+            expense.getCategory(),
+            expense.getExpenseDate(),
+            expense.getVersion());
+    }
+
     public ArchivedExpenseListItemResponse toArchivedListItem(Expense expense) {
         return new ArchivedExpenseListItemResponse(
             expense.getUniqueId(),

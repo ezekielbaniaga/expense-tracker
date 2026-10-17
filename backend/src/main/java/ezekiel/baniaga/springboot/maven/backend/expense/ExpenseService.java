@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -96,6 +97,24 @@ public class ExpenseService {
 
         return new ExpenseListResponseV1_1(
                 expensesResponse, count, total_amount);
+    }
+
+    // Newest expense date first; the newest-created breaks ties between expenses on the same date
+    public ExpenseListResponseV1_2 getAllExpensesV1_2(UUID ownerId) {
+        List<ExpenseListItemResponseV1_2> expensesResponse = repository.findActiveByOwnerId(ownerId)
+            .stream()
+            .sorted(Comparator.comparing(Expense::getExpenseDate, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(Expense::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+            .map(expenseMapper::toListItemV1_2).toList();
+
+        // Expenses saved before amount was required can have no amount; skip them in the total
+        BigDecimal total_amount = expensesResponse.stream()
+                .map(ExpenseListItemResponseV1_2::amount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new ExpenseListResponseV1_2(
+                expensesResponse, expensesResponse.size(), total_amount);
     }
 
     public ArchivedExpenseListResponse getArchivedExpenses(UUID ownerId) {

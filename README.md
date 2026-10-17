@@ -998,6 +998,11 @@ The complete lifecycle can be summarized as:
 
 Every error below uses the same JSON body as the rest of the API: `{"code": "...", "messages": [...], "timestamp": "..."}`.
 
+**API versions.** Send the version in the `X-API-Version` header (`1.0` is the default; `1.1` and `1.2` are also
+served). Only the expense list differs: `1.0` returns `{ expenses: [{ id, description, amount }], count }`, `1.1` adds
+`total_amount`, and `1.2` also returns `category`, `date` and `version` on each expense, ordered by `date` newest
+first, then by creation time newest first. An unserved version is rejected with a `4xx`.
+
 **Timestamps are UTC.** Every timestamp in a response (`createdAt`, `lastModified`, `expiresAt`, the error
 `timestamp`, ...) is a UTC time written without an offset, e.g. `"2026-10-16T08:00:00"`: read it as
 `2026-10-16T08:00:00Z`. The app takes "now" from one UTC `Clock` bean, so the host's time zone doesn't matter.

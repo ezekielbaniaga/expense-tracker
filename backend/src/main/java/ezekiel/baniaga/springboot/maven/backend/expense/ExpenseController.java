@@ -29,6 +29,11 @@ public class ExpenseController {
         return service.getAllExpensesV1_1(user.getUniqueId());
     }
 
+    @GetMapping(version = "1.2")
+    public ExpenseListResponseV1_2 getExpenseV1_2(@AuthenticationPrincipal CustomUserDetails user) {
+        return service.getAllExpensesV1_2(user.getUniqueId());
+    }
+
     @GetMapping(value = "/archived")
     public ArchivedExpenseListResponse getArchivedExpenses(@AuthenticationPrincipal CustomUserDetails user) {
        return service.getArchivedExpenses(user.getUniqueId());
