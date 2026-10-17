@@ -5,6 +5,8 @@ import { ApiError } from "../api/errors";
 import { DEFAULT_USER_PAGE_SIZE, formatTimestamp, type UserListDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { PageHeading } from "../ui/focus";
+import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 
 /**
@@ -103,7 +105,7 @@ export function AdminUsersPage() {
   if (isForbidden(failure)) {
     return (
       <section aria-labelledby="users-heading">
-        <h2 id="users-heading">Users</h2>
+        <PageHeading id="users-heading">Users</PageHeading>
         <p role="alert">{NO_ADMIN_ACCESS}</p>
       </section>
     );
@@ -112,7 +114,7 @@ export function AdminUsersPage() {
   const data = query.data;
   return (
     <section aria-labelledby="users-heading">
-      <h2 id="users-heading">Users</h2>
+      <PageHeading id="users-heading">Users</PageHeading>
       <form
         aria-label="Filter users"
         onSubmit={(event) => {
@@ -145,6 +147,7 @@ export function AdminUsersPage() {
           <p>No users match.</p>
         ) : (
           <>
+            <TableScroll label="Users table">
             <table>
               <thead>
                 <tr>
@@ -167,6 +170,7 @@ export function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
+            </TableScroll>
             <p>
               Page {data.page + 1} of {Math.max(data.totalPages, 1)}, {data.total} user{data.total === 1 ? "" : "s"}
             </p>

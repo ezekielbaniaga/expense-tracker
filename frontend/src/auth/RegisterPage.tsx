@@ -3,6 +3,8 @@ import { useForm, type Resolver } from "react-hook-form";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
 import { useAuth } from "./AuthProvider";
+import { PageHeading } from "../ui/focus";
+import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { tooManyAttemptsMessage } from "./LoginPage";
 import { toRegisterRequest, validateRegister, type RegisterFormValues } from "./registerSchema";
 
@@ -59,9 +61,11 @@ export function RegisterPage() {
       if (error instanceof ApiError && error.status === 400 && error.code === "VALIDATION_ERROR") {
         const { fields, form } = fieldErrors(error);
         const rest = [...form];
+        let focused = false;
         for (const [name, message] of Object.entries(fields)) {
           if ((FIELDS as readonly string[]).includes(name)) {
-            setError(name as Field, { type: "server", message });
+            setError(name as Field, { type: "server", message }, { shouldFocus: !focused });
+            focused = true;
           } else {
             rest.push(`${name}: ${message}`);
           }
@@ -70,7 +74,7 @@ export function RegisterPage() {
         return;
       }
       const { field, message } = registerFailure(error);
-      if (field) setError(field, { type: "server", message });
+      if (field) setError(field, { type: "server", message }, { shouldFocus: true });
       else setServerError(message);
       return;
     }
@@ -85,28 +89,28 @@ export function RegisterPage() {
 
   return (
     <main>
-      <h1>Create account</h1>
+      <PageHeading as="h1">Create account</PageHeading>
       <form onSubmit={onSubmit} noValidate>
         <label htmlFor="username">Username</label>
         <input
           id="username"
           autoComplete="username"
-          aria-invalid={errors.username ? true : undefined}
+          {...errorProps("username", errors.username?.message)}
           {...register("username")}
         />
-        {errors.username && <p>{errors.username.message}</p>}
+        <FieldError id="username" message={errors.username?.message} />
 
         <label htmlFor="password">Password</label>
         <input
           id="password"
           type="password"
           autoComplete="new-password"
-          aria-invalid={errors.password ? true : undefined}
+          {...errorProps("password", errors.password?.message)}
           {...register("password")}
         />
-        {errors.password && <p>{errors.password.message}</p>}
+        <FieldError id="password" message={errors.password?.message} />
 
-        {serverError && <p role="alert">{serverError}</p>}
+        {serverError && <FormAlert>{serverError}</FormAlert>}
         <button type="submit" disabled={isSubmitting}>
           Create account
         </button>

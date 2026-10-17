@@ -6,6 +6,8 @@ import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import { todayIso, type ExpenseDto } from "../api/expense";
 import { applyServerErrors, ExpenseFields, expenseResolver, useCategories } from "./ExpenseFields";
+import { PageHeading } from "../ui/focus";
+import { FormAlert } from "../ui/forms";
 import { toCreateRequest, type ExpenseFormValues } from "./expenseSchema";
 
 export function CreateExpensePage() {
@@ -16,7 +18,7 @@ export function CreateExpensePage() {
       <p>
         <Link to="/">Back to expenses</Link>
       </p>
-      <h2 id="create-heading">New expense</h2>
+      <PageHeading id="create-heading">New expense</PageHeading>
       {categories.isPending && <p role="status">Loading categories...</p>}
       {categories.isError && (
         <p>
@@ -78,7 +80,7 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
     <form onSubmit={onSubmit} noValidate>
       <ExpenseFields categories={categories} register={register} errors={errors} />
 
-      {formError && <p role="alert">{formError}</p>}
+      {formError && <FormAlert>{formError}</FormAlert>}
       <button type="submit" disabled={create.isPending}>
         Add expense
       </button>

@@ -8,6 +8,7 @@ import {
   todayIso,
   type AllCategoriesResponseDto,
 } from "../api/expense";
+import { FieldError, errorProps } from "../ui/forms";
 import { validateExpense, type ExpenseFormValues } from "./expenseSchema";
 
 const FIELDS = ["description", "amount", "category", "date"] as const;
@@ -44,9 +45,12 @@ export function applyServerErrors(
 ): string | null {
   const { fields, form } = fieldErrors(error);
   const rest = [...form];
+  let focused = false;
   for (const [name, message] of Object.entries(fields)) {
     if ((FIELDS as readonly string[]).includes(name)) {
-      setError(name as (typeof FIELDS)[number], { type: "server", message });
+      // The first field with an error takes focus
+      setError(name as (typeof FIELDS)[number], { type: "server", message }, { shouldFocus: !focused });
+      focused = true;
     } else {
       rest.push(`${name}: ${message}`);
     }
@@ -58,30 +62,33 @@ interface Props {
   categories: readonly string[];
   register: UseFormRegister<ExpenseFormValues>;
   errors: FieldErrors<ExpenseFormValues>;
+  /** Focuses the description when the form opens (the edit form; the create page keeps focus on its heading). */
+  autoFocus?: boolean;
 }
 
-export function ExpenseFields({ categories, register, errors }: Props) {
+export function ExpenseFields({ categories, register, errors, autoFocus }: Props) {
   return (
     <>
       <label htmlFor="description">Description</label>
       <input
         id="description"
-        aria-invalid={errors.description ? true : undefined}
+        autoFocus={autoFocus}
+        {...errorProps("description", errors.description?.message)}
         {...register("description")}
       />
-      {errors.description && <p>{errors.description.message}</p>}
+      <FieldError id="description" message={errors.description?.message} />
 
       <label htmlFor="amount">Amount</label>
       <input
         id="amount"
         inputMode="decimal"
-        aria-invalid={errors.amount ? true : undefined}
+        {...errorProps("amount", errors.amount?.message)}
         {...register("amount")}
       />
-      {errors.amount && <p>{errors.amount.message}</p>}
+      <FieldError id="amount" message={errors.amount?.message} />
 
       <label htmlFor="category">Category</label>
-      <select id="category" aria-invalid={errors.category ? true : undefined} {...register("category")}>
+      <select id="category" {...errorProps("category", errors.category?.message)} {...register("category")}>
         <option value="">Select...</option>
         {categories.map((c) => (
           <option key={c} value={c}>
@@ -89,17 +96,17 @@ export function ExpenseFields({ categories, register, errors }: Props) {
           </option>
         ))}
       </select>
-      {errors.category && <p>{errors.category.message}</p>}
+      <FieldError id="category" message={errors.category?.message} />
 
       <label htmlFor="date">Date</label>
       <input
         id="date"
         type="date"
         max={todayIso()}
-        aria-invalid={errors.date ? true : undefined}
+        {...errorProps("date", errors.date?.message)}
         {...register("date")}
       />
-      {errors.date && <p>{errors.date.message}</p>}
+      <FieldError id="date" message={errors.date?.message} />
     </>
   );
 }

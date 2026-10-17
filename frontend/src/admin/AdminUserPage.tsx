@@ -6,6 +6,8 @@ import type { Role } from "../api/jwt";
 import { formatTimestamp, type AdminUserDto, type UpdateUserRequest } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { PageHeading, useRefocusOnClose } from "../ui/focus";
+import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { isForbidden, NO_ADMIN_ACCESS } from "./AdminUsersPage";
 
@@ -37,7 +39,7 @@ export function AdminUserPage() {
         <Link to="/admin/users">Back to users</Link>
       </p>
       {query.isPending && <p role="status">Loading user...</p>}
-      {isNotFound(failure) && <h2 id="user-heading">Not found</h2>}
+      {isNotFound(failure) && <PageHeading id="user-heading">Not found</PageHeading>}
       {isForbidden(failure) && <p role="alert">{NO_ADMIN_ACCESS}</p>}
       {query.isError && !isNotFound(failure) && !isForbidden(failure) && (
         <p>
@@ -49,7 +51,7 @@ export function AdminUserPage() {
       )}
       {user && (
         <>
-          <h2 id="user-heading">{user.username}</h2>
+          <PageHeading id="user-heading">{user.username}</PageHeading>
           <dl>
             <dt>Role</dt>
             <dd>{user.role}</dd>
@@ -103,6 +105,7 @@ function UserForm({ user, onReload }: { user: AdminUserDto; onReload: () => void
   const [enabled, setEnabled] = useState(user.enabled);
   const [role, setRole] = useState<Role>(user.role);
   const [confirming, setConfirming] = useState(false);
+  const saveButton = useRefocusOnClose<HTMLButtonElement>(confirming);
   const [stale, setStale] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -189,7 +192,7 @@ function UserForm({ user, onReload }: { user: AdminUserDto; onReload: () => void
           </button>
         </p>
       )}
-      {message && <p role="alert">{message}</p>}
+      {message && <FormAlert>{message}</FormAlert>}
       {saved && <p role="status">Saved.</p>}
       {confirming ? (
         <div>
@@ -200,12 +203,12 @@ function UserForm({ user, onReload }: { user: AdminUserDto; onReload: () => void
           <button type="button" disabled={save.isPending} onClick={submit}>
             Confirm save
           </button>{" "}
-          <button type="button" onClick={() => setConfirming(false)}>
+          <button type="button" autoFocus onClick={() => setConfirming(false)}>
             Cancel
           </button>
         </div>
       ) : (
-        <button type="submit" disabled={save.isPending}>
+        <button type="submit" ref={saveButton} disabled={save.isPending}>
           Save
         </button>
       )}

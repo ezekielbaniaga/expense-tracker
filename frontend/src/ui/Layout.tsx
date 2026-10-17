@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -6,8 +6,20 @@ import { useAuth } from "../auth/AuthProvider";
 export function Layout() {
   const { state, logout } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
+  const main = useRef<HTMLElement>(null);
   return (
     <>
+      {/* Not a #main link: the router would put the hash in the URL */}
+      <a
+        className="skip-link"
+        href="#main"
+        onClick={(event) => {
+          event.preventDefault();
+          main.current?.focus();
+        }}
+      >
+        Skip to content
+      </a>
       <header>
         <h1>Expense Tracker</h1>
         {state.status === "authenticated" && (
@@ -46,7 +58,7 @@ export function Layout() {
           </button>
         </nav>
       </header>
-      <main>
+      <main id="main" ref={main} tabIndex={-1}>
         <Outlet />
       </main>
     </>

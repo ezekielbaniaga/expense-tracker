@@ -20,6 +20,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: ["src/test/setup.ts"],
     // e2e/ holds the Playwright specs, which run against the Compose stack (run_e2e.sh)
     exclude: [...configDefaults.exclude, "e2e/**"],
   },

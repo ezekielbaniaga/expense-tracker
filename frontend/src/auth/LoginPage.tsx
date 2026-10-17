@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import { useAuth } from "./AuthProvider";
+import { FieldError, errorProps, FormAlert } from "../ui/forms";
+import { PageHeading } from "../ui/focus";
 import type { FromState } from "./RequireAuth";
 
 interface LoginForm {
@@ -54,32 +56,32 @@ export function LoginPage() {
 
   return (
     <main>
-      <h1>Sign in</h1>
+      <PageHeading as="h1">Sign in</PageHeading>
       <form onSubmit={onSubmit} noValidate>
         <label htmlFor="username">Username</label>
         <input
           id="username"
           autoComplete="username"
-          aria-invalid={errors.username ? true : undefined}
+          {...errorProps("username", errors.username?.message)}
           {...register("username", {
             validate: (v) => v.trim() !== "" || "Username is required",
           })}
         />
-        {errors.username && <p>{errors.username.message}</p>}
+        <FieldError id="username" message={errors.username?.message} />
 
         <label htmlFor="password">Password</label>
         <input
           id="password"
           type="password"
           autoComplete="current-password"
-          aria-invalid={errors.password ? true : undefined}
+          {...errorProps("password", errors.password?.message)}
           {...register("password", {
             validate: (v) => v.trim() !== "" || "Password is required",
           })}
         />
-        {errors.password && <p>{errors.password.message}</p>}
+        <FieldError id="password" message={errors.password?.message} />
 
-        {serverError && <p role="alert">{serverError}</p>}
+        {serverError && <FormAlert>{serverError}</FormAlert>}
         <button type="submit" disabled={isSubmitting}>
           Sign in
         </button>

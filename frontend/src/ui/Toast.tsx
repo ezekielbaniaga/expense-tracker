@@ -22,7 +22,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div aria-label="Notifications">
+      <div role="region" aria-label="Notifications">
         {toasts.map((toast) => (
           <div key={toast.id} role="alert">
             {toast.message}{" "}

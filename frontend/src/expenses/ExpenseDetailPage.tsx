@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import { categoryLabel, formatAmount, formatArchivedAt, type ExpenseDto } from "../api/expense";
+import { PageHeading } from "../ui/focus";
+import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { applyServerErrors, ExpenseFields, expenseResolver, useCategories } from "./ExpenseFields";
 import { errorMessage } from "./ExpenseListPage";
@@ -43,6 +45,16 @@ export function ExpenseDetailPage() {
   }, [failure, toast]);
 
   const [mode, setMode] = useState<"view" | "edit" | "description" | "delete">("view");
+  // The button that opened a form gets focus back when the form closes
+  const openers = useRef<Record<string, HTMLButtonElement | null>>({});
+  const lastOpener = useRef<string | null>(null);
+  const open = (next: "edit" | "description" | "delete") => {
+    lastOpener.current = next;
+    setMode(next);
+  };
+  useEffect(() => {
+    if (mode === "view" && lastOpener.current) openers.current[lastOpener.current]?.focus();
+  }, [mode]);
   const e = query.data;
   return (
     <section aria-labelledby="expense-heading">
@@ -50,7 +62,7 @@ export function ExpenseDetailPage() {
         <Link to="/">Back to expenses</Link>
       </p>
       {query.isPending && <p role="status">Loading expense...</p>}
-      {notFound && <h2 id="expense-heading">Not found</h2>}
+      {notFound && <PageHeading id="expense-heading">Not found</PageHeading>}
       {query.isError && !notFound && (
         <p>
           The expense could not be loaded.{" "}
@@ -61,7 +73,7 @@ export function ExpenseDetailPage() {
       )}
       {e && (
         <>
-          <h2 id="expense-heading">{e.description}</h2>
+          <PageHeading id="expense-heading">{e.description}</PageHeading>
           <dl>
             <dt>Id</dt>
             <dd>{e.id}</dd>
@@ -80,13 +92,17 @@ export function ExpenseDetailPage() {
           </dl>
           {mode === "view" && (
             <p>
-              <button type="button" onClick={() => setMode("edit")}>
+              <button type="button" ref={(b) => void (openers.current.edit = b)} onClick={() => open("edit")}>
                 Edit
               </button>{" "}
-              <button type="button" onClick={() => setMode("description")}>
+              <button
+                type="button"
+                ref={(b) => void (openers.current.description = b)}
+                onClick={() => open("description")}
+              >
                 Edit description
               </button>{" "}
-              <button type="button" onClick={() => setMode("delete")}>
+              <button type="button" ref={(b) => void (openers.current.delete = b)} onClick={() => open("delete")}>
                 Delete
               </button>
             </p>
@@ -175,7 +191,7 @@ function WriteNotice({
           </button>
         </p>
       )}
-      {failure.message && <p role="alert">{failure.message}</p>}
+      {failure.message && <FormAlert>{failure.message}</FormAlert>}
     </>
   );
 }
@@ -257,7 +273,7 @@ function EditFormFields({
       })}
       noValidate
     >
-      <ExpenseFields categories={categories} register={register} errors={errors} />
+      <ExpenseFields categories={categories} register={register} errors={errors} autoFocus />
       <WriteNotice failure={failure} onReload={onReload} />
       <button type="submit" disabled={update.isPending}>
         Save
@@ -274,6 +290,7 @@ function DescriptionForm({ expense, onReload, onDone }: FormProps) {
   const saved = useSaved(onDone);
   const [description, setDescription] = useState(expense.description);
   const [fieldError, setFieldError] = useState<string | undefined>();
+  const inputRef = useRef<HTMLInputElement>(null);
   const failure = useWriteFailure(expense.id, (error) => {
     if (error.status === 400 && error.code === "VALIDATION_ERROR") {
       failure.setMessage(error.messages.join(" "));
@@ -300,17 +317,20 @@ function DescriptionForm({ expense, onReload, onDone }: FormProps) {
         failure.clear();
         const message = validateDescription(description);
         setFieldError(message);
-        if (!message) patch.mutate();
+        if (message) inputRef.current?.focus();
+        else patch.mutate();
       }}
     >
       <label htmlFor="description">Description</label>
       <input
         id="description"
+        ref={inputRef}
         value={description}
-        aria-invalid={fieldError ? true : undefined}
+        autoFocus
+        {...errorProps("description", fieldError)}
         onChange={(event) => setDescription(event.target.value)}
       />
-      {fieldError && <p>{fieldError}</p>}
+      <FieldError id="description" message={fieldError} />
       <WriteNotice failure={failure} onReload={onReload} />
       <button type="submit" disabled={patch.isPending}>
         Save description
@@ -368,7 +388,7 @@ function DeletePanel({
       >
         Confirm delete
       </button>{" "}
-      <button type="button" onClick={onCancel}>
+      <button type="button" autoFocus onClick={onCancel}>
         Cancel
       </button>
     </div>

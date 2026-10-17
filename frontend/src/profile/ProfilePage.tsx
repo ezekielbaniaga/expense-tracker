@@ -6,6 +6,8 @@ import { formatTimestamp, type RevokedSessionsDto, type SessionDto, type UserDto
 import { useAuth } from "../auth/AuthProvider";
 import { tooManyAttemptsMessage } from "../auth/LoginPage";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { PageHeading, useRefocusOnClose } from "../ui/focus";
+import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { validateChangePassword, type ChangePasswordFormValues } from "./changePasswordSchema";
 
@@ -29,7 +31,7 @@ export function ProfilePage() {
   return (
     <>
       <section aria-labelledby="profile-heading">
-        <h2 id="profile-heading">Profile</h2>
+        <PageHeading id="profile-heading">Profile</PageHeading>
         {query.isPending && <p role="status">Loading profile...</p>}
         {query.isError && (
           <p>
@@ -105,9 +107,11 @@ function ChangePasswordSection({ username }: { username: string | undefined }) {
       if (error instanceof ApiError && error.status === 400 && error.code === "VALIDATION_ERROR") {
         const { fields, form } = fieldErrors(error);
         const rest = [...form];
+        let focused = false;
         for (const [name, message] of Object.entries(fields)) {
           if ((FIELDS as readonly string[]).includes(name)) {
-            setError(name as Field, { type: "server", message });
+            setError(name as Field, { type: "server", message }, { shouldFocus: !focused });
+            focused = true;
           } else {
             rest.push(`${name}: ${message}`);
           }
@@ -116,7 +120,7 @@ function ChangePasswordSection({ username }: { username: string | undefined }) {
         return;
       }
       const { field, message } = changePasswordFailure(error);
-      if (field) setError(field, { type: "server", message });
+      if (field) setError(field, { type: "server", message }, { shouldFocus: true });
       else setServerError(message);
       return;
     }
@@ -137,22 +141,22 @@ function ChangePasswordSection({ username }: { username: string | undefined }) {
           id="currentPassword"
           type="password"
           autoComplete="current-password"
-          aria-invalid={errors.currentPassword ? true : undefined}
+          {...errorProps("currentPassword", errors.currentPassword?.message)}
           {...register("currentPassword")}
         />
-        {errors.currentPassword && <p>{errors.currentPassword.message}</p>}
+        <FieldError id="currentPassword" message={errors.currentPassword?.message} />
 
         <label htmlFor="newPassword">New password</label>
         <input
           id="newPassword"
           type="password"
           autoComplete="new-password"
-          aria-invalid={errors.newPassword ? true : undefined}
+          {...errorProps("newPassword", errors.newPassword?.message)}
           {...register("newPassword")}
         />
-        {errors.newPassword && <p>{errors.newPassword.message}</p>}
+        <FieldError id="newPassword" message={errors.newPassword?.message} />
 
-        {serverError && <p role="alert">{serverError}</p>}
+        {serverError && <FormAlert>{serverError}</FormAlert>}
         <button type="submit" disabled={isSubmitting}>
           Change password
         </button>
@@ -166,6 +170,7 @@ function DevicesSection() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
+  const signOutOthers = useRefocusOnClose<HTMLButtonElement>(confirming);
   const [notice, setNotice] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ["sessions"],
@@ -232,6 +237,7 @@ function DevicesSection() {
             </button>{" "}
             <button
               type="button"
+              autoFocus
               onClick={() => {
                 revokeOthers.reset();
                 setConfirming(false);
@@ -241,7 +247,7 @@ function DevicesSection() {
             </button>
           </div>
         ) : (
-          <button type="button" onClick={() => setConfirming(true)}>
+          <button type="button" ref={signOutOthers} onClick={() => setConfirming(true)}>
             Sign out other devices
           </button>
         ))}
@@ -253,6 +259,7 @@ function SessionItem({ session }: { session: SessionDto }) {
   const { client, logout } = useAuth();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
+  const revokeButton = useRefocusOnClose<HTMLButtonElement>(confirming);
   const revoke = useMutation({
     mutationFn: () =>
       client.request<void>(`/users/me/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" }),
@@ -292,6 +299,7 @@ function SessionItem({ session }: { session: SessionDto }) {
           </button>{" "}
           <button
             type="button"
+            autoFocus
             onClick={() => {
               revoke.reset();
               setConfirming(false);
@@ -301,7 +309,7 @@ function SessionItem({ session }: { session: SessionDto }) {
           </button>
         </div>
       ) : (
-        <button type="button" onClick={() => setConfirming(true)}>
+        <button type="button" ref={revokeButton} onClick={() => setConfirming(true)}>
           Revoke
         </button>
       )}

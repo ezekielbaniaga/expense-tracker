@@ -9,6 +9,8 @@ import {
   mapExpenseList,
   type ExpenseListResponseDto,
 } from "../api/expense";
+import { PageHeading } from "../ui/focus";
+import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 
 export function errorMessage(error: unknown): string {
@@ -34,7 +36,7 @@ export function ExpenseListPage() {
 
   return (
     <section aria-labelledby="expenses-heading">
-      <h2 id="expenses-heading">Expenses</h2>
+      <PageHeading id="expenses-heading">Expenses</PageHeading>
       {query.isPending && <p role="status">Loading expenses...</p>}
       {query.isError && (
         <p>
@@ -53,6 +55,7 @@ export function ExpenseListPage() {
               <span>{query.data.count}</span> expenses, total{" "}
               <strong>{formatAmount(query.data.totalAmount)}</strong>
             </p>
+            <TableScroll label="Expenses table">
             <table>
               <thead>
                 <tr>
@@ -75,6 +78,7 @@ export function ExpenseListPage() {
                 ))}
               </tbody>
             </table>
+            </TableScroll>
           </>
         ))}
     </section>

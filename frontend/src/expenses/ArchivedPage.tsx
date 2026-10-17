@@ -7,6 +7,8 @@ import {
   sortArchivedDesc,
   type ArchivedExpenseListDto,
 } from "../api/expense";
+import { PageHeading } from "../ui/focus";
+import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { errorMessage } from "./ExpenseListPage";
 
@@ -29,7 +31,7 @@ export function ArchivedPage() {
 
   return (
     <section aria-labelledby="archived-heading">
-      <h2 id="archived-heading">Archived expenses</h2>
+      <PageHeading id="archived-heading">Archived expenses</PageHeading>
       {query.isPending && <p role="status">Loading archived expenses...</p>}
       {query.isError && (
         <p>
@@ -43,6 +45,7 @@ export function ArchivedPage() {
         (query.data.length === 0 ? (
           <p>No archived expenses.</p>
         ) : (
+          <TableScroll label="Archived expenses table">
           <table>
             <thead>
               <tr>
@@ -61,6 +64,7 @@ export function ArchivedPage() {
               ))}
             </tbody>
           </table>
+          </TableScroll>
         ))}
     </section>
   );
