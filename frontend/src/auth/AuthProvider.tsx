@@ -1,11 +1,21 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { ApiClient } from "../api/client";
 import type { Identity, Role } from "../api/jwt";
 
 /**
  * Who is signed in, as React sees it. The access token itself stays in the
- * API client's memory, out of React state, so a refresh does not re-render.
+ * API client's memory, out of React state, so a refresh re-renders only when
+ * it changes the role or the user.
  */
 export type AuthState =
   | { status: "booting"; role: null; username: null }
@@ -34,48 +44,73 @@ function stateFor(identity: Identity | null): AuthState {
     : { status: "authenticated", role: identity.role, username: identity.username };
 }
 
+function sameState(a: AuthState, b: AuthState): boolean {
+  return a.status === b.status && a.role === b.role && a.username === b.username;
+}
+
 export function AuthProvider({ client, children }: { client: ApiClient; children: ReactNode }) {
   const queryClient = useQueryClient();
   const [state, setState] = useState<AuthState>(BOOTING);
+  // The shown state, readable from the client's listeners without a stale closure
+  const shown = useRef<AuthState>(BOOTING);
+
+  const show = useCallback((next: AuthState) => {
+    if (sameState(shown.current, next)) return;
+    shown.current = next;
+    setState(next);
+  }, []);
 
   useEffect(() => {
     // Every sign-out lands here: logout, a refresh 401, another tab. Clearing
     // the cache keeps the next person on this browser from seeing this one's data
     return client.onSignedOut(() => {
       queryClient.clear();
-      setState(ANONYMOUS);
+      show(ANONYMOUS);
     });
-  }, [client, queryClient]);
+  }, [client, queryClient, show]);
+
+  useEffect(() => {
+    // Every new token lands here: boot, login and each later refresh, which
+    // carries a promotion or a demotion. Subscribed before the boot refresh
+    // below, so that is shown from here too. The cache stays for the same
+    // user; after boot, another name (the shared cookie was signed in again
+    // elsewhere) is a sign-in, so its data must not show this one's
+    return client.onSession(() => {
+      const next = stateFor(client.identity());
+      const previous = shown.current;
+      if (previous.status !== "booting" && previous.username !== next.username) queryClient.clear();
+      show(next);
+    });
+  }, [client, queryClient, show]);
 
   useEffect(() => {
     // The refresh cookie is HttpOnly, so scripts cannot tell whether there is
     // a session: always try once. StrictMode's second run joins the same
-    // single-flight refresh, so this still sends one request
+    // single-flight refresh, so this still sends one request. A success is
+    // shown by the session listener
     let active = true;
-    client.refresh().then(
-      () => active && setState(stateFor(client.identity())),
-      () => active && setState(ANONYMOUS),
-    );
+    client.refresh().catch(() => active && show(ANONYMOUS));
     return () => {
       active = false;
     };
-  }, [client]);
+  }, [client, show]);
 
   const login = useCallback(
     async (username: string, password: string) => {
       await client.login(username, password);
+      // The session listener did this already; repeat it in case it was not subscribed
       queryClient.clear();
-      setState(stateFor(client.identity()));
+      show(stateFor(client.identity()));
     },
-    [client, queryClient],
+    [client, queryClient, show],
   );
 
   const logout = useCallback(async () => {
     await client.logout();
     // The signed-out listener did this already; repeat it in case it was not subscribed
     queryClient.clear();
-    setState(ANONYMOUS);
-  }, [client, queryClient]);
+    show(ANONYMOUS);
+  }, [client, queryClient, show]);
 
   const value = useMemo(
     () => ({ state, client, login, logout }),

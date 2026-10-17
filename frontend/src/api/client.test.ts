@@ -263,6 +263,27 @@ describe("refresh on 401", () => {
     await client.refresh();
     expect(refreshes.n).toBe(2);
   });
+
+  it("emits session for each new token from login or refresh, not for a failed refresh", async () => {
+    const sessions: (string | null)[] = [];
+    const unsubscribe = client.onSession(() => sessions.push(client.identity()?.username ?? null));
+    server.use(
+      http.post(`${BASE}/auth/login`, () => HttpResponse.json(session("old"))),
+      refreshHandler({ n: 0 }),
+    );
+    await client.login("alice", "secret-password");
+    await client.refresh();
+    expect(sessions).toHaveLength(2);
+
+    server.use(refreshHandler({ n: 0 }, () => error(429, "TOO_MANY_REQUESTS")));
+    await expect(client.refresh()).rejects.toMatchObject({ status: 429 });
+    expect(sessions).toHaveLength(2);
+
+    unsubscribe();
+    server.use(refreshHandler({ n: 0 }));
+    await client.refresh();
+    expect(sessions).toHaveLength(2);
+  });
 });
 
 describe("early refresh", () => {

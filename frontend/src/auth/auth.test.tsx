@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
@@ -231,5 +231,61 @@ describe("logout", () => {
     client.signOut();
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeTruthy();
     await waitFor(() => expect(queryClient.getQueryData(["expenses"])).toBeUndefined());
+  });
+});
+
+describe("refresh after boot", () => {
+  function refreshAs(username: string, role: string) {
+    return http.post(`${BASE}/auth/refresh`, () => HttpResponse.json(session(username, role)));
+  }
+
+  it("shows a promotion from the next refresh without a reload", async () => {
+    server.use(refreshAs("alice", "USER"));
+    renderApp("/");
+    await screen.findByRole("heading", { name: "Expense Tracker" });
+    expect(screen.getByText("USER")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+
+    server.use(refreshAs("alice", "ADMIN"));
+    await act(() => client.refresh());
+    expect(screen.getByText("ADMIN")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Admin" })).toBeTruthy();
+  });
+
+  it("hides the Admin link when a refresh brings a USER token", async () => {
+    server.use(withSession);
+    renderApp("/");
+    await screen.findByRole("heading", { name: "Expense Tracker" });
+    expect(screen.getByRole("link", { name: "Admin" })).toBeTruthy();
+
+    server.use(refreshAs("alice", "USER"));
+    await act(() => client.refresh());
+    expect(screen.getByText("USER")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+  });
+
+  it("keeps the Query cache when the refresh is for the same user", async () => {
+    server.use(withSession);
+    renderApp("/");
+    await screen.findByRole("heading", { name: "Expense Tracker" });
+    queryClient.setQueryData(["probe"], ["alice's"]);
+
+    server.use(refreshAs("alice", "USER"));
+    await act(() => client.refresh());
+    expect(screen.getByText("USER")).toBeTruthy();
+    expect(queryClient.getQueryData(["probe"])).toEqual(["alice's"]);
+  });
+
+  it("clears the Query cache when the refresh names another user", async () => {
+    // The cookie is shared, so another tab signing in as bob makes this tab's next refresh bob's
+    server.use(withSession);
+    renderApp("/");
+    await screen.findByRole("heading", { name: "Expense Tracker" });
+    queryClient.setQueryData(["probe"], ["alice's"]);
+
+    server.use(refreshAs("bob", "USER"));
+    await act(() => client.refresh());
+    expect(screen.getByText("bob")).toBeTruthy();
+    expect(queryClient.getQueryData(["probe"])).toBeUndefined();
   });
 });

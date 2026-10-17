@@ -97,6 +97,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
   let refreshInFlight: Promise<void> | null = null;
   let cancelScheduledRefresh: (() => void) | null = null;
   const signedOutListeners = new Set<() => void>();
+  const sessionListeners = new Set<() => void>();
 
   function unschedule() {
     cancelScheduledRefresh?.();
@@ -113,6 +114,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
       // leaves the session and the next 401 retries
       refresh().catch(() => {});
     }, delaySeconds * 1000);
+    for (const listener of sessionListeners) listener();
     return {
       accessTokenExpiresIn: dto.accessTokenExpiresIn,
       refreshTokenExpiresAt: dto.refreshTokenExpiresAt,
@@ -253,12 +255,23 @@ export function createApiClient(options: ApiClientOptions = {}) {
     return () => signedOutListeners.delete(listener);
   }
 
+  /**
+   * Called after each new access token is stored, from login or any refresh
+   * (boot, scheduled, 401-driven). The role or even the user in it may differ
+   * from the last one: the server applies a promotion at the next refresh.
+   */
+  function onSession(listener: () => void): () => void {
+    sessionListeners.add(listener);
+    return () => sessionListeners.delete(listener);
+  }
+
   return {
     login,
     logout,
     refresh,
     request,
     onSignedOut,
+    onSession,
     clearSession,
     signOut,
     /** Closes the cross-tab channel; the client no longer hears other tabs. */
