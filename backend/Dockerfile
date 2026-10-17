@@ -1,4 +1,5 @@
-FROM eclipse-temurin:25
+# Pinned (JRE: the app only needs java -jar) so a rebuild cannot silently change the JVM; bump on purpose
+FROM eclipse-temurin:25.0.4_7-jre-noble
 # The base image has neither curl nor wget; curl is for the healthcheck below
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 # Unprivileged user: the JVM should not run as root inside the container
