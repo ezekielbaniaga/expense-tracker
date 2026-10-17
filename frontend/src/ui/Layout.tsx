@@ -27,6 +27,7 @@ export function Layout() {
           </NavLink>{" "}
           <NavLink to="/expenses/new">New expense</NavLink>{" "}
           <NavLink to="/archived">Archived</NavLink>{" "}
+          <NavLink to="/me">Profile</NavLink>{" "}
           <button
             type="button"
             disabled={signingOut}

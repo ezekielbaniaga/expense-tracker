@@ -10,6 +10,7 @@ import { ArchivedPage } from "./expenses/ArchivedPage";
 import { CreateExpensePage } from "./expenses/CreateExpensePage";
 import { ExpenseListPage } from "./expenses/ExpenseListPage";
 import { ExpenseDetailPage } from "./expenses/ExpenseDetailPage";
+import { ProfilePage } from "./profile/ProfilePage";
 import { queryClient as appQueryClient } from "./queryClient";
 import { Layout } from "./ui/Layout";
 import { ToastProvider } from "./ui/Toast";
@@ -47,6 +48,7 @@ export function AppRoutes() {
         <Route path="/archived" element={<ArchivedPage />} />
         <Route path="/expenses/new" element={<CreateExpensePage />} />
         <Route path="/expenses/:id" element={<ExpenseDetailPage />} />
+        <Route path="/me" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

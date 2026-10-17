@@ -10,12 +10,12 @@ const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
 /** users.username is VARCHAR(100); the DTO checks the length before stripping. */
 const USERNAME_MAX = 100;
 /** PasswordValidator.MIN_LENGTH, in UTF-16 units like Java's String.length(). */
-const PASSWORD_MIN = 12;
+export const PASSWORD_MIN = 12;
 /** BCrypt only hashes the first 72 bytes, so the server rejects longer passwords. */
-const PASSWORD_MAX_BYTES = 72;
+export const PASSWORD_MAX_BYTES = 72;
 
 /** Java's trim(), which @NotBlank uses: anything above U+0020 counts as content. */
-function hasContent(value: string): boolean {
+export function hasContent(value: string): boolean {
   return [...value].some((c) => c > " ");
 }
 
