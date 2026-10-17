@@ -5,6 +5,7 @@ import ezekiel.baniaga.springboot.maven.backend.auth.dto.LoginResponse;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RefreshTokenRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.dto.RegisterRequest;
 import ezekiel.baniaga.springboot.maven.backend.auth.props.JWTProperties;
+import ezekiel.baniaga.springboot.maven.backend.auth.props.RefreshCookieProperties;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
 import ezekiel.baniaga.springboot.maven.backend.auth.service.AuthEndpointRateLimiter;
@@ -17,28 +18,41 @@ import ezekiel.baniaga.springboot.maven.backend.user.UserService;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
+    /** Login with this header set to "cookie" gets the refresh token as an HttpOnly cookie. */
+    static final String REFRESH_TOKEN_TRANSPORT_HEADER = "X-Refresh-Token-Transport";
+    private static final String COOKIE_TRANSPORT = "cookie";
+
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
     private final JWTProperties jwtProperties;
+    private final RefreshCookieProperties refreshCookieProperties;
+    private final Clock clock;
     private final LoginRateLimiter loginRateLimiter;
     private final AuthEndpointRateLimiter authEndpointRateLimiter;
 
@@ -70,11 +84,15 @@ public class AuthController {
     /**
      * 429 TOO_MANY_REQUESTS (with Retry-After) after too many attempts from one client IP,
      * or too many failed ones for one username (from that IP, or from all IPs). See LoginRateLimiter.
+     * With X-Refresh-Token-Transport: cookie the refresh token is set as an HttpOnly cookie
+     * (see RefreshCookieProperties) and left out of the body; otherwise the body carries it.
      */
     @PostMapping("/login")
     public LoginResponse login(
         @Valid @RequestBody LoginRequest loginRequest,
-        HttpServletRequest httpServletRequest) {
+        @RequestHeader(name = REFRESH_TOKEN_TRANSPORT_HEADER, required = false) String refreshTokenTransport,
+        HttpServletRequest httpServletRequest,
+        HttpServletResponse httpServletResponse) {
 
         UsernamePasswordAuthenticationToken uptoken =
             UsernamePasswordAuthenticationToken.unauthenticated(
@@ -101,6 +119,12 @@ public class AuthController {
         );
 
         String token = jwtService.generateToken(created.userDetails(), created.sessionId());
+
+        if (COOKIE_TRANSPORT.equalsIgnoreCase(refreshTokenTransport)) {
+            httpServletResponse.addHeader(HttpHeaders.SET_COOKIE,
+                refreshCookie(created.rawRefreshToken(), created.expiresAt()).toString());
+            return new LoginResponse(token, null, accessTokenExpiresIn(), created.expiresAt());
+        }
 
         return new LoginResponse(
             token, created.rawRefreshToken(), accessTokenExpiresIn(), created.expiresAt());
@@ -151,5 +175,20 @@ public class AuthController {
      */
     private long accessTokenExpiresIn() {
         return jwtProperties.getExpiration().toSeconds();
+    }
+
+    /**
+     * The refresh token cookie, living until the session ends (expiresAt is UTC).
+     * Path=/auth so it goes only to the auth endpoints; never log its value.
+     */
+    private ResponseCookie refreshCookie(String rawRefreshToken, LocalDateTime expiresAt) {
+        Duration maxAge = Duration.between(LocalDateTime.now(clock), expiresAt);
+        return ResponseCookie.from(refreshCookieProperties.getName(), rawRefreshToken)
+            .httpOnly(true)
+            .secure(refreshCookieProperties.isSecure())
+            .sameSite("Strict")
+            .path("/auth")
+            .maxAge(maxAge.isNegative() ? Duration.ZERO : maxAge)
+            .build();
     }
 }

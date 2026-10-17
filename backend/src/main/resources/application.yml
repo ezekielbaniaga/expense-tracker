@@ -56,6 +56,15 @@ logging:
     org.flywaydb: INFO
 
 app:
+  auth:
+    # Login with "X-Refresh-Token-Transport: cookie" gets the refresh token in this HttpOnly cookie
+    # (SameSite=Strict, Path=/auth) instead of the body. Without the header the body carries it.
+    refresh-cookie:
+      name: refresh_token
+      # Sent over HTTPS only; browsers still accept it from http://localhost
+      secure: true
+      # Origins the browser UI is served from (Vite dev server, nginx in Compose)
+      allowed-origins: http://localhost:5173,http://localhost:8081
   admin:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD:}
