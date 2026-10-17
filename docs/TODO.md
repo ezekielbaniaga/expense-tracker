@@ -14,15 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Frontend image and nginx config.** `frontend/Dockerfile`: a `node:24` build stage and a pinned
-      `nginxinc/nginx-unprivileged` runtime on 8080. `frontend/nginx.conf`: `try_files $uri /index.html`;
-      `location /api/`, `/auth/`, `/users` proxy to `http://app:8080` with `X-Forwarded-For
-      $proxy_add_x_forwarded_for`, `X-Forwarded-Proto` and `Host`, placed before `location /` so API 404s
-      never fall through to index.html; long cache for `/assets/`, `no-store` for `index.html`; headers
-      `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`,
-      `Referrer-Policy: no-referrer`; no HSTS. Add `frontend/build_docker_image.sh` tagging
-      `expense-tracker-web:1.0`. Test: `docker build` passes; `docker run` plus `curl -I` shows the headers and
-      `curl /some/route` returns index.html. Proposal: Build, deploy, and Docker Compose integration.
 - [ ] **Compose `web` service with a trusted proxy IP.** In `docker_compose/docker-compose.yml` add `web`
       (`expense-tracker-web:1.0`, `container_name: spring-web`, `8081:8080`, `depends_on: app: condition:
       service_healthy`) with a fixed `ipv4_address` on `app-network`, which gets an `ipam` subnet. Set
@@ -176,3 +167,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Expense detail screen at `/expenses/:id`: every `ExpenseResponse` field; 404 and 400 both show "Not found"; the query client no longer retries 4xx (7037264)
 - [x] Create expense form at `/expenses/new` with zod validation, server field errors and `INVALID_CATEGORY` handling (2d27d8e)
 - [x] Edit (PUT with version), inline description edit (PATCH) and confirmed delete (`DELETE ?version=`) on the expense detail page; 409 `CONCURRENT_MODIFICATION` keeps the input and offers Reload, 409 `MODIFY_ARCHIVED` says it was deleted and goes to the list; the create form's fields and resolver are shared (a245640)
+- [x] Frontend image and nginx config: multi-stage `frontend/Dockerfile` (node 24 to nginx-unprivileged on 8080), `nginx.conf` with API proxy, SPA fallback, cache and security headers, and `build_docker_image.sh` (6d958b3)
