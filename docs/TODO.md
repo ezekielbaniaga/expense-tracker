@@ -10,15 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Findings
       screen is a separate feature). Acceptance: both sentences match the files they describe.
-- [ ] **`expense.unique_id` is not unique.** `V1__initial_tables.sql` created only a plain
-      `index_expense_unique_id`, and no later migration adds a constraint, although `unique_id` is the public
-      id every expense endpoint looks up through `ExpenseRepository.findByUniqueIdAndOwnerId` (an `Optional`;
-      two rows with one id would make it throw and answer 500). `users.unique_id` (V9) and
-      `user_sessions.unique_id` (V14) are unique. Fix: a new migration `V16__unique_expense_unique_id.sql`
-      that fails with a clear message if duplicates exist (like V11), creates a unique index on
-      `expense(unique_id)` and drops `index_expense_unique_id`. Test: like `UserUniqueIdIndexTests`, insert
-      two expenses with the same `unique_id` and expect a `DataIntegrityViolationException`, and
-      `pg_indexes` lists exactly one index on `expense.unique_id`. Careful: never edit V1; add the new file.
 - [ ] **Backend image uses the floating `eclipse-temurin:25` tag.** `backend/Dockerfile` line 1 pulls
       whatever 25.x JDK is current at build time, while the frontend images are pinned
       (`node:24.11-alpine`, `nginx-unprivileged:1.29.3-alpine`) and `package.json` uses exact versions, so a
@@ -152,3 +143,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Documented the web UI in README.md, CLAUDE.md and docker_compose/README.md, marked its proposal implemented (514b57b)
 - [x] The web UI shows a role change from any refresh: the client emits `onSession` when it stores a new token, `AuthProvider` updates only when role or user changed, keeps the Query cache for the same user and clears it if a refresh names another user (af997ca)
 - [x] Fixed docs that contradicted the code: Compose defaults `TRUSTED_PROXIES` to the web service's address, and the admin user screen has no sessions (8bd3db7)
+- [x] `expense.unique_id` is unique (V16 `ux_expense_unique_id`, failing with the duplicated ids if any exist); V1's plain `index_expense_unique_id` is dropped (38f8cc4)
