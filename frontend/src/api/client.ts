@@ -1,4 +1,5 @@
 import { parseApiError } from "./errors";
+import { decodeIdentity, type Identity } from "./jwt";
 
 /**
  * The fetch wrapper every API call goes through. It holds the access token in
@@ -191,6 +192,23 @@ export function createApiClient(options: ApiClientOptions = {}) {
   }
 
   /**
+   * Ends the session on the server, then here and in the other tabs, whatever
+   * the result: the server answers 204 nearly always, and the access token
+   * stays valid until it expires anyway, so clearing the client is what
+   * matters. Never rejects.
+   */
+  async function logout(): Promise<void> {
+    try {
+      // No body: the cookie names the session, and the response clears it
+      await send("/auth/logout", { method: "POST" }, DEFAULT_API_VERSION);
+    } catch {
+      // network error: still sign out locally
+    } finally {
+      signOut();
+    }
+  }
+
+  /**
    * Calls the API with the access token. On a 401 it refreshes (or joins the
    * refresh already running) and replays once; a second 401 signs out.
    * Resolves with the parsed JSON body, or undefined for an empty body.
@@ -237,6 +255,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
 
   return {
     login,
+    logout,
     refresh,
     request,
     onSignedOut,
@@ -245,6 +264,8 @@ export function createApiClient(options: ApiClientOptions = {}) {
     /** Closes the cross-tab channel; the client no longer hears other tabs. */
     dispose: () => channel?.close(),
     isSignedIn: () => accessToken !== null,
+    /** Who the access token names, for display only; null when signed out. */
+    identity: (): Identity | null => (accessToken === null ? null : decodeIdentity(accessToken)),
   };
 }
 

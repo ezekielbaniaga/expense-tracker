@@ -479,3 +479,45 @@ describe("across tabs", () => {
     expect(refreshes.n).toBe(1);
   });
 });
+
+describe("logout", () => {
+  it("posts no body so the cookie is used, then signs out and broadcasts", async () => {
+    const bodies: string[] = [];
+    server.use(
+      http.post(`${BASE}/auth/login`, () => HttpResponse.json(session("fresh-login"))),
+      http.post(`${BASE}/auth/logout`, async ({ request }) => {
+        bodies.push(await request.text());
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const signedOut = vi.fn();
+    client.onSignedOut(signedOut);
+    await client.login("alice", "pw");
+    await client.logout();
+    expect(bodies).toEqual([""]);
+    expect(client.isSignedIn()).toBe(false);
+    expect(client.identity()).toBeNull();
+    expect(signedOut).toHaveBeenCalledTimes(1);
+    expect(timers.active()).toHaveLength(0);
+  });
+
+  it("clears the session even when logout fails", async () => {
+    server.use(
+      http.post(`${BASE}/auth/login`, () => HttpResponse.json(session("fresh-login"))),
+      http.post(`${BASE}/auth/logout`, () => error(500, "INTERNAL_ERROR")),
+    );
+    await client.login("alice", "pw");
+    await expect(client.logout()).resolves.toBeUndefined();
+    expect(client.isSignedIn()).toBe(false);
+  });
+
+  it("clears the session on a network error too", async () => {
+    server.use(
+      http.post(`${BASE}/auth/login`, () => HttpResponse.json(session("fresh-login"))),
+      http.post(`${BASE}/auth/logout`, () => HttpResponse.error()),
+    );
+    await client.login("alice", "pw");
+    await client.logout();
+    expect(client.isSignedIn()).toBe(false);
+  });
+});
