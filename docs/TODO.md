@@ -14,13 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **API error and expense mapping.** `frontend/src/api/errors.ts` parses `ErrorResponse` into `ApiError {status,
-      code, messages, retryAfter?}`; `fieldErrors()` splits `field: message` on the first colon (others are
-      form-level); a non-JSON body (proxy 502) still yields an `ApiError`. `frontend/src/api/expense.ts` has
-      DTO types and maps `supported_categories` and `total_amount` to camelCase. Amounts are JSON numbers:
-      format with 2 decimals, never sum them in the browser. `date` stays a `YYYY-MM-DD` string.
-      Test: Vitest cases for `VALIDATION_ERROR`, `INVALID_CATEGORY`, `MALFORMED_REQUEST`, 429 with
-      `Retry-After`, a non-JSON body, and the amount and date helpers. Proposal: Validation and error handling.
 - [ ] **`fetch` client with single-flight cookie refresh.** `frontend/src/api/client.ts`: the access token lives in a
       module variable only. Every call adds `Authorization` and an explicit `X-API-Version`. On a 401 it awaits
       one shared refresh promise (`POST /auth/refresh`, no body, the browser sends the cookie), replays once,
@@ -221,3 +214,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Login with `X-Refresh-Token-Transport: cookie` sets the refresh token as an HttpOnly, Secure, SameSite=Strict cookie on /auth and leaves it out of the body (c9378fb)
 - [x] Refresh and logout read the refresh cookie when the body has no token, require an allowed `Origin` (else 403 `ORIGIN_NOT_ALLOWED`), rotate or clear the cookie (d25e097)
 - [x] Scaffolded `frontend/` (Vite 7.3.7, React 19, TypeScript, router, query, react-hook-form, zod, Vitest/msw, exact versions, `/api` `/auth` `/users` dev proxy without changeOrigin); `npm ci`, test, build and lint pass (c7f0275)
+- [x] `frontend/src/api/errors.ts` (ApiError, `parseApiError` incl. Retry-After and non-JSON bodies, `fieldErrors`) and `expense.ts` (DTO types, `total_amount`/`supported_categories` mapping, amount and date helpers) with Vitest tests (2640d61)
