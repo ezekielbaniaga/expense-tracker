@@ -167,3 +167,57 @@ describe("archived screen", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/Could not load archived expenses/);
   });
 });
+
+describe("expense detail", () => {
+  it("shows every field of the expense", async () => {
+    let auth: string | null = null;
+    server.use(
+      http.get(`${BASE}/api/expense/e1`, ({ request }) => {
+        auth = request.headers.get("Authorization");
+        return HttpResponse.json({
+          id: "e1",
+          version: 3,
+          description: "Lunch",
+          amount: 12.5,
+          category: "FOOD",
+          date: "2026-10-17",
+          createdAt: "2026-10-17T12:30:00",
+          lastModified: "2026-10-18T08:05:09.123",
+        });
+      }),
+    );
+    renderAt("/expenses/e1");
+    expect(await screen.findByRole("heading", { name: "Lunch" })).toBeTruthy();
+    expect(screen.getByText("e1")).toBeTruthy();
+    expect(screen.getByText("12.50")).toBeTruthy();
+    expect(screen.getByText("Food")).toBeTruthy();
+    expect(screen.getByText("2026-10-17")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
+    expect(screen.getByText("2026-10-17 12:30")).toBeTruthy();
+    expect(screen.getByText("2026-10-18 08:05")).toBeTruthy();
+    expect(auth).toMatch(/^Bearer /);
+  });
+
+  it.each([
+    [404, { code: "EXPENSE_NOT_FOUND", messages: ["Expense not found"] }],
+    [400, { code: "INVALID_REQUEST", messages: ["id: Invalid value 'abc'"] }],
+  ])("shows only 'Not found' for a %i", async (status, body) => {
+    server.use(http.get(`${BASE}/api/expense/abc`, () => HttpResponse.json(body, { status })));
+    renderAt("/expenses/abc");
+    expect(await screen.findByText("Not found")).toBeTruthy();
+    expect(screen.queryByText(/Expense not found|Invalid value/)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("link", { name: "Back to expenses" }).getAttribute("href")).toBe("/");
+  });
+
+  it("shows a retry for other errors", async () => {
+    server.use(
+      http.get(`${BASE}/api/expense/e1`, () =>
+        HttpResponse.json({ code: "INTERNAL_ERROR", messages: ["Boom"] }, { status: 500 }),
+      ),
+    );
+    renderAt("/expenses/e1");
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Could not load the expense/);
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+});
