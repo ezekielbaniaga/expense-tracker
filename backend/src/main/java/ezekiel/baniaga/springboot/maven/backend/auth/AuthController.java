@@ -10,6 +10,8 @@ import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.JWTService;
 import ezekiel.baniaga.springboot.maven.backend.auth.service.AuthEndpointRateLimiter;
 import ezekiel.baniaga.springboot.maven.backend.auth.service.LoginRateLimiter;
+import ezekiel.baniaga.springboot.maven.backend.common.BadRequestException;
+import ezekiel.baniaga.springboot.maven.backend.common.ForbiddenException;
 import ezekiel.baniaga.springboot.maven.backend.session.CreatedSession;
 import ezekiel.baniaga.springboot.maven.backend.session.RefreshTokenResult;
 import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
@@ -17,9 +19,12 @@ import ezekiel.baniaga.springboot.maven.backend.session.entity.UserSession;
 import ezekiel.baniaga.springboot.maven.backend.user.UserService;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.mapper.UserMapper;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -27,17 +32,21 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.WebUtils;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/auth")
@@ -55,6 +64,7 @@ public class AuthController {
     private final Clock clock;
     private final LoginRateLimiter loginRateLimiter;
     private final AuthEndpointRateLimiter authEndpointRateLimiter;
+    private final Validator validator;
 
     private final UserSessionService userSessionService;
 
@@ -131,42 +141,99 @@ public class AuthController {
     }
 
     /**
+     * The refresh token comes from the body or, when the body is absent, from the
+     * refresh cookie; a body token wins. Cookie mode needs an Origin listed in
+     * RefreshCookieProperties (else 403 ORIGIN_NOT_ALLOWED), sets the rotated token
+     * as the cookie and leaves it out of the body; a 401 there clears the cookie.
+     * Neither body nor cookie is 401 AUTHENTICATION_REQUIRED, like an unknown token.
      * 429 TOO_MANY_REQUESTS after too many refreshes from one client IP.
      */
     @PostMapping("/refresh")
     public LoginResponse refresh(
-        @Valid @RequestBody RefreshTokenRequest request,
-        HttpServletRequest httpServletRequest) {
+        @Valid @RequestBody(required = false) RefreshTokenRequest request,
+        HttpServletRequest httpServletRequest,
+        HttpServletResponse httpServletResponse) {
 
         authEndpointRateLimiter.refresh(httpServletRequest.getRemoteAddr());
 
-        RefreshTokenResult result =
-            userSessionService.rotateRefreshToken(
-                request.refreshToken());
+        if (request != null) {
+            RefreshTokenResult result = userSessionService.rotateRefreshToken(request.refreshToken());
+            return refreshResponse(result, result.newRawRefreshToken());
+        }
 
-        String accessToken =
-            jwtService.generateToken(result.userDetails(), result.sessionId());
+        String cookieToken = refreshTokenFromCookie(httpServletRequest);
+        RefreshTokenResult result;
+        try {
+            result = userSessionService.rotateRefreshToken(cookieToken);
+        } catch (AuthenticationException e) {
+            // Revoked, expired, reused or disabled: the browser should drop the cookie
+            httpServletResponse.addHeader(HttpHeaders.SET_COOKIE, clearedRefreshCookie().toString());
+            throw e;
+        }
 
-        // Rotation keeps the session's expires_at, so this is the login's value
-        return new LoginResponse(
-            accessToken, result.newRawRefreshToken(), accessTokenExpiresIn(), result.expiresAt());
+        httpServletResponse.addHeader(HttpHeaders.SET_COOKIE,
+            refreshCookie(result.newRawRefreshToken(), result.expiresAt()).toString());
+        return refreshResponse(result, null);
     }
 
     /**
-     * Revokes the session of the given refresh token. Always 204, even for
-     * unknown tokens, except 429 TOO_MANY_REQUESTS after too many logouts from one
-     * client IP. The access token stays valid until it expires.
+     * Revokes the session of the given refresh token, read from the body or, when
+     * the body is absent, from the refresh cookie (which then needs an allowed
+     * Origin, else 403 ORIGIN_NOT_ALLOWED, and is cleared). Always 204, even for
+     * unknown tokens, except 401 AUTHENTICATION_REQUIRED with neither body nor
+     * cookie and 429 TOO_MANY_REQUESTS after too many logouts from one client IP.
+     * The access token stays valid until it expires.
      */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-        @Valid @RequestBody RefreshTokenRequest request,
+        @Valid @RequestBody(required = false) RefreshTokenRequest request,
         HttpServletRequest httpServletRequest) {
 
         authEndpointRateLimiter.logout(httpServletRequest.getRemoteAddr());
 
-        userSessionService.revokeSession(request.refreshToken());
+        if (request != null) {
+            userSessionService.revokeSession(request.refreshToken());
+            return ResponseEntity.noContent().build();
+        }
 
-        return ResponseEntity.noContent().build();
+        userSessionService.revokeSession(refreshTokenFromCookie(httpServletRequest));
+
+        return ResponseEntity.noContent()
+            .header(HttpHeaders.SET_COOKIE, clearedRefreshCookie().toString())
+            .build();
+    }
+
+    // Rotation keeps the session's expires_at, so this is the login's value
+    private LoginResponse refreshResponse(RefreshTokenResult result, String rawRefreshToken) {
+        String accessToken = jwtService.generateToken(result.userDetails(), result.sessionId());
+        return new LoginResponse(accessToken, rawRefreshToken, accessTokenExpiresIn(), result.expiresAt());
+    }
+
+    /**
+     * The refresh token from the cookie, for a request without a body. No cookie is
+     * 401 like an unknown token. A cookie is sent by the browser on its own, so it
+     * counts only from an allowed Origin (CSRF protection is off); its value gets
+     * the same checks as the body field. Never log the value.
+     */
+    private String refreshTokenFromCookie(HttpServletRequest httpServletRequest) {
+        Cookie cookie = WebUtils.getCookie(httpServletRequest, refreshCookieProperties.getName());
+        if (cookie == null) {
+            throw new BadCredentialsException("No refresh token");
+        }
+
+        String origin = httpServletRequest.getHeader(HttpHeaders.ORIGIN);
+        if (origin == null || !refreshCookieProperties.getAllowedOrigins().contains(origin)) {
+            throw new ForbiddenException("ORIGIN_NOT_ALLOWED", "Origin not allowed");
+        }
+
+        Set<ConstraintViolation<RefreshTokenRequest>> violations =
+            validator.validate(new RefreshTokenRequest(cookie.getValue()));
+        if (!violations.isEmpty()) {
+            throw new BadRequestException("VALIDATION_ERROR",
+                "refreshToken: " + violations.iterator().next().getMessage());
+        }
+
+        return cookie.getValue();
     }
 
     /**
@@ -183,12 +250,21 @@ public class AuthController {
      */
     private ResponseCookie refreshCookie(String rawRefreshToken, LocalDateTime expiresAt) {
         Duration maxAge = Duration.between(LocalDateTime.now(clock), expiresAt);
-        return ResponseCookie.from(refreshCookieProperties.getName(), rawRefreshToken)
+        return refreshCookie(rawRefreshToken, maxAge.isNegative() ? Duration.ZERO : maxAge);
+    }
+
+    /** Max-Age=0 with the same name and path, so the browser deletes the cookie. */
+    private ResponseCookie clearedRefreshCookie() {
+        return refreshCookie("", Duration.ZERO);
+    }
+
+    private ResponseCookie refreshCookie(String value, Duration maxAge) {
+        return ResponseCookie.from(refreshCookieProperties.getName(), value)
             .httpOnly(true)
             .secure(refreshCookieProperties.isSecure())
             .sameSite("Strict")
             .path("/auth")
-            .maxAge(maxAge.isNegative() ? Duration.ZERO : maxAge)
+            .maxAge(maxAge)
             .build();
     }
 }

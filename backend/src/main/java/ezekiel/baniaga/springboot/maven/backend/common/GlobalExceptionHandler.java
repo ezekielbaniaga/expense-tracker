@@ -95,6 +95,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Refused for a reason other than missing permissions, e.g. ORIGIN_NOT_ALLOWED.
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<?> handleForbidden(ForbiddenException ex) {
+        ErrorResponse resp = new ErrorResponse(ex.getCode(), ex.getMessage());
+        return ResponseEntity.status(403).body(resp);
+    }
+
+    /**
      * Path variable or query parameter of the wrong type, e.g. /users/not-a-uuid or ?page=abc.
      * Only the parameter name is returned, never the offending class or value.
      */
