@@ -2,7 +2,7 @@
 
 2026-10-13
 
-Status: queued in docs/TODO.md (2026-10-18)
+Status: implemented (2026-10-18). The body below is the original plan; where it differs, the code and `README.md` (Web UI) are right.
 
 ## Context
 

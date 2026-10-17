@@ -44,3 +44,19 @@ interfaces, a client could reach the app directly through the Docker port mappin
 bridge gateway, and if `TRUSTED_PROXIES` were too broad (Tomcat's default trusts every private
 range, gateway included), spoof its IP. Changing the subnet recreates `app-network`, so run
 `./stop_compose.sh` first.
+
+## Web UI
+
+Open `http://localhost:8081`. `./run_compose.sh` builds both images (`backend/` and `frontend/`
+`build_docker_image.sh`) and starts the stack. The refresh cookie's `Origin` check accepts
+`http://localhost:8081`; to serve the UI from another origin, add it to
+`app.auth.refresh-cookie.allowed-origins` (`APP_AUTH_REFRESHCOOKIE_ALLOWEDORIGINS`).
+
+## End-to-end stack
+
+`docker-compose.e2e.yml` is a throwaway stack for the Playwright suite: project `expense-tracker-e2e`,
+its own containers, volume and subnet (`172.29.0.0/24`, `web` at `172.29.0.10`, which is what its
+`TRUSTED_PROXIES` names), the UI on `127.0.0.1:18081`, so it runs next to the main stack. It uses public
+test secrets and `APP_JWT_EXPIRATION=75s` so the specs see scheduled refreshes. Run it with
+`../frontend/run_e2e.sh` (or `npm run e2e` in `frontend/`), which builds the images, runs the specs and
+removes the stack and its volume.

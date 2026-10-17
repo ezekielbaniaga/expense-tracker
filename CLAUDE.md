@@ -8,6 +8,7 @@ Spring Boot 4 expense tracker built to learn backend practices, mainly hand-roll
 - `backend/` — the Maven app (Java 17, Spring Boot 4.0.3, PostgreSQL, Flyway, JPA, Lombok, jjwt)
   - Packages by feature: `auth/`, `session/`, `user/`, `expense/`, plus `common/`, `config/`, `bootstrap/`
   - Migrations: `src/main/resources/db/migration/V*.sql` — never edit an applied migration, add a new one
+- `frontend/` — React + Vite + TypeScript web UI (Node 24), features by folder under `src/`; nginx image serves it and proxies the API
 - `docker_compose/` — Postgres + app via Docker Compose
 - API requests (Bruno, with scripts) live in a separate repo, not here
 
@@ -18,6 +19,15 @@ Run from `backend`:
 ```sh
 ./mvnw test      # needs Docker running; starts a throwaway Postgres via Testcontainers
 ./mvnw package   # builds target/expense-tracker-1.0.jar
+```
+
+Frontend, from `frontend` (needs Node 24):
+
+```sh
+npm ci
+npm test -- --run   # Vitest
+npm run build       # tsc + vite build
+npm run e2e         # optional: Playwright against a throwaway Compose stack, needs Docker
 ```
 
 - Always use `./mvnw`. The system `mvn` is 3.5.0, too old for Spring Boot 4.

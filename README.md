@@ -1302,6 +1302,40 @@ This implementation intentionally demonstrates the following principles:
 
 ---
 
+## Web UI
+
+`frontend/` is a React + Vite + TypeScript app (TanStack Query, react-hook-form, zod). Compose builds it
+into the `web` container: nginx serves the static files and proxies `/api`, `/auth` and `/users` to the
+app, so the browser sees one origin (`http://localhost:8081`) and no CORS configuration is needed.
+
+* **Refresh token in a cookie.** Login sends `X-Refresh-Token-Transport: cookie`, and the refresh token comes
+  back as an `HttpOnly; SameSite=Strict; Path=/auth` cookie (`refresh_token`) instead of in the body. Scripts
+  never see it. Refresh and logout read the cookie when the body has no token. The body flow is unchanged
+  for Bruno and the tests.
+* **Origin check.** CSRF protection is off, so refresh and logout with the cookie require an `Origin` in
+  `app.auth.refresh-cookie.allowed-origins` (default `http://localhost:5173`, the Vite dev server, and
+  `http://localhost:8081`, nginx in Compose). The dev proxy and nginx therefore do not rewrite `Origin`.
+* **Access token in memory.** It is never put in `localStorage` or a cookie. On a page load the UI gets one
+  with `POST /auth/refresh`, and it refreshes again shortly before the token expires, or once after a 401.
+* **One refresh at a time.** Refresh rotates the cookie and a second use of the old one is reuse, which
+  revokes the session. Inside a tab all refreshes share one request. Across tabs, which share the cookie,
+  each refresh holds the Web Lock `refresh` (`navigator.locks`), so a tab that waited sends the cookie the
+  previous tab just received. Logging out is broadcast on a `BroadcastChannel` so every tab signs out.
+* **List `1.2`.** The expense list screens send `X-API-Version: 1.2`, which adds `category`, `date` and
+  `version` to each list item, so one call renders the whole table. `1.0` and `1.1` are unchanged. Archived
+  expenses have their own screen.
+* **Screens.** Login and register; the expense list, archived list, create and detail/edit (optimistic
+  locking through `version`); profile with password change and sessions; for admins, the user list and a
+  user's role, status and sessions.
+
+Run it with Compose (`docker_compose/run_compose.sh`) and open `http://localhost:8081`; see
+`docker_compose/README.md`. For development, run the backend on `localhost:8080` and, from `frontend/`
+with Node 24, `npm ci` then `npm run dev` (`http://localhost:5173`, proxying the same three paths). Tests
+(Vitest) run with `npm test`. `npm run e2e` (`frontend/run_e2e.sh`) runs the Playwright suite against a
+throwaway Compose stack and removes it afterwards.
+
+---
+
 ## Roadmap
 
 The authentication system is being developed incrementally.
@@ -1341,6 +1375,7 @@ The authentication system is being developed incrementally.
 * [x] UTC application clock for all timestamps
 * [x] `X-Forwarded-For` trusted only from `TRUSTED_PROXIES`
 * [x] Nightly session and expense cleanups, deleted in batches
+* [x] Web UI (React + Vite + TypeScript behind an nginx same-origin proxy), refresh token in an `HttpOnly` cookie with an `Origin` check, expense list `1.2`
 
 ### Next
 
