@@ -8,12 +8,162 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## Web UI
+
+From docs/web-ui-proposal.md. Work in order. Java paths are relative to the package root as above;
+`frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
+need Node 22 (see Needs you): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
+
+- [ ] **Expense list version 1.2 with category, date and version.** Add records `ExpenseListItemResponseV1_2`
+      (`id, description, amount, category, date, version`) and `ExpenseListResponseV1_2` (`expenses, count,
+      total_amount`), a mapper method in `ExpenseMapper`, `ExpenseService.getAllExpensesV1_2` (reuse
+      `findActiveByOwnerId`), `@GetMapping(version = "1.2")` in `ExpenseController`, and `"1.2"` in
+      `WebMVCConfig.configureApiVersioning`. Rows are ordered by `date` desc, then `createdAt` desc.
+      Test: `ExpenseApiVersionTests`, a 1.2 list returns the new fields in that order; 1.0 and 1.1 have no
+      `category` key. Careful: `ExpenseApiVersionTests` asserts `1.2` is rejected; change that case to `1.3`,
+      add `1.2` to its `VERSIONS` loops, and check `DefaultApiVersionParserTests`. Do not change the 1.0/1.1
+      DTOs. Update the README's API version notes. Proposal: CORS and backend changes.
+- [ ] **Login can set the refresh token as an HttpOnly cookie.** Add `RefreshCookieProperties`
+      (`app.auth.refresh-cookie`: `name` = `refresh_token`, `secure` = true, `allowed-origins` =
+      `http://localhost:5173,http://localhost:8081`). When `POST /auth/login` carries
+      `X-Refresh-Token-Transport: cookie`, add `Set-Cookie: refresh_token=<raw>; HttpOnly; Secure;
+      SameSite=Strict; Path=/auth; Max-Age=<seconds until expiresAt>` and leave `refreshToken` out of the
+      body (null, `@JsonInclude(NON_NULL)` on that field only). Without the header nothing changes.
+      Test: new `RefreshCookieLoginTests`, cookie mode sets the cookie with every attribute and no body
+      token; body mode is unchanged. Careful: never log the token; Bruno and existing tests use body mode.
+      Proposal: Auth flow.
+- [ ] **Refresh and logout accept the refresh cookie.** `AuthController.refresh` and `logout` take
+      `@RequestBody(required = false)`; a body token wins, otherwise the `refresh_token` cookie is used.
+      Cookie mode requires an `Origin` header listed in `app.auth.refresh-cookie.allowed-origins`, else 403
+      `ORIGIN_NOT_ALLOWED` (new code, via `ErrorResponse`). Refresh in cookie mode sets the rotated cookie and
+      omits `refreshToken` from the body; a failed cookie refresh (401) clears the cookie (`Max-Age=0`).
+      Logout in cookie mode revokes and clears the cookie, still 204. Neither body nor cookie: 401
+      `AUTHENTICATION_REQUIRED`, like an unknown token. Test: new `RefreshCookieTests`, rotation via cookie,
+      a replayed old cookie revokes the session, wrong or missing `Origin` gives 403, logout clears it.
+      Careful: keep the 128-character cap and `@NotBlank` for both sources (blank body stays 400); the rate
+      limiters run before either path; rotation locking in `UserSessionService` is unchanged; existing
+      body-based tests must stay green. Proposal: Auth flow.
+- [ ] **Scaffold `frontend/`.** Vite 7 + React + TypeScript, with `react-router-dom`, `@tanstack/react-query`,
+      `react-hook-form`, `zod`, and dev deps `vitest`, `jsdom`, `@testing-library/react`, `msw`. Exact versions.
+      Add `frontend/.gitignore` (`node_modules/`, `dist/`), `frontend/.nvmrc` (`22`), scripts `dev`, `build`,
+      `test`, `lint`, and a Vite `server.proxy` for `/api`, `/auth`, `/users` to `http://localhost:8080`.
+      Test: a smoke test rendering `<App/>`; `npm run build` passes. Careful: stop and report if
+      `node --version` is below 22. Leave the proxy's `Origin` header untouched, because cookie refresh checks
+      it (`http://localhost:5173`). Proposal: Frontend stack options.
+- [ ] **API error and expense mapping.** `frontend/src/api/errors.ts` parses `ErrorResponse` into `ApiError {status,
+      code, messages, retryAfter?}`; `fieldErrors()` splits `field: message` on the first colon (others are
+      form-level); a non-JSON body (proxy 502) still yields an `ApiError`. `frontend/src/api/expense.ts` has
+      DTO types and maps `supported_categories` and `total_amount` to camelCase. Amounts are JSON numbers:
+      format with 2 decimals, never sum them in the browser. `date` stays a `YYYY-MM-DD` string.
+      Test: Vitest cases for `VALIDATION_ERROR`, `INVALID_CATEGORY`, `MALFORMED_REQUEST`, 429 with
+      `Retry-After`, a non-JSON body, and the amount and date helpers. Proposal: Validation and error handling.
+- [ ] **`fetch` client with single-flight cookie refresh.** `frontend/src/api/client.ts`: the access token lives in a
+      module variable only. Every call adds `Authorization` and an explicit `X-API-Version`. On a 401 it awaits
+      one shared refresh promise (`POST /auth/refresh`, no body, the browser sends the cookie), replays once,
+      and a second 401 means signed out. Refresh 401 or 400: signed out (emit an event). 429: keep the session,
+      reject with `retryAfter`. Network error: keep the session. Schedule an early refresh
+      `accessTokenExpiresIn - 60` seconds after each success, through the same single-flight path.
+      `login()` sends `X-Refresh-Token-Transport: cookie`. Test: Vitest + MSW, ten parallel 401s give one
+      refresh; replay happens once; 401 emits signed-out; 429 does not. Careful: a second refresh with the
+      same cookie is reuse and revokes the session. Proposal: Auth flow.
+- [ ] **Cross-tab refresh lock and logout broadcast.** Wrap the refresh in
+      `navigator.locks.request('refresh', ...)` so tabs refresh one at a time, each with the latest cookie.
+      A `BroadcastChannel('auth')` carries `signed-out` so other tabs clear and leave. Test: Vitest with a fake
+      `navigator.locks` and two client instances, overlapping refreshes run one after the other; signed-out
+      reaches the other instance. Careful: the real browser behavior is proven by the e2e item.
+      Proposal: Auth flow.
+- [ ] **Auth context, boot, login page, route guard, logout.** `AuthProvider` with `{status: booting | anonymous |
+      authenticated, role, username}`. Boot always tries one refresh (the cookie is invisible to JS) behind a
+      splash. `/login`: 401 shows "Invalid username or password", 429 "Too many attempts, try again in N s".
+      `RequireAuth` redirects to `/login` with `from`. Logout calls `/auth/logout`, then clears the access
+      token and the Query cache whatever the result; login also clears the cache. Test: Testing Library +
+      MSW, boot with and without a session, login success, 401 and 429, redirect, logout clearing the cache
+      when logout returns 500. Careful: `role` is read from the JWT payload for display only, as `USER` or
+      `ADMIN`. Proposal: Auth flow, State and data fetching.
+- [ ] **Expense list and archived screens.** `/` uses `GET /api/expense` with `X-API-Version: 1.2`
+      (description, amount, category, date; count and total from the server). `/archived` uses
+      `GET /api/expense/archived`, read-only with `archivedAt`, sorted by `archivedAt` desc in the client
+      (the server has no ORDER BY there). Empty and error states; query keys `['expenses']`, `['archived']`;
+      category labels mapped in the client. Test: MSW, rows, count and total, empty state, error toast, version
+      header sent. Proposal: Pages and screens.
+- [ ] **Expense detail screen.** `/expenses/:id` uses `GET /api/expense/{id}` and shows every `ExpenseResponse`
+      field. 404 `EXPENSE_NOT_FOUND` and 400 for an invalid id both show "Not found" with no hint the expense
+      exists. Test: MSW for 200, 404 and 400. Careful: archived expenses return 404 here, so the page never
+      shows one. Proposal: Pages and screens.
+- [ ] **Create expense form.** `/expenses/new` uses `GET /api/expense/categories` (`staleTime: Infinity`) and
+      `POST /api/expense`. A zod schema mirrors the DTO: description 1 to 250, amount above 0 with at most 8
+      integer digits and 2 decimals, category from the endpoint (fixed enum), date today or earlier as a
+      string. Submit disabled while pending; success invalidates `['expenses']`. Test: client messages, a
+      server `VALIDATION_ERROR` attached to fields, `INVALID_CATEGORY` at form level. Proposal: Validation
+      and error handling.
+- [ ] **Edit, patch description and delete.** On the detail page: edit form with `PUT /api/expense/{id}` and
+      `version`, inline description edit with `PATCH /api/expense/{id}/description`, delete with
+      `DELETE /api/expense/{id}?version=`. Success sets `['expense', id]` from the response and invalidates the
+      lists (plus `['archived']` after delete). 409 `CONCURRENT_MODIFICATION` offers "Reload" and keeps the
+      unsaved input; 409 `MODIFY_ARCHIVED` says the expense was deleted and goes to the list. Test: MSW,
+      success updates the version, 409 keeps input, delete sends `?version=`. Proposal: Validation and error
+      handling.
+- [ ] **Frontend image and nginx config.** `frontend/Dockerfile`: a `node:22` build stage and a pinned
+      `nginxinc/nginx-unprivileged` runtime on 8080. `frontend/nginx.conf`: `try_files $uri /index.html`;
+      `location /api/`, `/auth/`, `/users` proxy to `http://app:8080` with `X-Forwarded-For
+      $proxy_add_x_forwarded_for`, `X-Forwarded-Proto` and `Host`, placed before `location /` so API 404s
+      never fall through to index.html; long cache for `/assets/`, `no-store` for `index.html`; headers
+      `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`,
+      `Referrer-Policy: no-referrer`; no HSTS. Add `frontend/build_docker_image.sh` tagging
+      `expense-tracker-web:1.0`. Test: `docker build` passes; `docker run` plus `curl -I` shows the headers and
+      `curl /some/route` returns index.html. Proposal: Build, deploy, and Docker Compose integration.
+- [ ] **Compose `web` service with a trusted proxy IP.** In `docker_compose/docker-compose.yml` add `web`
+      (`expense-tracker-web:1.0`, `container_name: spring-web`, `8081:8080`, `depends_on: app: condition:
+      service_healthy`) with a fixed `ipv4_address` on `app-network`, which gets an `ipam` subnet. Set
+      `TRUSTED_PROXIES` to that address as an escaped regex in `.env.example` and the Compose default. Bind
+      the app's port to `127.0.0.1:8080:8080` (Bruno and debugging only). Have `run_compose.sh` build both
+      images first. Test: `docker compose config` is valid. Careful: never trust the whole subnet; the subnet
+      change recreates the network. The client-IP check is manual (see Needs you). Proposal: Build, deploy,
+      and Docker Compose integration.
+- [ ] **E2E stack and Playwright suite (local).** `docker_compose/docker-compose.e2e.yml`: its own project name
+      and volume, a known test `ADMIN_PASSWORD` (12+ characters, not `change-me`) and `JWT_SECRET`, normal
+      profile (the `test` profile creates no admin), `APP_JWT_EXPIRATION=20s` and raised `APP_RATE_LIMIT_*`.
+      `frontend/e2e/*.spec.ts` with `@playwright/test`: login and logout, two tabs refreshing together stay
+      signed in, reuse lands on `/login`, edit conflict across two pages, cross-user 404 via two registered
+      users. `frontend/run_e2e.sh` starts the stack, runs Playwright, and stops the stack. No CI.
+      Test: `npx playwright test --list` lists the specs. The real run is manual (see Needs you).
+      Proposal: Testing.
+- [ ] **Register page.** `/register` uses `POST /auth/register` (201, no tokens), then logs in. Map
+      `USERNAME_TAKEN` (409), `INVALID_USERNAME`, `INVALID_PASSWORD` and 429 (10 per hour per IP).
+      Test: MSW for each code. Proposal: Pages and screens.
+- [ ] **Profile, change password and sessions.** `/me` uses `GET /users/me`; password change via
+      `POST /users/me/password` (400 `INVALID_CURRENT_PASSWORD`, 429 after 5 wrong; success ends every session,
+      so clear and go to `/login`). A "Your devices" list via `GET /users/me/sessions` marks `current`, with
+      revoke one (`DELETE /users/me/sessions/{sessionId}`) and revoke others (`DELETE /users/me/sessions`).
+      Test: MSW for each path. Proposal: Pages and screens.
+- [ ] **Admin users screen.** `/admin/users`, linked only when `role` is `ADMIN`: `GET /users?page&size&username&enabled`,
+      `GET /users/{id}`, `PATCH /users/{id}` (`enabled`, `role`, `version`). Show `CANNOT_MODIFY_SELF`,
+      `LAST_ADMIN`, `CONCURRENT_MODIFICATION`, `EMPTY_PATCH`, `INVALID_PAGE`, and 403 for a demoted admin.
+      Test: MSW for each code. Proposal: Pages and screens.
+- [ ] **Accessibility and responsive pass.** Labels on every input, focus moved to the heading after navigation
+      and to the first error after a failed submit, keyboard-only flows, a narrow-screen layout.
+      Test: Testing Library role queries plus `vitest-axe` on each screen. The visual check is manual (see
+      Needs you). Proposal: Milestones (7).
+- [ ] **Docs for the web UI.** `README.md`: a web UI section (same-origin proxy, refresh cookie and Origin
+      check, cross-tab refresh, list 1.2) and a Roadmap entry. `CLAUDE.md`: `frontend/` in Layout, Node 22 and
+      the npm commands in Build and test. `docker_compose/README.md`: the `web` service, port 8081, app port
+      on 127.0.0.1, `TRUSTED_PROXIES`, the e2e stack. Mark the proposal done. Test: every path and command
+      named exists. Proposal: Milestones.
+
 ## Needs you
+
+- [ ] **Upgrade Node to 22 LTS before the Web UI frontend items.** Local Node is 20.15.1 and Vite 7
+      needs 22. The loop also needs network access for `npm ci`. Blocks every Web UI item from
+      "Scaffold `frontend/`" on; the three backend items before it don't need it.
+- [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
+      `docker_compose/.env`, log in through `:8081` and check that `user_sessions.ip_address` holds your client
+      IP, not nginx's. (2) Run `frontend/run_e2e.sh` (needs `npx playwright install`). (3) Click through every
+      screen with the keyboard only and on a narrow window.
 
 ## Done
 
 - [x] Cleaned up the untracked files in the repo root
-- [x] Rotated the `POSTGRES_PASSWORD`, `ADMIN_PASSWORD` and `JWT_SECRET` that were committed to history (2026-10-17): new random values in the git-ignored `docker_compose/.env`. The old values still sit in public history and are dead only where nothing uses them; any other deployment or volume created with them (e.g. the old `spring-boot-sample_pgdata` volume) needs the same rotation
+- [x] Rotated the `POSTGRES_PASSWORD`, `ADMIN_PASSWORD` and `JWT_SECRET` that were committed to history (2026-10-17): new random values in the git-ignored `docker_compose/.env`. The old values still sit in public history and are dead only where nothing uses them; the Compose database volume `spring-boot-sample_pgdata`, created with them, was deleted, and any other deployment needs the same rotation
 - [x] Login lockout abuse: the strict failure bucket (5 per 15 minutes) is keyed by username and client IP, so a guesser locks out only their own address; a loose any-IP bucket (100 per hour) is the backstop, and one IP can keep about 12 accounts locked instead of 60; success refunds both (f9ad763)
 - [x] Compose passed `ADMIN_USER` but the app reads `ADMIN_USERNAME` (683ec2f)
 - [x] `logging` was nested under `spring` in `application.yml`, so it was ignored (ef0a319)
