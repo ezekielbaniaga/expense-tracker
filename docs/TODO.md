@@ -14,15 +14,6 @@ From docs/web-ui-proposal.md. Work in order. Java paths are relative to the pack
 `frontend/` and `docker_compose/` paths are from the repo root. Frontend items run from `frontend/` and
 need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run build` must pass before commit.
 
-- [ ] **Login can set the refresh token as an HttpOnly cookie.** Add `RefreshCookieProperties`
-      (`app.auth.refresh-cookie`: `name` = `refresh_token`, `secure` = true, `allowed-origins` =
-      `http://localhost:5173,http://localhost:8081`). When `POST /auth/login` carries
-      `X-Refresh-Token-Transport: cookie`, add `Set-Cookie: refresh_token=<raw>; HttpOnly; Secure;
-      SameSite=Strict; Path=/auth; Max-Age=<seconds until expiresAt>` and leave `refreshToken` out of the
-      body (null, `@JsonInclude(NON_NULL)` on that field only). Without the header nothing changes.
-      Test: new `RefreshCookieLoginTests`, cookie mode sets the cookie with every attribute and no body
-      token; body mode is unchanged. Careful: never log the token; Bruno and existing tests use body mode.
-      Proposal: Auth flow.
 - [ ] **Refresh and logout accept the refresh cookie.** `AuthController.refresh` and `logout` take
       `@RequestBody(required = false)`; a body token wins, otherwise the `refresh_token` cookie is used.
       Cookie mode requires an `Origin` header listed in `app.auth.refresh-cookie.allowed-origins`, else 403
@@ -245,3 +236,4 @@ need Node 24 (installed 2026-10-18): `npm ci`, `npm test` (Vitest) and `npm run 
 - [x] Expense cleanup runs once at 2AM in batches of 1,000 until short, capped at 100 (87a5f67)
 - [x] Docs lagged the code: CLAUDE.md env notes, TestcontainersConfiguration Javadoc, README security tree and roadmap (0f6ec0a)
 - [x] Expense list version 1.2 returns category, date and version, newest date first (807fd73)
+- [x] Login with `X-Refresh-Token-Transport: cookie` sets the refresh token as an HttpOnly, Secure, SameSite=Strict cookie on /auth and leaves it out of the body (c9378fb)
