@@ -10,17 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Findings
 
-      `createExpense` helper waits for the new expense's heading.
-- [ ] **Web UI: expenses saved before the fields were required crash the list and detail pages.** V1 made
-      `description`, `amount`, `category`, `expense_date` and `created_at` nullable, and the backend says legacy
-      rows without an amount exist (it skips them in `total_amount`). The UI types them all as non-null:
-      `ExpenseListPage` calls `formatAmount(e.amount)` (`null.toFixed` throws, so one such row blanks the
-      whole list), `ExpenseDetailPage` does the same for `amount` and `createdAt`, `ArchivedPage` for
-      `amount`, and `toFormValues` turns a null amount into the text `"null"` in the edit form. Fix: make those
-      fields nullable in `ExpenseDto`, `ExpenseListItemDto` and `ArchivedExpenseDto`, render a placeholder
-      (e.g. "—") for missing values, and start the edit form with empty strings so validation asks for them.
-      Acceptance: Vitest tests render the list, archived list and detail page with a row whose nullable
-      fields are all null, and the edit form shows an empty amount.
 - [ ] **Web UI: any render error blanks the whole app.** There is no error boundary, so one thrown
       exception in a page (both items above) unmounts the header, nav and Sign out with it, leaving a white
       page and only a console error. Fix: wrap the `<Outlet />` in `frontend/src/ui/Layout.tsx` in an error
@@ -156,3 +145,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] `expense.unique_id` is unique (V16 `ux_expense_unique_id`, failing with the duplicated ids if any exist); V1's plain `index_expense_unique_id` is dropped (38f8cc4)
 - [x] Pinned the backend image to `eclipse-temurin:25.0.4_7-jre-noble` (JRE; was the floating `eclipse-temurin:25`), so a rebuild cannot silently change the JVM (04032bb)
 - [x] The web UI shows "Never" for an expense with a null `lastModified` instead of blanking the page after Add expense; the create mocks now send `null` (1a660d2)
+- [x] The web UI shows "—" for legacy expenses with null description, amount, category, date or createdAt instead of crashing the list, archived and detail pages, and the edit form starts those fields empty (d88fc78)
