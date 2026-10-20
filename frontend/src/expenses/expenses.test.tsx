@@ -46,6 +46,9 @@ function renderAt(path: string) {
   );
 }
 
+const LEGACY_ITEM = { id: "l1", description: null, amount: null, category: null, date: null, version: 0 };
+const LEGACY_EXPENSE = { ...LEGACY_ITEM, createdAt: null, lastModified: null };
+
 describe("expense list", () => {
   it("shows rows, the server's count and total, and sends version 1.2 with the token", async () => {
     let version: string | null = null;
@@ -79,6 +82,22 @@ describe("expense list", () => {
     expect(version).toBe("1.2");
     expect(auth).toMatch(/^Bearer /);
     expect(queryClient.getQueryData(["expenses"])).toBeTruthy();
+  });
+
+  it("renders a legacy row whose nullable fields are all null", async () => {
+    server.use(
+      http.get(`${BASE}/api/expense`, () =>
+        HttpResponse.json({
+          expenses: [LEGACY_ITEM, { id: "e2", description: "Lunch", amount: 4, category: "FOOD", date: "2026-10-17", version: 1 }],
+          count: 2,
+          total_amount: 4,
+        }),
+      ),
+    );
+    renderAt("/");
+    expect(await screen.findByText("Lunch")).toBeTruthy();
+    const cells = within(screen.getAllByRole("row")[1]).getAllByRole("cell");
+    expect(cells.map((c) => c.textContent)).toEqual(["(no description)", "—", "—", "—"]);
   });
 
   it("shows an empty state", async () => {
@@ -149,6 +168,21 @@ describe("archived screen", () => {
     expect(queryClient.getQueryData(["archived"])).toBeTruthy();
   });
 
+  it("renders an archived row with null description and amount", async () => {
+    server.use(
+      http.get(`${BASE}/api/expense/archived`, () =>
+        HttpResponse.json({
+          expenses: [{ id: "a1", description: null, amount: null, archivedAt: "2026-09-01T10:00:00" }],
+          count: 1,
+        }),
+      ),
+    );
+    renderAt("/archived");
+    await screen.findByText("2026-09-01 10:00");
+    const cells = within(screen.getAllByRole("row")[1]).getAllByRole("cell");
+    expect(cells.map((c) => c.textContent).slice(0, 2)).toEqual(["(no description)", "—"]);
+  });
+
   it("shows an empty state", async () => {
     server.use(
       http.get(`${BASE}/api/expense/archived`, () => HttpResponse.json({ expenses: [], count: 0 })),
@@ -196,6 +230,13 @@ describe("expense detail", () => {
     expect(screen.getByText("2026-10-17 12:30")).toBeTruthy();
     expect(screen.getByText("2026-10-18 08:05")).toBeTruthy();
     expect(auth).toMatch(/^Bearer /);
+  });
+
+  it("renders a legacy expense whose nullable fields are all null", async () => {
+    server.use(http.get(`${BASE}/api/expense/l1`, () => HttpResponse.json(LEGACY_EXPENSE)));
+    renderAt("/expenses/l1");
+    expect(await screen.findByRole("heading", { name: "(no description)" })).toBeTruthy();
+    expect(screen.getAllByText("—")).toHaveLength(4);
   });
 
   it("shows Never for an expense that was never modified", async () => {
@@ -425,6 +466,18 @@ describe("edit, patch description and delete", () => {
     expect(screen.getByText("4")).toBeTruthy();
     expect(queryClient.getQueryData<{ version: number }>(["expense", "e1"])?.version).toBe(4);
     expect(queryClient.getQueryState(["expenses"])?.isInvalidated).toBe(true);
+  });
+
+  it("starts the edit form with empty fields for a legacy expense", async () => {
+    server.use(detail(LEGACY_EXPENSE), categories());
+    renderAt("/expenses/e1");
+    await screen.findByRole("heading", { name: "(no description)" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await screen.findByLabelText("Category");
+    expect(input("Description").value).toBe("");
+    expect(input("Amount").value).toBe("");
+    expect(input("Date").value).toBe("");
+    expect((screen.getByLabelText("Category") as HTMLSelectElement).value).toBe("");
   });
 
   it("shows client messages and sends nothing", async () => {

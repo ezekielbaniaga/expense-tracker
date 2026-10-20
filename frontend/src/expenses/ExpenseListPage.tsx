@@ -5,6 +5,8 @@ import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import {
   categoryLabel,
+  MISSING,
+  NO_DESCRIPTION,
   formatAmount,
   mapExpenseList,
   type ExpenseListResponseDto,
@@ -69,10 +71,10 @@ export function ExpenseListPage() {
                 {query.data.expenses.map((e) => (
                   <tr key={e.id}>
                     <td>
-                      <Link to={`/expenses/${e.id}`}>{e.description}</Link>
+                      <Link to={`/expenses/${e.id}`}>{e.description ?? NO_DESCRIPTION}</Link>
                     </td>
                     <td>{categoryLabel(e.category)}</td>
-                    <td>{e.date}</td>
+                    <td>{e.date ?? MISSING}</td>
                     <td>{formatAmount(e.amount)}</td>
                   </tr>
                 ))}

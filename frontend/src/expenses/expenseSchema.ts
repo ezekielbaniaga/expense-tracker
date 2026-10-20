@@ -68,10 +68,15 @@ export function validateDescription(value: string): string | undefined {
 }
 
 export function toFormValues(e: {
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
+  description: string | null;
+  amount: number | null;
+  category: string | null;
+  date: string | null;
 }): ExpenseFormValues {
-  return { description: e.description, amount: String(e.amount), category: e.category, date: e.date };
+  return {
+    description: e.description ?? "",
+    amount: e.amount === null ? "" : String(e.amount),
+    category: e.category ?? "",
+    date: e.date ?? "",
+  };
 }

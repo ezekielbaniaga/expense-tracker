@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
-import { categoryLabel, formatAmount, formatArchivedAt, type ExpenseDto } from "../api/expense";
+import { categoryLabel, formatAmount, formatArchivedAt, MISSING, NO_DESCRIPTION, type ExpenseDto } from "../api/expense";
 import { PageHeading } from "../ui/focus";
 import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -73,7 +73,7 @@ export function ExpenseDetailPage() {
       )}
       {e && (
         <>
-          <PageHeading id="expense-heading">{e.description}</PageHeading>
+          <PageHeading id="expense-heading">{e.description ?? NO_DESCRIPTION}</PageHeading>
           <dl>
             <dt>Id</dt>
             <dd>{e.id}</dd>
@@ -82,7 +82,7 @@ export function ExpenseDetailPage() {
             <dt>Category</dt>
             <dd>{categoryLabel(e.category)}</dd>
             <dt>Date</dt>
-            <dd>{e.date}</dd>
+            <dd>{e.date ?? MISSING}</dd>
             <dt>Version</dt>
             <dd>{e.version}</dd>
             <dt>Created</dt>
@@ -288,7 +288,7 @@ function EditFormFields({
 function DescriptionForm({ expense, onReload, onDone }: FormProps) {
   const { client } = useAuth();
   const saved = useSaved(onDone);
-  const [description, setDescription] = useState(expense.description);
+  const [description, setDescription] = useState(expense.description ?? "");
   const [fieldError, setFieldError] = useState<string | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
   const failure = useWriteFailure(expense.id, (error) => {

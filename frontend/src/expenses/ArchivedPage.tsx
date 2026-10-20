@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthProvider";
 import {
   formatAmount,
   formatArchivedAt,
+  NO_DESCRIPTION,
   sortArchivedDesc,
   type ArchivedExpenseListDto,
 } from "../api/expense";
@@ -57,7 +58,7 @@ export function ArchivedPage() {
             <tbody>
               {query.data.map((e) => (
                 <tr key={e.id}>
-                  <td>{e.description}</td>
+                  <td>{e.description ?? NO_DESCRIPTION}</td>
                   <td>{formatAmount(e.amount)}</td>
                   <td>{formatArchivedAt(e.archivedAt)}</td>
                 </tr>
