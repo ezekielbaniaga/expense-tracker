@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 /** Header with navigation and Sign out around every signed-in page. */
 export function Layout() {
   const { state, logout } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
+  const { pathname } = useLocation();
   const main = useRef<HTMLElement>(null);
   return (
     <>
@@ -59,7 +61,9 @@ export function Layout() {
         </nav>
       </header>
       <main id="main" ref={main} tabIndex={-1}>
-        <Outlet />
+        <ErrorBoundary key={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </>
   );
