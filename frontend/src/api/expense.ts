@@ -13,7 +13,7 @@ export interface ExpenseDto {
   category: Category;
   date: string;
   createdAt: string;
-  lastModified: string;
+  lastModified: string | null;
 }
 
 /** Item of the version 1.2 list. */

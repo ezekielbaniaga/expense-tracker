@@ -88,7 +88,7 @@ export function ExpenseDetailPage() {
             <dt>Created</dt>
             <dd>{formatArchivedAt(e.createdAt)}</dd>
             <dt>Last modified</dt>
-            <dd>{formatArchivedAt(e.lastModified)}</dd>
+            <dd>{e.lastModified ? formatArchivedAt(e.lastModified) : "Never"}</dd>
           </dl>
           {mode === "view" && (
             <p>

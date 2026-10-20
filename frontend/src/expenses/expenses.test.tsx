@@ -198,6 +198,26 @@ describe("expense detail", () => {
     expect(auth).toMatch(/^Bearer /);
   });
 
+  it("shows Never for an expense that was never modified", async () => {
+    server.use(
+      http.get(`${BASE}/api/expense/e1`, () =>
+        HttpResponse.json({
+          id: "e1",
+          version: 0,
+          description: "Lunch",
+          amount: 12.5,
+          category: "FOOD",
+          date: "2026-10-17",
+          createdAt: "2026-10-17T12:30:00",
+          lastModified: null,
+        }),
+      ),
+    );
+    renderAt("/expenses/e1");
+    expect(await screen.findByRole("heading", { name: "Lunch" })).toBeTruthy();
+    expect(screen.getByText("Never")).toBeTruthy();
+  });
+
   it.each([
     [404, { code: "EXPENSE_NOT_FOUND", messages: ["Expense not found"] }],
     [400, { code: "INVALID_REQUEST", messages: ["id: Invalid value 'abc'"] }],
@@ -282,7 +302,7 @@ describe("create expense", () => {
             category: "FOOD",
             date: "2026-10-17",
             createdAt: "2026-10-18T09:00:00",
-            lastModified: "2026-10-18T09:00:00",
+            lastModified: null,
           },
           { status: 201 },
         );
@@ -296,7 +316,7 @@ describe("create expense", () => {
           category: "FOOD",
           date: "2026-10-17",
           createdAt: "2026-10-18T09:00:00",
-          lastModified: "2026-10-18T09:00:00",
+          lastModified: null,
         }),
       ),
     );
