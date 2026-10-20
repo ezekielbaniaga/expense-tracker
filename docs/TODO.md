@@ -8,15 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Findings
-
-- [ ] **Web UI: any render error blanks the whole app.** There is no error boundary, so one thrown
-      exception in a page (both items above) unmounts the header, nav and Sign out with it, leaving a white
-      page and only a console error. Fix: wrap the `<Outlet />` in `frontend/src/ui/Layout.tsx` in an error
-      boundary keyed by the location, showing "Something went wrong" with a link back to the expenses list
-      (the app uses `BrowserRouter`, not a data router, so `errorElement` does not apply). Acceptance: a Vitest
-      test with a page that throws still shows the nav and the fallback, and navigating away recovers.
-
 ## Needs you
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
@@ -146,3 +137,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Pinned the backend image to `eclipse-temurin:25.0.4_7-jre-noble` (JRE; was the floating `eclipse-temurin:25`), so a rebuild cannot silently change the JVM (04032bb)
 - [x] The web UI shows "Never" for an expense with a null `lastModified` instead of blanking the page after Add expense; the create mocks now send `null` (1a660d2)
 - [x] The web UI shows "—" for legacy expenses with null description, amount, category, date or createdAt instead of crashing the list, archived and detail pages, and the edit form starts those fields empty (d88fc78)
+- [x] A render error in a page no longer blanks the app: `Layout` wraps the `Outlet` in an `ErrorBoundary` keyed by the path, showing "Something went wrong" with a link back to the list, and navigating recovers (4ccd1ba)
