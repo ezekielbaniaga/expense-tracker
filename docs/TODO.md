@@ -1,12 +1,43 @@
 # TODO
 
-Last investigation: 2026-10-18 06:37 — 4 new findings
+Last investigation: 2026-10-20 08:00 — 3 new findings (web UI add-expense flow)
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
 
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
+
+## Findings
+
+- [ ] **Web UI: a newly added expense opens to a blank page.** After "Add expense" the form navigates to
+      `/expenses/:id`, and `frontend/src/expenses/ExpenseDetailPage.tsx` renders
+      `formatArchivedAt(e.lastModified)`. `ExpenseService.addExpense` never sets `lastModified`, so the
+      response has `"lastModified": null` until the first PUT/PATCH, and `null.replace` throws a `TypeError`
+      during render; with no error boundary the whole app unmounts. Every never-edited expense is affected,
+      and since Edit/Delete live on that page, a new expense can't be changed from the UI either. The tests
+      miss it because every mock sends a `lastModified` string (`expenses.test.tsx` create test, `a11y.test.tsx`
+      `EXPENSE`), and `frontend/e2e/helpers.ts` `createExpense` only waits for the URL. Fix: type
+      `ExpenseDto.lastModified` as `string | null` in `frontend/src/api/expense.ts` and show "Never" when null
+      (as `AdminUserPage` does for users); make the POST/GET mocks for a new expense send `null`. Acceptance: a
+      Vitest test opens an expense with `lastModified: null` and sees its heading and "Never"; the e2e
+      `createExpense` helper waits for the new expense's heading.
+- [ ] **Web UI: expenses saved before the fields were required crash the list and detail pages.** V1 made
+      `description`, `amount`, `category`, `expense_date` and `created_at` nullable, and the backend says legacy
+      rows without an amount exist (it skips them in `total_amount`). The UI types them all as non-null:
+      `ExpenseListPage` calls `formatAmount(e.amount)` (`null.toFixed` throws, so one such row blanks the
+      whole list), `ExpenseDetailPage` does the same for `amount` and `createdAt`, `ArchivedPage` for
+      `amount`, and `toFormValues` turns a null amount into the text `"null"` in the edit form. Fix: make those
+      fields nullable in `ExpenseDto`, `ExpenseListItemDto` and `ArchivedExpenseDto`, render a placeholder
+      (e.g. "—") for missing values, and start the edit form with empty strings so validation asks for them.
+      Acceptance: Vitest tests render the list, archived list and detail page with a row whose nullable
+      fields are all null, and the edit form shows an empty amount.
+- [ ] **Web UI: any render error blanks the whole app.** There is no error boundary, so one thrown
+      exception in a page (both items above) unmounts the header, nav and Sign out with it, leaving a white
+      page and only a console error. Fix: wrap the `<Outlet />` in `frontend/src/ui/Layout.tsx` in an error
+      boundary keyed by the location, showing "Something went wrong" with a link back to the expenses list
+      (the app uses `BrowserRouter`, not a data router, so `errorElement` does not apply). Acceptance: a Vitest
+      test with a page that throws still shows the nav and the fallback, and navigating away recovers.
 
 ## Needs you
 
