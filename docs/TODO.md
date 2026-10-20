@@ -10,17 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Findings
 
-- [ ] **Web UI: a newly added expense opens to a blank page.** After "Add expense" the form navigates to
-      `/expenses/:id`, and `frontend/src/expenses/ExpenseDetailPage.tsx` renders
-      `formatArchivedAt(e.lastModified)`. `ExpenseService.addExpense` never sets `lastModified`, so the
-      response has `"lastModified": null` until the first PUT/PATCH, and `null.replace` throws a `TypeError`
-      during render; with no error boundary the whole app unmounts. Every never-edited expense is affected,
-      and since Edit/Delete live on that page, a new expense can't be changed from the UI either. The tests
-      miss it because every mock sends a `lastModified` string (`expenses.test.tsx` create test, `a11y.test.tsx`
-      `EXPENSE`), and `frontend/e2e/helpers.ts` `createExpense` only waits for the URL. Fix: type
-      `ExpenseDto.lastModified` as `string | null` in `frontend/src/api/expense.ts` and show "Never" when null
-      (as `AdminUserPage` does for users); make the POST/GET mocks for a new expense send `null`. Acceptance: a
-      Vitest test opens an expense with `lastModified: null` and sees its heading and "Never"; the e2e
       `createExpense` helper waits for the new expense's heading.
 - [ ] **Web UI: expenses saved before the fields were required crash the list and detail pages.** V1 made
       `description`, `amount`, `category`, `expense_date` and `created_at` nullable, and the backend says legacy
@@ -166,3 +155,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Fixed docs that contradicted the code: Compose defaults `TRUSTED_PROXIES` to the web service's address, and the admin user screen has no sessions (8bd3db7)
 - [x] `expense.unique_id` is unique (V16 `ux_expense_unique_id`, failing with the duplicated ids if any exist); V1's plain `index_expense_unique_id` is dropped (38f8cc4)
 - [x] Pinned the backend image to `eclipse-temurin:25.0.4_7-jre-noble` (JRE; was the floating `eclipse-temurin:25`), so a rebuild cannot silently change the JVM (04032bb)
+- [x] The web UI shows "Never" for an expense with a null `lastModified` instead of blanking the page after Add expense; the create mocks now send `null` (1a660d2)
