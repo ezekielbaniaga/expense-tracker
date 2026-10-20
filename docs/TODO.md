@@ -12,7 +12,7 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
       `docker_compose/.env`, log in through `:8081` and check that `user_sessions.ip_address` holds your client
-      IP, not nginx's. (2) Run `frontend/run_e2e.sh` (needs `npx playwright install`). (3) Click through every
+      IP, not nginx's. (2) Run `frontend/run_e2e.sh`. (3) Click through every
       screen with the keyboard only and on a narrow window.
 
 ## Done
