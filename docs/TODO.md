@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Success toasts.** Extend `frontend/src/ui/Toast.tsx` with `showSuccess(message)` (`role="status"`, hides after
-      4 s, paused on hover/focus; errors stay `role="alert"` until dismissed), placed by CSS above the tab bar on phones.
-      Use for expense added ("Added {description} · {amount}"), saved ("Saved"), description saved, deleted ("Expense
-      deleted. It's in Archived for now."), session revoked, other sessions signed out. Test: `Toast.test.tsx` with fake
-      timers (`shouldAdvanceTime`), plus one assertion per flow in `expenses.test.tsx`/`profile.test.tsx`. Careful: keep
-      the region `aria-label="Notifications"`. Proposal: Components, Appendix C.
 - [ ] **Dialog for expense delete.** Add `frontend/src/ui/Dialog.tsx` (native `<dialog>`, `showModal()` when present else
       set `open`; labelled by its title; `cancel` closes; focus Cancel first and return to the opener). Polyfill
       `showModal`/`close` in `src/test/setup.ts` (jsdom 30 lacks them). Replace `DeletePanel` in `ExpenseDetailPage.tsx`
@@ -309,3 +303,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Added initials, hueFor, Avatar and PreferencesProvider with tests (6bc85a7)
 - [x] App shell: top bar, one responsive Main nav, Add expense link, h1 PageHeading (dc132b6)
 - [x] Account menu in the top bar replacing "Signed in as" and the nav Sign out (24dd7bf)
+- [x] Success toasts: showSuccess in Toast.tsx (4 s, paused on hover/focus) for add, save, description, delete and session sign-outs (00eb77d)
