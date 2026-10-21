@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://localhost:18081",
-    // The date field defaults to today here, and the server rejects future dates in UTC
+    // The date field defaults to today here, and the server rejects dates later than today in UTC+14, so today in UTC is always accepted
     timezoneId: "UTC",
     locale: "en-US",
     trace: "retain-on-failure",

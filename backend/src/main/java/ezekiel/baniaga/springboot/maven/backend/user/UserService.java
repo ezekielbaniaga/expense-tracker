@@ -58,8 +58,10 @@ public class UserService {
     }
 
     /**
-     * Sets or clears (empty string) the caller's display name. No version
-     * check: only the owner edits it, so last write wins. 400
+     * Sets or clears (empty string) the caller's display name. No
+     * client-supplied version check: only the owner edits it. A write racing
+     * a password change or admin PATCH still fails on the entity @Version
+     * (409 CONCURRENT_MODIFICATION). 400
      * INVALID_DISPLAY_NAME if it breaks the rules in DisplayNameValidator.
      */
     @Transactional

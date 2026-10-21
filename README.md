@@ -1010,7 +1010,7 @@ first, then by creation time newest first. An unserved version is rejected with 
   `category` or `createdAt` and `dir` `asc` (default) or `desc`; anything else is `400 INVALID_SORT`. Missing
   dates and amounts sort last in both directions; ties fall back to creation time and id, newest first.
 * Filters, all optional and combined with AND: `q` (case-insensitive substring of the description, at most 100
-  characters), `category` (repeatable, e.g. `category=FOOD&category=RENT`; an unknown value is
+  characters), `category` (repeatable, e.g. `category=FOOD&category=BILLS`; an unknown value is
   `400 INVALID_CATEGORY`), `from` and `to` (inclusive `YYYY-MM-DD` dates; `from` after `to` is
   `400 INVALID_DATE_RANGE`) and `minAmount` and `maxAmount` (inclusive; `minAmount` above `maxAmount` is
   `400 INVALID_AMOUNT_RANGE`). Expenses without a date or amount never match a filter on that field. A
@@ -1028,7 +1028,7 @@ Totals for the caller's non-archived expenses, with the same optional filters as
 the filtered list's `total_amount`: `{ from, to, count, total_amount, by_category: [{ category, count, total_amount }] }`.
 `from` and `to` echo the request (`null` for all time); `by_category` is ordered by `total_amount`, largest first; equal totals are ordered by category name, with the
 uncategorized group last.
-It serves every version from `1.0`, but the request must carry a concrete `X-API-Version` (`1.0` to `1.3`); the UI sends `1.0`.
+It serves every version from `1.0`; a request without `X-API-Version` gets the default `1.0`, and one that names a version (`1.0` to `1.3`) gets that one. The UI sends `1.0`.
 
 **Timestamps are UTC.** Every timestamp in a response (`createdAt`, `lastModified`, `expiresAt`, the error
 `timestamp`, ...) is a UTC time written without an offset, e.g. `"2026-10-16T08:00:00"`: read it as
@@ -1108,7 +1108,7 @@ Content-Type: application/json
   line/paragraph separators or unpaired UTF-16 surrogates, and at least one visible character (a name of only no-break spaces is
   refused); an empty or blank string clears it back to `null`.
   Anything else, a missing or `null` `displayName` included, is `400 INVALID_DISPLAY_NAME`.
-* No `version` check: only the owner edits it, so the last write wins. It is not in the access token;
+* No client-supplied `version` check: only the owner edits it, so the request never sends one. A write that races a password change or an admin PATCH still loses on the entity `version` and gets `409 CONCURRENT_MODIFICATION`. It is not in the access token;
   clients read it from `GET /users/me`. Admin responses (`GET /users`, `/users/{id}`) include it too.
   Setting it bumps the user's `version` and `lastModified`, so an admin PATCH sent with the older
   version gets `409` and must re-read the user first.
