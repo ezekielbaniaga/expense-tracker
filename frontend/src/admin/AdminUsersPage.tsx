@@ -10,6 +10,7 @@ import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { Pagination } from "../ui/Pagination";
+import { useClampPage } from "../ui/useClampPage";
 import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -98,6 +99,8 @@ export function AdminUsersPage() {
     // Keep the current page on screen while the next one loads
     placeholderData: (previous) => previous,
   });
+
+  useClampPage(setParams, filters.page, query.data, query.isPlaceholderData);
 
   /** Applies the changes to the URL; page goes back to 0 unless it is one of them. */
   const update = (changes: Record<string, string | null>) => {

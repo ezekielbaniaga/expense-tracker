@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { MemoryRouter } from "react-router-dom";
@@ -159,6 +159,60 @@ describe("users list", () => {
     expect(screen.getByText("That page does not exist, so the first page is shown.")).toBeTruthy();
     // The filter stays; only page and size are reset
     expect(requests.at(-1)).toEqual({ username: "al", page: "0", size: "20" });
+  });
+
+  describe("a page past the end", () => {
+    function serve(state: { total: number }) {
+      const requests: Record<string, string>[] = [];
+      server.use(
+        http.get(`${BASE}/users`, ({ request }) => {
+          const q = params(request.url);
+          requests.push(q);
+          const p = Number(q.page);
+          const size = Number(q.size);
+          const rows = Math.max(0, Math.min(size, state.total - p * size));
+          const users = Array.from({ length: rows }, (_, i) => ({ ...ALICE, id: `u-${p}-${i}`, username: `user${p}x${i}` }));
+          return HttpResponse.json(page(users, p, size, state.total));
+        }),
+      );
+      return requests;
+    }
+
+    it("replaces ?page=9 with the last page", async () => {
+      const requests = serve({ total: 5 });
+      renderAt("/admin/users?page=9");
+      expect(await screen.findByRole("link", { name: "user0x0" })).toBeTruthy();
+      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      expect(requests.at(-1)!.page).toBe("0");
+    });
+
+    it("lands on the previous page when the last page empties", async () => {
+      const state = { total: 21 };
+      const requests = serve(state);
+      renderAt("/admin/users");
+      await screen.findByRole("link", { name: "user0x0" });
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      expect(await screen.findByRole("link", { name: "user1x0" })).toBeTruthy();
+      state.total = 20;
+      await act(() => queryClient.invalidateQueries({ queryKey: ["users"] }));
+      expect(await screen.findByRole("link", { name: "user0x0" })).toBeTruthy();
+      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      expect(requests.at(-1)!.page).toBe("0");
+    });
+
+    it("leaves an in-range page alone and does not redirect when there are no users", async () => {
+      const requests = serve({ total: 45 });
+      renderAt("/admin/users?page=2");
+      expect(await screen.findByRole("link", { name: "user2x0" })).toBeTruthy();
+      expect(requests.map((r) => r.page)).toEqual(["2"]);
+    });
+
+    it("does not redirect when no users match", async () => {
+      const requests = serve({ total: 0 });
+      renderAt("/admin/users?page=3");
+      expect(await screen.findByText("No users match.")).toBeTruthy();
+      expect(requests.map((r) => r.page)).toEqual(["3"]);
+    });
   });
 
   it("sorts from the headers, resetting the page, and resets on INVALID_SORT", async () => {

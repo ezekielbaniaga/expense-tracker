@@ -540,6 +540,72 @@ describe("expense list", () => {
     expect(pages.slice(0, 2)).toEqual(["0/20", "1/20"]);
   });
 
+  describe("a page past the end", () => {
+    /** `total` rows in pages of `size`; a page past the last comes back empty, like the server. */
+    function serve(state: { total: number }) {
+      const pages: string[] = [];
+      server.use(
+        http.get(`${BASE}/api/expense`, ({ request }) => {
+          const url = new URL(request.url);
+          const page = Number(url.searchParams.get("page"));
+          const size = Number(url.searchParams.get("size"));
+          pages.push(url.searchParams.get("page")!);
+          const rows = Math.max(0, Math.min(size, state.total - page * size));
+          return HttpResponse.json({
+            ...EMPTY_PAGE,
+            expenses: Array.from({ length: rows }, (_, i) => ({
+              id: `e${page}-${i}`, description: `Item ${page}-${i}`, amount: 1, category: "FOOD", date: "2026-10-17", version: 0,
+            })),
+            page,
+            size,
+            total: state.total,
+            total_pages: Math.ceil(state.total / size),
+            total_amount: state.total,
+          });
+        }),
+      );
+      return pages;
+    }
+
+    it("replaces ?page=9 with the last page", async () => {
+      const pages = serve({ total: 5 });
+      renderAt("/?page=9");
+      expect(await screen.findByText("Item 0-0")).toBeTruthy();
+      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      expect(pages.at(-1)).toBe("0");
+    });
+
+    it("lands on the previous page when the last page's only item goes away", async () => {
+      const state = { total: 21 };
+      const pages = serve(state);
+      renderAt("/");
+      await screen.findByText("Item 0-0");
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+      expect(await screen.findByText("Item 1-0")).toBeTruthy();
+      expect(screen.getByText("Page 2 of 2")).toBeTruthy();
+      state.total = 20;
+      await act(() => queryClient.invalidateQueries({ queryKey: ["expenses"] }));
+      expect(await screen.findByText("Item 0-0")).toBeTruthy();
+      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      expect(pages.at(-1)).toBe("0");
+    });
+
+    it("leaves an in-range page alone", async () => {
+      const pages = serve({ total: 45 });
+      renderAt("/?page=2");
+      expect(await screen.findByText("Item 2-0")).toBeTruthy();
+      expect(screen.getByText("Page 3 of 3")).toBeTruthy();
+      expect(pages).toEqual(["2"]);
+    });
+
+    it("does not redirect when there are no expenses", async () => {
+      const pages = serve({ total: 0 });
+      renderAt("/?page=3");
+      expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
+      expect(pages).toEqual(["3"]);
+    });
+  });
+
   it("resets the param a 400 INVALID_SORT names and shows a notice", async () => {
     const sorts: (string | null)[] = [];
     server.use(

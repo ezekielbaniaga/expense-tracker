@@ -19,6 +19,7 @@ import { CategoryChip, categoryKey } from "../ui/Chip";
 import { Card } from "../ui/Card";
 import { PageHeading } from "../ui/focus";
 import { Pagination } from "../ui/Pagination";
+import { useClampPage } from "../ui/useClampPage";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { Skeleton } from "../ui/Skeleton";
@@ -155,6 +156,8 @@ export function ExpenseListPage() {
     // Keep the current page on screen while the next one loads
     placeholderData: (previous) => previous,
   });
+
+  useClampPage(setSearchParams, params.page, query.data, query.isPlaceholderData);
 
   // By category for the same filters as the list, so the card's numbers agree; shares the "expenses" prefix, so every expense mutation refetches it
   const summary = useQuery({
