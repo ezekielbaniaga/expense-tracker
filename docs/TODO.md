@@ -11,13 +11,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 ## Findings 2026-10-21
 
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
-- [ ] **Display names accept invisible and bidi characters.** `user/DisplayNameValidator.java` refuses only
-      `Character.isISOControl` (C0/C1), so U+202E (right-to-left override), U+200B, U+FEFF, a lone U+00A0 and
-      U+2028 are all saved (verified: each `PATCH /users/me` gave 200). A name can be blank on screen or
-      reorder text around it in any client that shows it (admin responses include it). Fix: also refuse
-      format characters (`Character.getType == FORMAT`), line/paragraph separators, and names with no visible
-      character after stripping (`strip()` keeps NBSP); mirror the rule in `ProfilePage.tsx`.
-      Test: each of those gives `400 INVALID_DISPLAY_NAME`; "José" and "李小龍" still pass.
 - [ ] **Unpaired UTF-16 surrogates are stored as "?" while the response echoes the original.** A JSON
       `"\ud800"` in an expense description or display name gets 200 with `"a\uD800b"` in the body, but the row
       holds `a?b` (verified), so the next GET differs from what the write returned. Files:
@@ -226,3 +219,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] A NUL or other control character in an expense description is now a 400 VALIDATION_ERROR instead of a 500 (15194e3)
 - [x] The summary endpoint takes the list's filters (q, category, amounts) and the UI sends them, so the card's breakdown agrees with its total (9dbda12)
 - [x] The search box keeps a trailing space after the debounce instead of copying the trimmed URL value back (152b5d9)
+- [x] Display names now refuse format (zero-width, bidi, BOM) and line/paragraph separator characters and names with nothing visible, in the backend and the Profile form (775fdca)
