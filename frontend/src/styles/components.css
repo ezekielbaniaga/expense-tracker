@@ -702,3 +702,31 @@ tr.row--new {
   block-size: 5rem;
   font-size: var(--fs-lg, 1.5rem);
 }
+
+.sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.archived-row td {
+  color: var(--muted);
+}
+
+.archived-row td:first-child svg {
+  vertical-align: -0.2em;
+  margin-right: var(--sp-1);
+}
+
+.archived-note {
+  color: var(--muted);
+}

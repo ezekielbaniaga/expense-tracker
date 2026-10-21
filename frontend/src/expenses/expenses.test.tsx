@@ -191,6 +191,35 @@ describe("archived screen", () => {
     expect(queryClient.getQueryData(["archived"])).toBeTruthy();
   });
 
+  it("sorts in the browser by column, flipping on the second click, nulls last", async () => {
+    server.use(
+      http.get(`${BASE}/api/expense/archived`, () =>
+        HttpResponse.json({
+          expenses: [
+            { id: "a1", description: "Bravo", amount: 5, archivedAt: "2026-09-01T10:00:00" },
+            { id: "a2", description: null, amount: null, archivedAt: "2026-10-01T10:00:00" },
+            { id: "a3", description: "Alpha", amount: 9, archivedAt: "2026-09-15T10:00:00" },
+          ],
+          count: 3,
+        }),
+      ),
+    );
+    renderAt("/archived");
+    await screen.findByText("Bravo");
+    const names = () =>
+      screen.getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[0].textContent);
+    expect(names()).toEqual(["(no description)", "Alpha", "Bravo"]);
+    fireEvent.click(screen.getByRole("button", { name: "Amount" }));
+    expect(names()).toEqual(["Alpha", "Bravo", "(no description)"]);
+    fireEvent.click(screen.getByRole("button", { name: "Amount" }));
+    expect(names()).toEqual(["Bravo", "Alpha", "(no description)"]);
+    fireEvent.click(screen.getByRole("button", { name: "Description" }));
+    expect(names()).toEqual(["Alpha", "Bravo", "(no description)"]);
+    fireEvent.click(screen.getByRole("button", { name: "Archived at" }));
+    expect(names()).toEqual(["(no description)", "Alpha", "Bravo"]);
+    expect(screen.getByText("Deleted expenses stay here for 30 days, then are removed.")).toBeTruthy();
+  });
+
   it("renders an archived row with null description and amount", async () => {
     server.use(
       http.get(`${BASE}/api/expense/archived`, () =>
