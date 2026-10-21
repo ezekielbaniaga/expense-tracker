@@ -523,3 +523,87 @@ select[aria-invalid="true"] {
   gap: var(--sp-2);
   margin-top: var(--sp-4);
 }
+
+/* Sign in and Create account (auth/AuthShell.tsx): a centred card over two soft accent blobs */
+.auth {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--sp-5);
+  min-height: 100vh;
+  padding-block: var(--sp-6);
+}
+
+.auth::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 15% 10%, var(--accent-fill) 0, transparent 45%),
+    radial-gradient(circle at 90% 85%, var(--accent-fill) 0, transparent 40%);
+}
+
+.auth__brand {
+  text-align: center;
+}
+
+.auth__name {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.auth__tagline {
+  margin: var(--sp-1) 0 0;
+  color: var(--muted);
+}
+
+.auth__card {
+  width: 100%;
+  max-width: 24rem;
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-1);
+}
+
+.auth__switch {
+  margin: var(--sp-4) 0 0;
+  text-align: center;
+}
+
+.password-input {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.password-input input {
+  flex: 1;
+  min-width: 0;
+}
+
+.password-input__toggle[aria-pressed="true"] {
+  background: var(--selected-bg);
+  color: var(--selected-text);
+}
+
+.rules {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.rules__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.rules__item[data-met="true"] {
+  color: var(--success);
+}

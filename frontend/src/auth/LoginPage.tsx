@@ -3,8 +3,9 @@ import { useForm } from "react-hook-form";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import { useAuth } from "./AuthProvider";
+import { AuthShell } from "./AuthShell";
 import { Button } from "../ui/Button";
-import { TextField } from "../ui/fields";
+import { PasswordField, TextField } from "../ui/fields";
 import { FormAlert } from "../ui/forms";
 import { PageHeading } from "../ui/focus";
 import type { FromState } from "./RequireAuth";
@@ -57,7 +58,7 @@ export function LoginPage() {
   });
 
   return (
-    <main>
+    <AuthShell>
       <PageHeading>Sign in</PageHeading>
       <form onSubmit={onSubmit} noValidate>
         <TextField
@@ -70,10 +71,9 @@ export function LoginPage() {
           })}
         />
 
-        <TextField
+        <PasswordField
           label="Password"
           id="password"
-          type="password"
           autoComplete="current-password"
           error={errors.password?.message}
           {...register("password", {
@@ -86,9 +86,9 @@ export function LoginPage() {
           Sign in
         </Button>
       </form>
-      <p>
+      <p className="auth__switch">
         No account? <Link to="/register">Create an account</Link>
       </p>
-    </main>
+    </AuthShell>
   );
 }

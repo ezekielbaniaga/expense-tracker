@@ -31,7 +31,7 @@ export async function signIn(page: Page, user: Credentials): Promise<void> {
   await page.goto("/login");
   await boot;
   await page.getByLabel("Username").fill(user.username);
-  await page.getByLabel("Password").fill(user.password);
+  await page.getByLabel("Password", { exact: true }).fill(user.password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(signedIn(page, user)).toBeVisible();
 }

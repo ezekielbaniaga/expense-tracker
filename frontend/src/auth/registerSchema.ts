@@ -65,3 +65,21 @@ export function validateRegister(values: RegisterFormValues): Partial<Record<key
 export function toRegisterRequest(values: RegisterFormValues): RegisterFormValues {
   return { username: values.username.trim(), password: values.password };
 }
+
+/** The password rules as a live checklist; the same checks the schema makes, one flag each. */
+export function passwordRules(values: RegisterFormValues): { id: string; label: string; met: boolean }[] {
+  const { username, password } = values;
+  return [
+    { id: "length", label: `${PASSWORD_MIN} or more characters`, met: password.length >= PASSWORD_MIN },
+    {
+      id: "bytes",
+      label: `At most ${PASSWORD_MAX_BYTES} bytes`,
+      met: hasContent(password) && new TextEncoder().encode(password).length <= PASSWORD_MAX_BYTES,
+    },
+    {
+      id: "username",
+      label: "Not the username",
+      met: hasContent(password) && password.toLowerCase() !== username.trim().toLowerCase(),
+    },
+  ];
+}

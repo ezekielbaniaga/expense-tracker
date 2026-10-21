@@ -172,6 +172,22 @@ describe("login", () => {
   });
 });
 
+describe("login password toggle", () => {
+  it("shows and hides the password and names the app", async () => {
+    server.use(noSession);
+    renderApp("/login");
+    await screen.findByRole("heading", { name: "Sign in" });
+    expect(screen.getByText("Expense Tracker")).toBeTruthy();
+    expect(screen.getByText("Track what you spend, nothing more.")).toBeTruthy();
+    const input = screen.getByLabelText("Password", { selector: "input" });
+    const toggle = screen.getByRole("button", { name: "Show password" });
+    expect(input.getAttribute("type")).toBe("password");
+    fireEvent.click(toggle);
+    expect(input.getAttribute("type")).toBe("text");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
 describe("RequireAuth", () => {
   function Where() {
     const location = useLocation();

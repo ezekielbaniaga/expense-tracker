@@ -220,6 +220,35 @@ describe("register client validation", () => {
     expect(calls).toBe(0);
   });
 
+  it("ticks the rules checklist as the password is typed", async () => {
+    await renderRegister();
+    const met = () =>
+      Object.fromEntries(
+        [...document.querySelectorAll(".rules__item")].map((li) => [li.textContent?.split(" (")[0], li.getAttribute("data-met")]),
+      );
+    expect(met()).toEqual({ "12 or more characters": "false", "At most 72 bytes": "false", "Not the username": "false" });
+    fireEvent.input(screen.getByLabelText("Username"), { target: { value: "Carol" } });
+    fireEvent.input(screen.getByLabelText("Password"), { target: { value: "carol" } });
+    expect(met()).toEqual({ "12 or more characters": "false", "At most 72 bytes": "true", "Not the username": "false" });
+    fireEvent.input(screen.getByLabelText("Password"), { target: { value: "€".repeat(25) } });
+    expect(met()).toEqual({ "12 or more characters": "true", "At most 72 bytes": "false", "Not the username": "true" });
+    fireEvent.input(screen.getByLabelText("Password"), { target: { value: "a-long-password" } });
+    expect(Object.values(met())).toEqual(["true", "true", "true"]);
+  });
+
+  it("switches the password field between hidden and shown", async () => {
+    await renderRegister();
+    const input = screen.getByLabelText("Password", { selector: "input" });
+    const toggle = screen.getByRole("button", { name: "Show password" });
+    expect(input.getAttribute("type")).toBe("password");
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(toggle);
+    expect(input.getAttribute("type")).toBe("text");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(toggle);
+    expect(input.getAttribute("type")).toBe("password");
+  });
+
   it("rejects a password equal to the username in any case", async () => {
     await renderRegister();
     fillRegister("Carol.Smith1", "carol.smith1");

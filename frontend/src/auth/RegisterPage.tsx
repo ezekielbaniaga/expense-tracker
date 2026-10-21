@@ -3,12 +3,14 @@ import { useForm, type Resolver } from "react-hook-form";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
 import { useAuth } from "./AuthProvider";
+import { AuthShell } from "./AuthShell";
+import { CheckIcon, DotIcon } from "../ui/icons";
 import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
-import { TextField } from "../ui/fields";
+import { PasswordField, TextField } from "../ui/fields";
 import { FormAlert } from "../ui/forms";
 import { tooManyAttemptsMessage } from "./LoginPage";
-import { toRegisterRequest, validateRegister, type RegisterFormValues } from "./registerSchema";
+import { passwordRules, toRegisterRequest, validateRegister, type RegisterFormValues } from "./registerSchema";
 
 const FIELDS = ["username", "password"] as const;
 type Field = (typeof FIELDS)[number];
@@ -46,8 +48,11 @@ export function RegisterPage() {
     register,
     handleSubmit,
     setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({ resolver, defaultValues: { username: "", password: "" } });
+
+  const rules = passwordRules({ username: watch("username"), password: watch("password") });
 
   if (state.status === "authenticated" && !isSubmitting) {
     return <Navigate to="/" replace />;
@@ -90,7 +95,7 @@ export function RegisterPage() {
   });
 
   return (
-    <main>
+    <AuthShell>
       <PageHeading>Create account</PageHeading>
       <form onSubmit={onSubmit} noValidate>
         <TextField
@@ -101,23 +106,32 @@ export function RegisterPage() {
           {...register("username")}
         />
 
-        <TextField
+        <PasswordField
           label="Password"
           id="password"
-          type="password"
           autoComplete="new-password"
           error={errors.password?.message}
           {...register("password")}
         />
+
+        <ul className="rules" aria-label="Password rules">
+          {rules.map((rule) => (
+            <li key={rule.id} className="rules__item" data-met={rule.met}>
+              {rule.met ? <CheckIcon size={16} /> : <DotIcon size={16} />}
+              {rule.label}
+              <span className="visually-hidden">{rule.met ? " (met)" : " (not met)"}</span>
+            </li>
+          ))}
+        </ul>
 
         {serverError && <FormAlert>{serverError}</FormAlert>}
         <Button type="submit" variant="primary" pending={isSubmitting}>
           Create account
         </Button>
       </form>
-      <p>
+      <p className="auth__switch">
         Have an account? <Link to="/login">Sign in</Link>
       </p>
-    </main>
+    </AuthShell>
   );
 }

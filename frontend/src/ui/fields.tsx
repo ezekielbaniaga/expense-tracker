@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { FieldError, errorProps } from "./forms";
 
 /*
@@ -66,5 +66,25 @@ export function AmountField({ className, ...props }: Omit<FieldProps<"input">, "
       className={["field--amount", className].filter(Boolean).join(" ")}
       inputMode="decimal"
     />
+  );
+}
+
+/** A password input with a show/hide toggle; the button keeps one name and says its state with aria-pressed. */
+export function PasswordField({ id, label, error, className, ...rest }: Omit<FieldProps<"input">, "type">) {
+  const [shown, setShown] = useState(false);
+  return (
+    <FieldShell id={id} label={label} error={error} className={className}>
+      <div className="password-input">
+        <input id={id} {...errorProps(id, error)} {...rest} type={shown ? "text" : "password"} />
+        <button
+          type="button"
+          className="password-input__toggle"
+          aria-pressed={shown}
+          onClick={() => setShown((v) => !v)}
+        >
+          Show password
+        </button>
+      </div>
+    </FieldShell>
   );
 }

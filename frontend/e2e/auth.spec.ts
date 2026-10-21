@@ -20,7 +20,7 @@ test("the seeded admin signs in and out, and the other tab leaves too", async ({
 test("a wrong password shows one generic message", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Username").fill(ADMIN.username);
-  await page.getByLabel("Password").fill("not-the-admin-password");
+  await page.getByLabel("Password", { exact: true }).fill("not-the-admin-password");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("alert")).toHaveText("Invalid username or password");
 });
