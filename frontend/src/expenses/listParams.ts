@@ -92,6 +92,17 @@ function nonNegativeInt(value: string | null, fallback: number): number {
   return value !== null && /^\d+$/.test(value) ? Number(value) : fallback;
 }
 
+/** The backend rejects a longer q with 400 VALIDATION_ERROR (Java String length, like JS: UTF-16 units). */
+export const MAX_SEARCH_LENGTH = 100;
+
+/** Cuts q to the limit without leaving half of a surrogate pair at the end. */
+function cutSearch(value: string): string {
+  if (value.length <= MAX_SEARCH_LENGTH) return value;
+  const cut = value.slice(0, MAX_SEARCH_LENGTH);
+  const last = cut.charCodeAt(cut.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
+}
+
 /**
  * Reads the list state from the URL. A value that could not be sent (a bad date,
  * an unknown category) is dropped, so a hand-edited link still loads.
@@ -108,7 +119,7 @@ export function readListParams(
   // No dates in the URL means This month, unless period=all asks for no bounds
   if (from === "" && to === "" && params.get("period") !== "all") ({ from, to } = periodRange("month", now));
   return {
-    q: params.get("q") ?? "",
+    q: cutSearch(params.get("q") ?? ""),
     category: [...new Set(params.getAll("category"))].filter((c): c is Category => c in CATEGORY_LABELS),
     from,
     to,

@@ -21,6 +21,15 @@ describe("listParams", () => {
     });
   });
 
+  it("cuts a q over 100 characters, never inside a surrogate pair", () => {
+    expect(read(`q=${"a".repeat(101)}`).q).toBe("a".repeat(100));
+    expect(read(`q=${"a".repeat(100)}`).q).toBe("a".repeat(100));
+    // The emoji is two UTF-16 units at 99-100: the cut would leave a lone high surrogate, so it goes too
+    expect(read(`q=${"a".repeat(99)}${encodeURIComponent("\u{1F600}")}`).q).toBe("a".repeat(99));
+    // A pair that ends exactly at 100 stays
+    expect(read(`q=${"a".repeat(98)}${encodeURIComponent("\u{1F600}")}b`).q).toBe("a".repeat(98) + "\u{1F600}");
+  });
+
   it("drops values that could not be sent", () => {
     const p = read("category=NOPE&from=yesterday&to=2026-13-45&minAmount=abc&sort=bad&page=-1&size=0");
     expect(p).toEqual(read(""));

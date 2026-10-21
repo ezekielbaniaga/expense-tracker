@@ -26,7 +26,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
 import { CATEGORY_LABELS, type Category } from "../api/expense";
 import { ChipGroup } from "../ui/Chip";
-import { INVALID_CODE_PARAMS, PERIOD_CHIPS, detectPeriod, periodRange, readListParams, summaryFilters, toApiQuery, toSummaryQuery, type Period } from "./listParams";
+import { INVALID_CODE_PARAMS, MAX_SEARCH_LENGTH, PERIOD_CHIPS, detectPeriod, periodRange, readListParams, summaryFilters, toApiQuery, toSummaryQuery, type Period } from "./listParams";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABELS) as Category[]).map((c) => ({ value: c, label: CATEGORY_LABELS[c] }));
@@ -264,6 +264,7 @@ export function ExpenseListPage() {
             type="search"
             placeholder="Search descriptions"
             value={searchText}
+            maxLength={MAX_SEARCH_LENGTH}
             onChange={(event) => setSearchText(event.target.value)}
           />
           <button

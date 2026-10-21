@@ -409,6 +409,17 @@ describe("expense list", () => {
       expect(box.value).toBe("coffee ");
     });
 
+    it("loads a 101-character URL q, cutting it to 100 in the box and the request", async () => {
+      const queries = record();
+      renderAt(`/?period=all&q=${"a".repeat(101)}`);
+      await screen.findByText("Lunch");
+      const box = screen.getByPlaceholderText("Search descriptions") as HTMLInputElement;
+      expect(box.maxLength).toBe(100);
+      expect(box.value).toBe("a".repeat(100));
+      expect(queries.at(-1)!.get("q")).toBe("a".repeat(100));
+      expect(screen.queryByText("Expenses could not be loaded")).toBeNull();
+    });
+
     it("Clear filters empties a search that has reached the URL", async () => {
       const queries = record();
       renderAt("/?period=all");
