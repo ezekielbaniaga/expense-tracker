@@ -39,6 +39,18 @@ export function formatRelativeDay(day: string | null, now: Date = new Date(), lo
   return formatDay(day, locale);
 }
 
+/** A list group header: "Today", "Yesterday", otherwise "Oct 19 \u00b7 Sun" (no zone shift, like `formatDay`). */
+export function formatGroupDay(day: string | null, now: Date = new Date(), locale?: string): string {
+  if (day === null) return "No date";
+  const parts = dayParts(day);
+  if (!parts) return day;
+  const relative = formatRelativeDay(day, now, locale);
+  if (relative === "Today" || relative === "Yesterday") return relative;
+  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale, { ...o, timeZone: "UTC" }).format(date);
+  return `${fmt({ month: "short", day: "numeric" })} \u00b7 ${fmt({ weekday: "short" })}`;
+}
+
 /** The day written out in full, e.g. "Saturday, October 17, 2026". */
 export function formatLongDay(day: string | null, locale?: string): string {
   if (day === null) return MISSING;

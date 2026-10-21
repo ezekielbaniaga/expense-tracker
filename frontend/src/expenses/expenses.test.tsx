@@ -123,6 +123,30 @@ describe("expense list", () => {
     ).toBeTruthy();
   });
 
+  it("groups rows by day only for the date sort; links stay found by description", async () => {
+    server.use(
+      http.get(`${BASE}/api/expense`, () =>
+        HttpResponse.json({
+          ...EMPTY_PAGE,
+          expenses: [
+            { id: "e1", description: "Lunch", amount: 12.5, category: "FOOD", date: todayIso(), version: 0 },
+            { id: "e2", description: "Taxi", amount: 8, category: "TRANSPORT", date: todayIso(), version: 0 },
+            { id: "e3", description: "Bus", amount: 3, category: "TRANSPORT", date: yesterdayIso(), version: 0 },
+          ],
+          total: 3,
+          total_pages: 1,
+        }),
+      ),
+    );
+    renderAt("/");
+    expect((await screen.findByRole("link", { name: "Lunch" })).getAttribute("href")).toBe("/expenses/e1");
+    expect(screen.getAllByRole("rowheader").map((h) => h.textContent)).toEqual(["Today", "Yesterday"]);
+    expect(screen.getAllByRole("rowgroup").length).toBeGreaterThan(2);
+    fireEvent.click(screen.getByRole("button", { name: "Amount" }));
+    await waitFor(() => expect(screen.queryAllByRole("rowheader")).toHaveLength(0));
+    expect(screen.getByRole("link", { name: "Taxi" })).toBeTruthy();
+  });
+
   it("renders a legacy row whose nullable fields are all null", async () => {
     server.use(
       http.get(`${BASE}/api/expense`, () =>
@@ -138,7 +162,7 @@ describe("expense list", () => {
     );
     renderAt("/");
     expect(await screen.findByText("Lunch")).toBeTruthy();
-    const cells = within(screen.getAllByRole("row")[1]).getAllByRole("cell");
+    const cells = within(screen.getByRole("row", { name: /no description/ })).getAllByRole("cell");
     expect(cells.map((c) => c.textContent)).toEqual(["(no description)", "—", "—", "—"]);
   });
 

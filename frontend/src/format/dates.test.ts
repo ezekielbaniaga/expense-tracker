@@ -1,4 +1,4 @@
-import { formatDay, formatLocalDateTime, formatRelativeDay, parseUtc } from "./dates";
+import { formatDay, formatGroupDay, formatLocalDateTime, formatRelativeDay, parseUtc } from "./dates";
 
 describe("parseUtc", () => {
   it("reads an API timestamp without offset as UTC", () => {
@@ -61,5 +61,15 @@ describe("formatRelativeDay", () => {
   it("writes older days out and handles null", () => {
     expect(formatRelativeDay("2026-10-16", now, "en-US")).toBe("Oct 16, 2026");
     expect(formatRelativeDay(null, now, "en-US")).toBe("—");
+  });
+});
+
+describe("formatGroupDay", () => {
+  const now = new Date(2026, 9, 21, 12);
+  it("says Today and Yesterday, otherwise month, day and weekday", () => {
+    expect(formatGroupDay("2026-10-21", now, "en-US")).toBe("Today");
+    expect(formatGroupDay("2026-10-20", now, "en-US")).toBe("Yesterday");
+    expect(formatGroupDay("2026-10-19", now, "en-US")).toBe("Oct 19 \u00b7 Mon");
+    expect(formatGroupDay(null, now, "en-US")).toBe("No date");
   });
 });

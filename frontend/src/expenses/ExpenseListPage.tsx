@@ -8,7 +8,7 @@ import {
   mapExpensePage,
   type ExpenseListResponseV13Dto,
 } from "../api/expense";
-import { formatDay } from "../format/dates";
+import { formatDay, formatGroupDay } from "../format/dates";
 import { formatMoney } from "../format/money";
 import { usePreferences } from "../ui/preferences";
 import { CategoryChip } from "../ui/Chip";
@@ -59,6 +59,17 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "description,desc", label: "Description Z\u2013A" },
   { value: "category,asc", label: "Category" },
 ];
+
+/** Consecutive rows of the same day, in list order. */
+function groupByDay<T extends { date: string | null }>(rows: T[]): { day: string | null; rows: T[] }[] {
+  const groups: { day: string | null; rows: T[] }[] = [];
+  for (const row of rows) {
+    const last = groups[groups.length - 1];
+    if (last && last.day === row.date) last.rows.push(row);
+    else groups.push({ day: row.date, rows: [row] });
+  }
+  return groups;
+}
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError && error.messages[0]) return error.messages[0];
@@ -282,7 +293,7 @@ export function ExpenseListPage() {
               </select>
             </div>
             <TableScroll label="Expenses table">
-            <table className="expense-table">
+            <table className={sortKey === "date" ? "expense-table expense-table--grouped" : "expense-table"}>
               <thead>
                 <tr>
                   {HEADERS.map(({ key, label }) => (
@@ -297,20 +308,31 @@ export function ExpenseListPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody>
-                {query.data.expenses.map((e) => (
-                  <tr key={e.id} className={e.id === highlightId ? "row--new" : undefined}>
-                    <td>
-                      <Link to={`/expenses/${e.id}`}>{e.description ?? NO_DESCRIPTION}</Link>
-                    </td>
-                    <td>
-                      <CategoryChip category={e.category} />
-                    </td>
-                    <td>{formatDay(e.date)}</td>
-                    <td>{formatMoney(e.amount, currency)}</td>
-                  </tr>
-                ))}
-              </tbody>
+              {(sortKey === "date" ? groupByDay(query.data.expenses) : [{ day: undefined, rows: query.data.expenses }]).map(
+                (group) => (
+                  <tbody key={group.day === undefined ? "all" : (group.day ?? "none")}>
+                    {group.day !== undefined && (
+                      <tr className="expense-table__day">
+                        <th scope="rowgroup" colSpan={HEADERS.length}>
+                          {formatGroupDay(group.day)}
+                        </th>
+                      </tr>
+                    )}
+                    {group.rows.map((e) => (
+                      <tr key={e.id} className={e.id === highlightId ? "row--new" : undefined}>
+                        <td className="expense-table__description">
+                          <Link to={`/expenses/${e.id}`}>{e.description ?? NO_DESCRIPTION}</Link>
+                        </td>
+                        <td className="expense-table__category">
+                          <CategoryChip category={e.category} />
+                        </td>
+                        <td className="expense-table__date">{formatDay(e.date)}</td>
+                        <td className="expense-table__amount">{formatMoney(e.amount, currency)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                ),
+              )}
             </table>
             </TableScroll>
           </>

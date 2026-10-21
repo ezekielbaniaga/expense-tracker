@@ -803,6 +803,73 @@ tr.row--new {
   .expense-table thead {
     display: none;
   }
+
+  /* The same table as cards: description and amount on top, category chip below. The whole card is
+     the link through the description link's stretched ::after. */
+  .expense-table,
+  .expense-table tbody {
+    display: block;
+  }
+
+  .expense-table tbody > tr:not(.expense-table__day) {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "description amount"
+      "category date";
+    align-items: center;
+    column-gap: var(--sp-2);
+    padding: var(--sp-2);
+    margin-block: var(--sp-1);
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+  }
+
+  .expense-table td {
+    padding: 0;
+  }
+
+  .expense-table__description {
+    grid-area: description;
+  }
+
+  .expense-table__description a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .expense-table__category {
+    grid-area: category;
+  }
+
+  .expense-table__date {
+    grid-area: date;
+  }
+
+  .expense-table__amount {
+    grid-area: amount;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Under a day header the date is redundant */
+  .expense-table--grouped .expense-table__date {
+    display: none;
+  }
+
+  .expense-table__day,
+  .expense-table__day th {
+    display: block;
+  }
+}
+
+.expense-table__day th {
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-top: var(--sp-3, 1rem);
 }
 
 @media (min-width: 48rem) {
