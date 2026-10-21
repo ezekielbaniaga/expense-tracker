@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Restyle native elements with tokens.** Split `frontend/src/styles.css` into `src/styles/base.css` (reset, body,
-      type scale, `.caps`, links, focus ring, skip link, reduced motion, `forced-colors`) and `components.css`/`layout.css`,
-      using tokens only; delete `styles.css` and fix the import in `main.tsx`. Inputs use `--fs-input` (16px on
-      `(pointer: coarse)`) and `--line-strong`. Keep every class name and behaviour. Test: a Vitest that fails if any
-      `src/styles/*.css` other than `tokens.css` has a hex or `rgb(` color; existing suite green. Careful: styles.css has
-      four hard-coded colors (`#fff` at :32 too). Proposal: Visual language.
 - [ ] **Icons and Button.** Add `frontend/src/ui/icons.tsx` (inline SVG components, `currentColor`, `aria-hidden` by
       default, the proposal's icon set; Lucide ISC attribution comment if shapes follow it) and `src/ui/Button.tsx`
       (`Button` variants primary/secondary/ghost/danger, sizes md/sm, `pending` → `aria-busy` + spinner keeping the label;
@@ -355,3 +349,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Added design tokens and contrast test (ebb5783)
 - [x] Theme and accent bootstrap in main.tsx with theme-color metas (596719c)
 - [x] Bundled JetBrains Mono (Latin 400/500/700 woff2 + OFL, base.css @font-face, assetsInlineLimit 0, Regular preload) (c170e99)
+- [x] Restyle native elements with tokens: styles.css split into base/layout/components (8769dc7)
