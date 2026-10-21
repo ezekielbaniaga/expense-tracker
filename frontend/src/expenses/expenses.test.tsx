@@ -107,7 +107,7 @@ describe("expense list", () => {
       ),
     );
     renderAt("/");
-    expect(await screen.findByText("No expenses yet.")).toBeTruthy();
+    expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
   });
 
@@ -125,7 +125,7 @@ describe("expense list", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toMatch(/Could not load expenses\. Boom/);
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByText("No expenses yet.")).toBeTruthy();
+    expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
   });
 
   it("keeps Sign out and links to the archived screen reachable", async () => {
@@ -188,7 +188,7 @@ describe("archived screen", () => {
       http.get(`${BASE}/api/expense/archived`, () => HttpResponse.json({ expenses: [], count: 0 })),
     );
     renderAt("/archived");
-    expect(await screen.findByText("No archived expenses.")).toBeTruthy();
+    expect(await screen.findByText("Nothing archived. Deleted expenses wait here for a while.")).toBeTruthy();
   });
 
   it("shows an error toast", async () => {
@@ -537,7 +537,7 @@ describe("edit, patch description and delete", () => {
     );
     await openEdit();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("No expenses yet", { exact: false })).toBeTruthy();
+    expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
     expect(screen.getByText("This expense was deleted.")).toBeTruthy();
     expect(queryClient.getQueryData(["expense", "e1"])).toBeUndefined();
   });
@@ -610,7 +610,7 @@ describe("edit, patch description and delete", () => {
     await screen.findByRole("heading", { name: "Lunch" });
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
-    expect(await screen.findByText("No expenses yet", { exact: false })).toBeTruthy();
+    expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
     expect(query).toBe("?version=3");
     expect(queryClient.getQueryState(["archived"])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryData(["expense", "e1"])).toBeUndefined();

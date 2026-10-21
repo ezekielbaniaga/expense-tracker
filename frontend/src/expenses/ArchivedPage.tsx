@@ -12,6 +12,8 @@ import { PageHeading } from "../ui/focus";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { errorMessage } from "./ExpenseListPage";
+import { Skeleton } from "../ui/Skeleton";
+import { EmptyState } from "../ui/EmptyState";
 
 /** Read-only: there is no restore endpoint. */
 export function ArchivedPage() {
@@ -33,7 +35,7 @@ export function ArchivedPage() {
   return (
     <section aria-labelledby="archived-heading">
       <PageHeading id="archived-heading">Archived expenses</PageHeading>
-      {query.isPending && <p role="status">Loading archived expenses...</p>}
+      {query.isPending && <Skeleton label="Loading archived expenses..." />}
       {query.isError && (
         <p>
           Archived expenses could not be loaded.{" "}
@@ -44,7 +46,7 @@ export function ArchivedPage() {
       )}
       {query.data &&
         (query.data.length === 0 ? (
-          <p>No archived expenses.</p>
+          <EmptyState title="Nothing archived. Deleted expenses wait here for a while." />
         ) : (
           <TableScroll label="Archived expenses table">
           <table>

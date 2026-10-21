@@ -9,6 +9,7 @@ import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
+import { Skeleton } from "../ui/Skeleton";
 
 /**
  * The server re-checks the caller against the database, so an admin demoted or
@@ -134,7 +135,7 @@ export function AdminUsersPage() {
         <Button type="submit" variant="primary">Search</Button>
       </form>
       {notice && <p role="status">{notice}</p>}
-      {query.isPending && <p role="status">Loading users...</p>}
+      {query.isPending && <Skeleton label="Loading users..." />}
       {query.isError && !isInvalidPage(failure) && (
         <p>
           Users could not be loaded.{" "}

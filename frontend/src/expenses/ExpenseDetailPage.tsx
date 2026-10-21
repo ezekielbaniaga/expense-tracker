@@ -17,6 +17,7 @@ import {
   validateDescription,
   type ExpenseFormValues,
 } from "./expenseSchema";
+import { Skeleton } from "../ui/Skeleton";
 
 /**
  * 404 and 400 (a malformed id) look the same on purpose, and archived expenses
@@ -62,7 +63,7 @@ export function ExpenseDetailPage() {
       <p>
         <Link to="/">Back to expenses</Link>
       </p>
-      {query.isPending && <p role="status">Loading expense...</p>}
+      {query.isPending && <Skeleton label="Loading expense..." />}
       {notFound && <PageHeading id="expense-heading">Not found</PageHeading>}
       {query.isError && !notFound && (
         <p>
@@ -215,7 +216,7 @@ function EditForm({ expense, onReload, onDone }: FormProps) {
       </p>
     );
   }
-  if (!categories.data) return <p role="status">Loading categories...</p>;
+  if (!categories.data) return <Skeleton label="Loading categories..." />;
   return (
     <EditFormFields
       expense={expense}

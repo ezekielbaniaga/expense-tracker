@@ -11,6 +11,7 @@ import { PageHeading, useRefocusOnClose } from "../ui/focus";
 import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { isForbidden, NO_ADMIN_ACCESS } from "./AdminUsersPage";
+import { Skeleton } from "../ui/Skeleton";
 
 /** 400 is a malformed id; it looks the same as an unknown one. */
 function isNotFound(error: unknown): boolean {
@@ -39,7 +40,7 @@ export function AdminUserPage() {
       <p>
         <Link to="/admin/users">Back to users</Link>
       </p>
-      {query.isPending && <p role="status">Loading user...</p>}
+      {query.isPending && <Skeleton label="Loading user..." />}
       {isNotFound(failure) && <PageHeading id="user-heading">Not found</PageHeading>}
       {isForbidden(failure) && <p role="alert">{NO_ADMIN_ACCESS}</p>}
       {query.isError && !isNotFound(failure) && !isForbidden(failure) && (

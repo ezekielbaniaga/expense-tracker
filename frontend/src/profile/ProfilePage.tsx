@@ -12,6 +12,7 @@ import { TextField } from "../ui/fields";
 import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { validateChangePassword, type ChangePasswordFormValues } from "./changePasswordSchema";
+import { Skeleton } from "../ui/Skeleton";
 
 const FIELDS = ["currentPassword", "newPassword"] as const;
 type Field = (typeof FIELDS)[number];
@@ -34,7 +35,7 @@ export function ProfilePage() {
     <>
       <section aria-labelledby="profile-heading">
         <PageHeading id="profile-heading">Profile</PageHeading>
-        {query.isPending && <p role="status">Loading profile...</p>}
+        {query.isPending && <Skeleton label="Loading profile..." />}
         {query.isError && (
           <p>
             Your profile could not be loaded.{" "}
@@ -201,7 +202,7 @@ function DevicesSection() {
   return (
     <section aria-labelledby="devices-heading">
       <h2 id="devices-heading">Your devices</h2>
-      {query.isPending && <p role="status">Loading devices...</p>}
+      {query.isPending && <Skeleton label="Loading devices..." />}
       {query.isError && (
         <p>
           Your devices could not be loaded.{" "}

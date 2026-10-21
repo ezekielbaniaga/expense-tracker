@@ -14,6 +14,8 @@ import { CategoryChip } from "../ui/Chip";
 import { PageHeading } from "../ui/focus";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
+import { Skeleton } from "../ui/Skeleton";
+import { EmptyState } from "../ui/EmptyState";
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError && error.messages[0]) return error.messages[0];
@@ -39,7 +41,7 @@ export function ExpenseListPage() {
   return (
     <section aria-labelledby="expenses-heading">
       <PageHeading id="expenses-heading">Expenses</PageHeading>
-      {query.isPending && <p role="status">Loading expenses...</p>}
+      {query.isPending && <Skeleton label="Loading expenses..." />}
       {query.isError && (
         <p>
           Expenses could not be loaded.{" "}
@@ -50,7 +52,16 @@ export function ExpenseListPage() {
       )}
       {query.data &&
         (query.data.count === 0 ? (
-          <p>No expenses yet.</p>
+          <EmptyState
+            title="Nothing here yet."
+            action={
+              <Link className="btn btn--primary btn--md" to="/expenses/new">
+                Add expense
+              </Link>
+            }
+          >
+            Add your first expense and it shows up here.
+          </EmptyState>
         ) : (
           <>
             <p>

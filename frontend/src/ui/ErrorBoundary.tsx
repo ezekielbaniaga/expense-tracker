@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { EmptyState } from "./EmptyState";
 import { PageHeading } from "./focus";
 
 /**
@@ -21,12 +22,17 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
   render() {
     if (!this.state.failed) return this.props.children;
     return (
-      <>
-        <PageHeading>Something went wrong</PageHeading>
-        <p>
-          This page could not be shown. <Link to="/">Back to expenses</Link>
-        </p>
-      </>
+      <EmptyState
+        title="Something went wrong"
+        headline={<PageHeading className="empty-state__title">Something went wrong</PageHeading>}
+        action={
+          <Link className="btn btn--secondary btn--md" to="/">
+            Back to expenses
+          </Link>
+        }
+      >
+        This page could not be shown.
+      </EmptyState>
     );
   }
 }

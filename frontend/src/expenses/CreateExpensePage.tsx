@@ -10,6 +10,7 @@ import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { FormAlert } from "../ui/forms";
 import { toCreateRequest, type ExpenseFormValues } from "./expenseSchema";
+import { Skeleton } from "../ui/Skeleton";
 
 export function CreateExpensePage() {
   const categories = useCategories();
@@ -20,7 +21,7 @@ export function CreateExpensePage() {
         <Link to="/">Back to expenses</Link>
       </p>
       <PageHeading id="create-heading">New expense</PageHeading>
-      {categories.isPending && <p role="status">Loading categories...</p>}
+      {categories.isPending && <Skeleton label="Loading categories..." />}
       {categories.isError && (
         <p>
           Categories could not be loaded.{" "}
