@@ -173,7 +173,6 @@ function DevicesSection() {
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const signOutOthers = useRefocusOnClose<HTMLButtonElement>(confirming);
-  const [notice, setNotice] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ["sessions"],
     queryFn: () => client.request<SessionDto[]>("/users/me/sessions"),
@@ -195,7 +194,7 @@ function DevicesSection() {
         await logout();
         return;
       }
-      setNotice(`Signed out ${revoked} other device${revoked === 1 ? "" : "s"}.`);
+      toast.showSuccess(`Signed out ${revoked} other device${revoked === 1 ? "" : "s"}.`);
       await queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
   });
@@ -228,7 +227,6 @@ function DevicesSection() {
           ))}
         </ul>
       )}
-      {notice && <p role="status">{notice}</p>}
       {sessions.some((s) => !s.current) &&
         (confirming ? (
           <div>
@@ -240,7 +238,6 @@ function DevicesSection() {
               type="button"
               disabled={revokeOthers.isPending}
               onClick={() => {
-                setNotice(null);
                 revokeOthers.mutate();
               }}
             >
@@ -269,6 +266,7 @@ function DevicesSection() {
 function SessionItem({ session }: { session: SessionDto }) {
   const { client, logout } = useAuth();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [confirming, setConfirming] = useState(false);
   const revokeButton = useRefocusOnClose<HTMLButtonElement>(confirming);
   const revoke = useMutation({
@@ -280,6 +278,7 @@ function SessionItem({ session }: { session: SessionDto }) {
         await logout();
         return;
       }
+      toast.showSuccess("Device signed out.");
       await queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
   });

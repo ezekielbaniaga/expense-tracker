@@ -239,6 +239,7 @@ describe("your devices", () => {
     expect(revoked).toBeNull();
     fireEvent.click(within(phone as HTMLElement).getByRole("button", { name: "Confirm revoke" }));
     await waitFor(() => expect(screen.queryByText("Safari on iPhone")).toBeNull());
+    expect(screen.getByRole("status").textContent).toBe("Device signed out.");
     expect(revoked).toBe("s-2");
     expect(listCalls).toBe(2);
     expect(client.isSignedIn()).toBe(true);

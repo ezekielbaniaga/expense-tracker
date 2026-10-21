@@ -367,6 +367,7 @@ describe("create expense", () => {
     fill({ description: "Lunch", amount: "12.50", category: "FOOD", date: "2026-10-17" });
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
     expect(await screen.findByRole("heading", { name: "Lunch" })).toBeTruthy();
+    expect((await screen.findByRole("status")).textContent).toBe("Added Lunch · 12.50");
     expect(body).toEqual({ description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17" });
     expect(queryClient.getQueryState(["expenses"])?.isInvalidated).toBe(true);
   });
@@ -456,6 +457,7 @@ describe("edit, patch description and delete", () => {
     fireEvent.change(input("Amount"), { target: { value: "20" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByRole("heading", { name: "Dinner" })).toBeTruthy();
+    expect((await screen.findByRole("status")).textContent).toBe("Saved");
     expect(body).toEqual({
       description: "Dinner",
       amount: 20,
@@ -574,6 +576,7 @@ describe("edit, patch description and delete", () => {
     fireEvent.change(input("Description"), { target: { value: "Brunch" } });
     fireEvent.click(screen.getByRole("button", { name: "Save description" }));
     expect(await screen.findByRole("heading", { name: "Brunch" })).toBeTruthy();
+    expect((await screen.findByRole("status")).textContent).toBe("Description saved");
     expect(body).toEqual({ version: 3, description: "Brunch" });
     expect(screen.getByText("4")).toBeTruthy();
   });
@@ -611,6 +614,7 @@ describe("edit, patch description and delete", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
     expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
+    expect((await screen.findByRole("status")).textContent).toBe("Expense deleted. It's in Archived for now.");
     expect(query).toBe("?version=3");
     expect(queryClient.getQueryState(["archived"])?.isInvalidated).toBe(true);
     expect(queryClient.getQueryData(["expense", "e1"])).toBeUndefined();

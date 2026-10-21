@@ -4,13 +4,14 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
-import { todayIso, type ExpenseDto } from "../api/expense";
+import { formatAmount, NO_DESCRIPTION, todayIso, type ExpenseDto } from "../api/expense";
 import { applyServerErrors, ExpenseFields, expenseResolver, useCategories } from "./ExpenseFields";
 import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { FormAlert } from "../ui/forms";
 import { toCreateRequest, type ExpenseFormValues } from "./expenseSchema";
 import { Skeleton } from "../ui/Skeleton";
+import { useToast } from "../ui/Toast";
 
 export function CreateExpensePage() {
   const categories = useCategories();
@@ -39,6 +40,7 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
   const { client } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -56,6 +58,7 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
       client.request<ExpenseDto>("/api/expense", { method: "POST", body: toCreateRequest(values) }),
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      toast.showSuccess(`Added ${created.description ?? NO_DESCRIPTION} · ${formatAmount(created.amount)}`);
       navigate(`/expenses/${created.id}`);
     },
     onError: (error) => {

@@ -125,11 +125,13 @@ export function ExpenseDetailPage() {
 }
 
 /** Saves the response as the expense and refreshes every list that shows it. */
-function useSaved(onDone: () => void) {
+function useSaved(onDone: () => void, message: string) {
   const queryClient = useQueryClient();
+  const toast = useToast();
   return async (saved: ExpenseDto) => {
     queryClient.setQueryData(["expense", saved.id], saved);
     await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    toast.showSuccess(message);
     onDone();
   };
 }
@@ -234,7 +236,7 @@ function EditFormFields({
   onDone,
 }: FormProps & { categories: readonly string[] }) {
   const { client } = useAuth();
-  const saved = useSaved(onDone);
+  const saved = useSaved(onDone, "Saved");
   const {
     register,
     handleSubmit,
@@ -289,7 +291,7 @@ function EditFormFields({
 
 function DescriptionForm({ expense, onReload, onDone }: FormProps) {
   const { client } = useAuth();
-  const saved = useSaved(onDone);
+  const saved = useSaved(onDone, "Description saved");
   const [description, setDescription] = useState(expense.description ?? "");
   const [fieldError, setFieldError] = useState<string | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -356,6 +358,7 @@ function DeletePanel({
   const { client } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const toast = useToast();
   const failure = useWriteFailure(expense.id);
 
   const remove = useMutation({
@@ -366,6 +369,7 @@ function DeletePanel({
       ),
     onSuccess: async () => {
       // GET now answers 404, so leave and drop the cached copy instead of refetching it
+      toast.showSuccess("Expense deleted. It's in Archived for now.");
       navigate("/");
       queryClient.removeQueries({ queryKey: ["expense", expense.id] });
       await Promise.all([
