@@ -11,13 +11,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 ## Findings 2026-10-21
 
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
-- [ ] **Docs that contradict the code.** README section 17 gives `category=FOOD&category=RENT` as the example, but
-      there is no `RENT` (`expense/entity/Category.java`), so that request is `400 INVALID_CATEGORY`; it says
-      the summary request "must carry a concrete `X-API-Version`", but one without the header is served as
-      the default `1.0` (verified, 200). `frontend/playwright.config.ts` says the server rejects future dates
-      "in UTC", but it allows up to UTC+14 since e2c4941. `UserService.updateDisplayName` and README say
-      "last write wins", but `User` has `@Version`, so a write racing a password change or admin PATCH gets
-      `409 CONCURRENT_MODIFICATION` (not verified). Fix the wording.
 
 ## Needs you
 
@@ -201,3 +194,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] A page past the end (old link, or the last item of the last page deleted) now moves to the last page instead of showing an empty table, on the expense list and the admin users list (67eaa45)
 - [x] Summary ties (equal totals) are now ordered by category name like the list's sort=category, not by enum position, with a tie test (7060912)
 - [x] The admin user list shows the creation date in the viewer's time zone (`formatLocalDay`), with time zone tests (831e0aa)
+- [x] Fixed docs and comments that contradicted the code (RENT category, X-API-Version, UTC+14 dates, display name 409) (99884a9)
