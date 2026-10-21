@@ -15,11 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Admin restyle and Pagination.** Users list: avatar (`hueFor(user.id)`) + username, role chip, status chip with text,
-      created via `formatDay`; user detail header card; an "Admin" pill in the top bar on `/admin/*`. Extract
-      `frontend/src/ui/Pagination.tsx` (Prev/Next, "Page x of y", size `[10, 20, 50, 100]`) from `AdminUsersPage`.
-      Test: `admin.test.tsx` still passes (filters, paging, `INVALID_PAGE` reset, confirms, 403); add
-      `Pagination.test.tsx`. Careful: don't change admin permission behaviour. Proposal: Admin.
 - [ ] **Backend: expense list 1.3 with paging, sort and filtered total.** `@GetMapping(version = "1.3")` in
       `expense/ExpenseController` with `@RequestParam` `page` (0), `size` (20), `String sort` (`date,desc`); no `Pageable`
       argument. `ExpenseService` checks page/size like `UserService.listUsers` (400 `INVALID_PAGE`), maps sort fields
@@ -261,3 +256,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Expense detail restyle: hero, Details card, shortened id with copy, back links (27ff8ea)
 - [x] Profile cards (Account, Appearance, Security, Your devices) and device names (b3e391e)
 - [x] SortableHeader and archived list sorting in the browser, retention note, muted rows (9d0b2ff)
+- [x] Admin restyle: user avatars and chips, detail header card, Admin pill, ui/Pagination extracted (1c889b1)
