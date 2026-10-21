@@ -10,13 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Findings 2026-10-21
 
-- [ ] **A NUL character in an expense description is a 500.** `POST /api/expense` with `"description": "a\u0000b"`
-      passes `@NotBlank`/`@Size` and fails in PostgreSQL (`invalid byte sequence for encoding "UTF8": 0x00`,
-      `DataIntegrityViolationException`), which no handler maps, so the client gets a 500. PUT and
-      `PATCH /{id}/description` take the same text. Verified with a throwaway MockMvc test. Files:
-      `expense/dto/CreateExpenseRequest.java`, `UpdateExpenseRequest.java`, `PatchExpenseDescriptionRequest.java`.
-      Fix: reject `\u0000` (and probably other C0 controls but tab and newline) as `400 VALIDATION_ERROR`.
-      Test: POST, PUT and PATCH with a NUL give 400 and store nothing.
 - [ ] **The summary card's category breakdown ignores the list filters.** `frontend/src/expenses/ExpenseListPage.tsx`
       shows the total and count from the filtered list (`q`, `category`, amounts) but the breakdown from
       `GET /api/expense/summary`, which only takes `from`/`to`. With `category=FOOD` the card says 5.00 and
@@ -241,3 +234,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Frontend: display name (useMe, Profile add/edit/clear, initials from displayName in Profile, admin and account menu) (a6d1b8c)
 - [x] Frontend e2e: list.spec.ts (sort, category, paging, search) and a11y.spec.ts (axe with contrast, light/dark, 360/1280 px; @axe-core/playwright 4.13.0) (9b8282d)
 - [x] README documents the UI design system, preferences, list 1.3, summary and display name; UI design proposal marked implemented (f8cd8bf)
+- [x] A NUL or other control character in an expense description is now a 400 VALIDATION_ERROR instead of a 500 (15194e3)
