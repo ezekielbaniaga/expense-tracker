@@ -76,6 +76,23 @@ export function ProfilePage() {
 }
 
 /** Shows the display name with Edit, or "Add your name"; saving PATCHes /users/me. */
+// Mirrors DisplayNameValidator on the backend, which stays authoritative
+const INVISIBLE_FORMATTING = /[\p{Cf}\p{Zl}\p{Zp}]/u;
+const CONTROL = /\p{Cc}/u;
+const VISIBLE = /[^\s\p{Z}\p{Cf}\p{Cc}]/u;
+// Java's strip() drops whitespace but keeps no-break spaces; String.trim() would drop those too
+const JAVA_WHITESPACE = "\\t-\\r\\u001c-\\u001f \\u1680\\u2000-\\u2006\\u2008-\\u200a\\u2028\\u2029\\u205f\\u3000";
+const EDGE_WHITESPACE = new RegExp(`^[${JAVA_WHITESPACE}]+|[${JAVA_WHITESPACE}]+$`, "gu");
+
+const DISPLAY_NAME_MESSAGE = "Name can't contain control or invisible characters, or be blank.";
+
+function displayNameProblem(raw: string): string | undefined {
+  const stripped = raw.replace(EDGE_WHITESPACE, "");
+  if (INVISIBLE_FORMATTING.test(raw)) return DISPLAY_NAME_MESSAGE; // U+2028/U+2029 would otherwise strip to ""
+  if (stripped === "") return undefined; // clears the name
+  return CONTROL.test(stripped) || !VISIBLE.test(stripped) ? DISPLAY_NAME_MESSAGE : undefined;
+}
+
 function DisplayNameEditor({ displayName }: { displayName: string | null }) {
   const { client } = useAuth();
   const queryClient = useQueryClient();
@@ -127,8 +144,9 @@ function DisplayNameEditor({ displayName }: { displayName: string | null }) {
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        setError(undefined);
-        save.mutate(value.trim());
+        const problem = displayNameProblem(value);
+        setError(problem);
+        if (!problem) save.mutate(value.replace(EDGE_WHITESPACE, ""));
       }}
     >
       <TextField

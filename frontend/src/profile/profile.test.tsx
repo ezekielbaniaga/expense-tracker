@@ -169,6 +169,45 @@ describe("display name", () => {
     expect(screen.getByLabelText("Name").getAttribute("aria-invalid")).toBe("true");
   });
 
+  it("refuses invisible and bidi characters before sending anything", async () => {
+    let sent = 0;
+    server.use(
+      http.patch(`${BASE}/users/me`, () => {
+        sent++;
+        return HttpResponse.json({ ...ME, displayName: current });
+      }),
+    );
+    await renderProfile();
+    fireEvent.click(await screen.findByRole("button", { name: "Add your name" }));
+    for (const bad of ["Ana\u202E", "A\u200Bna", "\uFEFF", "\u00A0", "\u2028", "\u2029"]) {
+      fireEvent.change(screen.getByLabelText("Name"), { target: { value: bad } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(await screen.findByText(/invisible characters/)).toBeTruthy();
+      expect(screen.getByLabelText("Name").getAttribute("aria-invalid")).toBe("true");
+    }
+    expect(sent).toBe(0);
+  });
+
+  it("still saves names in other scripts, with emoji or inner spaces", async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.patch(`${BASE}/users/me`, async ({ request }) => {
+        const body = (await request.json()) as { displayName: string };
+        bodies.push(body.displayName);
+        return HttpResponse.json({ ...ME, displayName: body.displayName });
+      }),
+    );
+    await renderProfile();
+    fireEvent.click(await screen.findByRole("button", { name: "Add your name" }));
+    for (const ok of ["Jos\u00E9", "\u674E\u5C0F\u9F8D", "Ana Mar\u00EDa \uD83D\uDE00"]) {
+      fireEvent.change(screen.getByLabelText("Name"), { target: { value: ok } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(bodies).toContain(ok));
+      fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    }
+    expect(screen.queryByText(/invisible characters/)).toBeNull();
+  });
+
   it("renders a name with markup as plain text", async () => {
     current = "<b>Eve</b>";
     await renderProfile();

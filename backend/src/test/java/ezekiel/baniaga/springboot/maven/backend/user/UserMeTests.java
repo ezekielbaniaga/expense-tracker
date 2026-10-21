@@ -218,6 +218,19 @@ class UserMeTests {
     }
 
     @Test
+    void namesInOtherScriptsWithEmojiAndInnerSpacesAreAccepted() throws Exception {
+        String username = uniqueName("Joe");
+        register(username);
+        Tokens tokens = login(username, PASSWORD);
+
+        for (String name : new String[] {"Jos\u00E9", "\u674E\u5C0F\u9F8D", "Ana Mar\u00EDa", "Zed \uD83D\uDE00", "\uD842\uDFB7\uD842\uDFB7"}) {
+            patchMe(tokens, json(Map.of("displayName", name)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value(name));
+        }
+    }
+
+    @Test
     void invalidDisplayNameIs400AndChangesNothing() throws Exception {
         String username = uniqueName("Ivy");
         register(username);
@@ -229,6 +242,15 @@ class UserMeTests {
             json(Map.of("displayName", "Ivy\nAdmin")),
             json(Map.of("displayName", "Ivy\u0000")),
             json(Map.of("displayName", "Ivy\u007F")),
+            json(Map.of("displayName", "Ivy\u202E")),
+            json(Map.of("displayName", "Iv\u200By")),
+            json(Map.of("displayName", "\uFEFF")),
+            json(Map.of("displayName", "\u200B")),
+            json(Map.of("displayName", "\u00A0")),
+            json(Map.of("displayName", "\u00A0\u2007\u202F")),
+            json(Map.of("displayName", "\u2028")),
+            json(Map.of("displayName", "\u2029")),
+            json(Map.of("displayName", "Ivy\u2028Admin")),
             "{\"displayName\": null}",
             "{}"
         }) {
