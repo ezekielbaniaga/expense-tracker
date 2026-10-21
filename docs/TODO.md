@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Backend: admin user list sort.** `@RequestParam(required = false) String sort` on `user/AdminUserController.list`
-      and a `sort` argument to `UserService.listUsers` (only caller `AdminUserController.java:58`): `createdAt` (default
-      asc), `username` (by `lower(username)`), `role`, `enabled`, each asc/desc, always then `id` asc; unknown → 400
-      `INVALID_SORT`. Update README admin `GET /users` ("ordered oldest first", README.md ~1095-1104). Test:
-      `AdminUserTests` (each field and direction, default unchanged, `INVALID_SORT`). Careful: don't touch
-      `requireEnabledAdmin` or `@PreAuthorize`. Proposal: Backend changes 3.
 - [ ] **Frontend: sortable admin users.** `SortableHeader` on `/admin/users` (Username, Role, Status, Created) with
       `sort` in the URL (resets page); `INVALID_SORT` resets like `INVALID_PAGE` (`AdminUsersPage.tsx:23-25,83-96`).
       Test: `admin.test.tsx` (header click → `sort=username,asc`, `INVALID_SORT` reset). Proposal: Sorting, Admin.
@@ -208,3 +202,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Frontend: search, period chips and filters on the expense list (09128ea)
 - [x] Frontend: phone rows as cards and day grouping under the date sort (90197e8)
 - [x] Frontend: summary card above the expense list with category breakdown bar and legend (801b239)
+- [x] Backend: sort on the admin user list, INVALID_SORT on unknown values (0693c71)
