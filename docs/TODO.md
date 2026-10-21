@@ -11,11 +11,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 ## Findings 2026-10-21
 
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
-- [ ] **The admin user list shows the UTC creation date.** `frontend/src/admin/AdminUsersPage.tsx:229` formats
-      `u.createdAt.slice(0, 10)`, the UTC day, so a user created at 20:00 UTC shows the previous day for a
-      viewer in UTC+8 and later; every other timestamp uses `parseUtc`/local formatting. Not verified in a
-      browser (Vitest pins `TZ=UTC`, which hides it). Fix: format the local date from `parseUtc(createdAt)`.
-      Test: a non-UTC `timeZone` argument, as `formatLocalDateTime` takes.
 - [ ] **Docs that contradict the code.** README section 17 gives `category=FOOD&category=RENT` as the example, but
       there is no `RENT` (`expense/entity/Category.java`), so that request is `400 INVALID_CATEGORY`; it says
       the summary request "must carry a concrete `X-API-Version`", but one without the header is served as
@@ -205,3 +200,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] The expense search is capped at 100 characters in the box and in a q read from the URL, so a long search no longer blanks the list (588c5ae)
 - [x] A page past the end (old link, or the last item of the last page deleted) now moves to the last page instead of showing an empty table, on the expense list and the admin users list (67eaa45)
 - [x] Summary ties (equal totals) are now ordered by category name like the list's sort=category, not by enum position, with a tie test (7060912)
+- [x] The admin user list shows the creation date in the viewer's time zone (`formatLocalDay`), with time zone tests (831e0aa)
