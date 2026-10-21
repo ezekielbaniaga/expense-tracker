@@ -13,6 +13,14 @@ export function formatLocalDateTime(value: string | null, locale?: string, timeZ
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone }).format(date);
 }
 
+/** The calendar day of a UTC timestamp from the API in the viewer's time zone, e.g. "Oct 18, 2026". */
+export function formatLocalDay(value: string | null, locale?: string, timeZone?: string): string {
+  if (value === null) return MISSING;
+  const date = parseUtc(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone }).format(date);
+}
+
 /** "2026-10-17" as a calendar date, e.g. "Oct 17, 2026". No time zone shift: it is not an instant. */
 function dayParts(day: string): [number, number, number] | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);

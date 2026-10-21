@@ -1,4 +1,4 @@
-import { formatDay, formatGroupDay, formatLocalDateTime, formatRelativeDay, parseUtc } from "./dates";
+import { formatDay, formatGroupDay, formatLocalDateTime, formatLocalDay, formatRelativeDay, parseUtc } from "./dates";
 
 describe("parseUtc", () => {
   it("reads an API timestamp without offset as UTC", () => {
@@ -31,6 +31,20 @@ describe("formatLocalDateTime", () => {
   it("shows the placeholder for null and the input for garbage", () => {
     expect(formatLocalDateTime(null, "en-US", "UTC")).toBe("—");
     expect(formatLocalDateTime("not a date", "en-US", "UTC")).toBe("not a date");
+  });
+});
+
+describe("formatLocalDay", () => {
+  it("shows the day in the given time zone, not the UTC day", () => {
+    expect(formatLocalDay("2026-10-18T20:00:00", "en-US", "UTC")).toBe("Oct 18, 2026");
+    expect(formatLocalDay("2026-10-18T20:00:00", "en-US", "Asia/Singapore")).toBe("Oct 19, 2026");
+    expect(formatLocalDay("2026-10-18T20:00:00Z", "en-US", "Pacific/Auckland")).toBe("Oct 19, 2026");
+    expect(formatLocalDay("2026-10-18T02:00:00", "en-US", "America/New_York")).toBe("Oct 17, 2026");
+  });
+
+  it("shows the placeholder for null and the input for garbage", () => {
+    expect(formatLocalDay(null, "en-US", "UTC")).toBe("—");
+    expect(formatLocalDay("soon", "en-US", "UTC")).toBe("soon");
   });
 });
 

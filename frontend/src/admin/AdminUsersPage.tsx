@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/errors";
-import { formatDay } from "../format/dates";
+import { formatLocalDay } from "../format/dates";
 import { DEFAULT_USER_PAGE_SIZE, type UserListDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
@@ -229,7 +229,7 @@ export function AdminUsersPage() {
                     <td>
                       <StatusChip enabled={u.enabled} />
                     </td>
-                    <td>{formatDay(u.createdAt.slice(0, 10))}</td>
+                    <td>{formatLocalDay(u.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
