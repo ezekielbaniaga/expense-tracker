@@ -15,11 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Expense detail restyle.** Hero (category icon, description as the `PageHeading`, amount in `--fs-xl`, category chip,
-      long date); muted "Details" card (Created, Last modified "Never", Version, Id shortened with a copy button and the
-      full id as accessible text); a back link for detail and form pages. Edit and inline description edit keep PUT/PATCH
-      with version and the 409 banners. Test: detail tests in `expenses.test.tsx` (every field, "Never", "—"), a copy test
-      with a stubbed `navigator.clipboard` (guard it, jsdom lacks it). Proposal: Expense detail and edit.
 - [ ] **Profile cards and device names.** Profile becomes Account (avatar, username, role, member since), Appearance
       (theme, accent, currency), Security (password change with a warning that every device signs out) and Your devices
       (`id="devices"`). Add `frontend/src/format/userAgent.ts` `deviceName(ua)` ("Firefox on Linux", "Safari on iPhone",
@@ -275,3 +270,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Login and Register restyle: card, blobs, password toggle, rules checklist (6d26cbe)
 - [x] Add/edit form: amount first, category chips (ee770f1)
 - [x] Add form: Today/Yesterday date chips, back to the list with a highlighted row, Add another (f0fe9ba)
+- [x] Expense detail restyle: hero, Details card, shortened id with copy, back links (27ff8ea)
