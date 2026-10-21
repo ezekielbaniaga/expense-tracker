@@ -128,14 +128,14 @@ describe("expense list", () => {
     expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
   });
 
-  it("keeps Sign out and links to the archived screen reachable", async () => {
+  it("keeps the account menu and links to the archived screen reachable", async () => {
     server.use(
       http.get(`${BASE}/api/expense`, () =>
         HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
       ),
     );
     renderAt("/");
-    expect(await screen.findByRole("button", { name: "Sign out" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Account menu for / })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Archived" }).getAttribute("href")).toBe("/archived");
   });
 });

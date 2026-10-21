@@ -7,6 +7,7 @@ test("the seeded admin signs in and out, and the other tab leaves too", async ({
   await other.goto("/");
   await expect(signedIn(other, ADMIN)).toBeVisible();
 
+  await page.getByRole("button", { name: /^Account menu for / }).click();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(other).toHaveURL(/\/login$/);

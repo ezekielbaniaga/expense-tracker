@@ -1,14 +1,13 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { Button } from "./Button";
+import { AccountMenu } from "./AccountMenu";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ArchiveIcon, ListIcon, PlusIcon, ShieldIcon, UserIcon } from "./icons";
 
-/** Top bar, the one main nav and Sign out around every signed-in page. */
+/** Top bar, the one main nav and account menu around every signed-in page. */
 export function Layout() {
-  const { state, logout } = useAuth();
-  const [signingOut, setSigningOut] = useState(false);
+  const { state } = useAuth();
   const { pathname } = useLocation();
   const main = useRef<HTMLElement>(null);
   return (
@@ -55,27 +54,7 @@ export function Layout() {
           )}
         </nav>
         <div className="topbar__account">
-          {state.status === "authenticated" && (
-            <p>
-              Signed in as <strong>{state.username}</strong>
-              {state.role && (
-                <>
-                  {" "}
-                  (<span>{state.role}</span>)
-                </>
-              )}
-            </p>
-          )}
-          <Button
-            size="sm"
-            disabled={signingOut}
-            onClick={() => {
-              setSigningOut(true);
-              void logout();
-            }}
-          >
-            Sign out
-          </Button>
+          <AccountMenu />
         </div>
       </header>
       <main id="main" ref={main} tabIndex={-1}>

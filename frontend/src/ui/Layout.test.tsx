@@ -72,7 +72,7 @@ describe("Layout", () => {
     );
     expect(await screen.findByRole("heading", { name: "Something went wrong" })).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Main" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Account menu for alice" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("link", { name: "Back to expenses" }));
     expect(await screen.findByText("Fine page")).toBeTruthy();
@@ -84,7 +84,7 @@ describe("Layout", () => {
   it("has one Main nav, one h1, the skip link first and Admin only for ADMIN", async () => {
     role = "USER";
     let client = renderLayout("/");
-    await screen.findByRole("button", { name: "Sign out" });
+    await screen.findByRole("button", { name: "Account menu for alice" });
     expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("link", { name: "Expense Tracker" })).toBeTruthy();

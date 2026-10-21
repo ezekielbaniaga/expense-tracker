@@ -22,7 +22,7 @@ export async function registerUser(request: APIRequestContext): Promise<Credenti
 }
 
 export function signedIn(page: Page, user: Credentials) {
-  return page.getByText(`Signed in as ${user.username}`);
+  return page.getByRole("button", { name: `Account menu for ${user.username}` });
 }
 
 export async function signIn(page: Page, user: Credentials): Promise<void> {

@@ -85,7 +85,7 @@ describe("register", () => {
       { path: "register", body: { username: "carol", password: "a-long-password" } },
       { path: "login", body: { username: "carol", password: "a-long-password" } },
     ]);
-    expect(screen.getByText("carol")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Account menu for carol" })).toBeTruthy();
     expect(client.isSignedIn()).toBe(true);
   });
 

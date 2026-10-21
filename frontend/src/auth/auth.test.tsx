@@ -69,14 +69,22 @@ function fillLogin(username: string, password: string) {
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 }
 
+/** The account menu names the user on its button and shows the role when opened (it is closed again after). */
+function expectAccount(username: string, role?: string) {
+  const button = screen.getByRole("button", { name: `Account menu for ${username}` });
+  if (!role) return;
+  fireEvent.click(button);
+  expect(screen.getByRole("region", { name: username }).textContent).toContain(role);
+  fireEvent.click(button);
+}
+
 describe("boot", () => {
   it("shows a splash, then the home page when the cookie still has a session", async () => {
     server.use(withSession);
     renderApp("/");
     expect(screen.getByRole("status").textContent).toMatch(/loading/i);
     expect(await screen.findByRole("link", { name: "Expense Tracker" })).toBeTruthy();
-    expect(screen.getByText("alice")).toBeTruthy();
-    expect(screen.getByText("ADMIN")).toBeTruthy();
+    expectAccount("alice", "ADMIN");
   });
 
   it("shows the login page when there is no session", async () => {
@@ -116,8 +124,7 @@ describe("login", () => {
     fillLogin("bob", "secret-password");
     expect(await screen.findByRole("link", { name: "Expense Tracker" })).toBeTruthy();
     expect(body).toEqual({ username: "bob", password: "secret-password" });
-    expect(screen.getByText("bob")).toBeTruthy();
-    expect(screen.getByText("USER")).toBeTruthy();
+    expectAccount("bob", "USER");
     expect(queryClient.getQueryData(["expenses"])).toBeUndefined();
   });
 
@@ -216,6 +223,7 @@ describe("logout", () => {
     renderApp("/");
     await screen.findByRole("link", { name: "Expense Tracker" });
     queryClient.setQueryData(["expenses"], ["alice's"]);
+    fireEvent.click(screen.getByRole("button", { name: /^Account menu for / }));
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeTruthy();
     expect(logouts).toBe(1);
@@ -243,12 +251,12 @@ describe("refresh after boot", () => {
     server.use(refreshAs("alice", "USER"));
     renderApp("/");
     await screen.findByRole("link", { name: "Expense Tracker" });
-    expect(screen.getByText("USER")).toBeTruthy();
+    expectAccount("alice", "USER");
     expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
 
     server.use(refreshAs("alice", "ADMIN"));
     await act(() => client.refresh());
-    expect(screen.getByText("ADMIN")).toBeTruthy();
+    expectAccount("alice", "ADMIN");
     expect(screen.getByRole("link", { name: "Admin" })).toBeTruthy();
   });
 
@@ -260,7 +268,7 @@ describe("refresh after boot", () => {
 
     server.use(refreshAs("alice", "USER"));
     await act(() => client.refresh());
-    expect(screen.getByText("USER")).toBeTruthy();
+    expectAccount("alice", "USER");
     expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
   });
 
@@ -272,7 +280,7 @@ describe("refresh after boot", () => {
 
     server.use(refreshAs("alice", "USER"));
     await act(() => client.refresh());
-    expect(screen.getByText("USER")).toBeTruthy();
+    expectAccount("alice", "USER");
     expect(queryClient.getQueryData(["probe"])).toEqual(["alice's"]);
   });
 
@@ -285,7 +293,7 @@ describe("refresh after boot", () => {
 
     server.use(refreshAs("bob", "USER"));
     await act(() => client.refresh());
-    expect(screen.getByText("bob")).toBeTruthy();
+    expectAccount("bob");
     expect(queryClient.getQueryData(["probe"])).toBeUndefined();
   });
 });

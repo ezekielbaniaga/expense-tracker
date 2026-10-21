@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
+import { useLocation } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
 import { formatTimestamp, type RevokedSessionsDto, type SessionDto, type UserDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
@@ -199,8 +200,17 @@ function DevicesSection() {
     },
   });
 
+  // /me#devices (from the account menu): scroll to the section and move focus into it
+  const { hash } = useLocation();
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (hash !== "#devices") return;
+    section.current?.scrollIntoView?.();
+    section.current?.focus();
+  }, [hash]);
+
   return (
-    <section aria-labelledby="devices-heading">
+    <section id="devices" ref={section} tabIndex={-1} aria-labelledby="devices-heading">
       <h2 id="devices-heading">Your devices</h2>
       {query.isPending && <Skeleton label="Loading devices..." />}
       {query.isError && (

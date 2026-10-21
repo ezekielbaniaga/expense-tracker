@@ -32,9 +32,109 @@ body {
   margin-left: auto;
 }
 
-.topbar__account p {
-  margin: 0;
+.account-menu {
+  position: relative;
 }
+
+.account-menu__button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+}
+
+.account-menu__panel {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 10;
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.account-menu__who {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.account-menu__role,
+.account-menu__links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-menu__role {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.account-menu__links a {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 2.75rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.swatches {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.swatches__row {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.swatch {
+  position: relative;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+}
+
+.swatch--selected {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent-strong);
+}
+
+.swatch:has(.swatch__input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.swatch__input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  min-height: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.swatch--lavender { background: var(--lavender-fill); }
+.swatch--rose { background: var(--rose-fill); }
+.swatch--peach { background: var(--peach-fill); }
+.swatch--lemon { background: var(--lemon-fill); }
+.swatch--mint { background: var(--mint-fill); }
+.swatch--sky { background: var(--sky-fill); }
 
 .main-nav {
   position: fixed;
@@ -116,6 +216,17 @@ main {
     min-height: 2.5rem;
     border-radius: var(--r-sm);
     box-shadow: none;
+  }
+
+  .account-menu__panel {
+    position: absolute;
+    inset: calc(100% + var(--sp-2)) 0 auto auto;
+    inline-size: 20rem;
+    border-radius: var(--r-md);
+  }
+
+  .account-menu__close {
+    display: none;
   }
 
   .topbar__account {
