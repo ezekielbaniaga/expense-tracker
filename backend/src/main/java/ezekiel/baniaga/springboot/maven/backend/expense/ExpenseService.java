@@ -159,6 +159,32 @@ public class ExpenseService {
         }
         boolean ascending = dir.equals("asc");
 
+        Specification<Expense> filters = filterSpec(ownerId, f);
+
+        // Sorting is done here, not through Pageable: NULLs must come last both ways (PostgreSQL puts
+        // them first on DESC), and the count query must not carry an ORDER BY
+        Specification<Expense> ordered = (root, query, cb) -> {
+            if (Expense.class.equals(query.getResultType())) {
+                Expression<?> field = root.get(attribute);
+                List<Order> orders = new ArrayList<>();
+                orders.add(cb.asc(cb.selectCase().when(cb.isNull(field), 1).otherwise(0)));
+                orders.add(ascending ? cb.asc(field) : cb.desc(field));
+                orders.add(cb.desc(root.get("createdAt")));
+                orders.add(cb.desc(root.get("id")));
+                query.orderBy(orders);
+            }
+            return filters.toPredicate(root, query, cb);
+        };
+
+        Page<Expense> result = repository.findAll(ordered, PageRequest.of(page, size));
+        return new ExpenseListResponseV1_3(
+            result.getContent().stream().map(expenseMapper::toListItemV1_2).toList(),
+            page, size, result.getTotalElements(), result.getTotalPages(),
+            repository.sumAmount(filters));
+    }
+
+    // Validates the filters and builds the Specification shared by the list and the summary, so their numbers agree
+    private Specification<Expense> filterSpec(UUID ownerId, ListFilters f) {
         String q = f.q() == null || f.q().isBlank() ? null : f.q();
         if (q != null && q.length() > MAX_QUERY_LENGTH) {
             throw new BadRequestException("VALIDATION_ERROR", "q must be at most " + MAX_QUERY_LENGTH + " characters.");
@@ -198,46 +224,12 @@ public class ExpenseService {
             }
             return cb.and(p.toArray(new Predicate[0]));
         };
-
-        // Sorting is done here, not through Pageable: NULLs must come last both ways (PostgreSQL puts
-        // them first on DESC), and the count query must not carry an ORDER BY
-        Specification<Expense> ordered = (root, query, cb) -> {
-            if (Expense.class.equals(query.getResultType())) {
-                Expression<?> field = root.get(attribute);
-                List<Order> orders = new ArrayList<>();
-                orders.add(cb.asc(cb.selectCase().when(cb.isNull(field), 1).otherwise(0)));
-                orders.add(ascending ? cb.asc(field) : cb.desc(field));
-                orders.add(cb.desc(root.get("createdAt")));
-                orders.add(cb.desc(root.get("id")));
-                query.orderBy(orders);
-            }
-            return filters.toPredicate(root, query, cb);
-        };
-
-        Page<Expense> result = repository.findAll(ordered, PageRequest.of(page, size));
-        return new ExpenseListResponseV1_3(
-            result.getContent().stream().map(expenseMapper::toListItemV1_2).toList(),
-            page, size, result.getTotalElements(), result.getTotalPages(),
-            repository.sumAmount(filters));
+        return filters;
     }
 
     @Transactional(readOnly = true)
-    public ExpenseSummaryResponse getSummary(UUID ownerId, LocalDate from, LocalDate to) {
-        if (from != null && to != null && from.isAfter(to)) {
-            throw new BadRequestException("INVALID_DATE_RANGE", "from must not be after to.");
-        }
-        Specification<Expense> spec = (root, query, cb) -> {
-            List<Predicate> p = new ArrayList<>();
-            p.add(cb.equal(root.get("ownerId"), ownerId));
-            p.add(cb.or(cb.isNull(root.get("archived")), cb.isFalse(root.get("archived"))));
-            if (from != null) {
-                p.add(cb.greaterThanOrEqualTo(root.<LocalDate>get("expenseDate"), from));
-            }
-            if (to != null) {
-                p.add(cb.lessThanOrEqualTo(root.<LocalDate>get("expenseDate"), to));
-            }
-            return cb.and(p.toArray(new Predicate[0]));
-        };
+    public ExpenseSummaryResponse getSummary(UUID ownerId, ListFilters f) {
+        Specification<Expense> spec = filterSpec(ownerId, f);
         // Largest total first; equal totals ordered by category name, the uncategorized group last
         List<ExpenseSummaryResponse.CategoryTotal> groups = repository.totalsByCategory(spec).stream()
             .map(t -> new ExpenseSummaryResponse.CategoryTotal(t.category(), t.count(), t.totalAmount()))
@@ -248,7 +240,7 @@ public class ExpenseService {
         long count = groups.stream().mapToLong(ExpenseSummaryResponse.CategoryTotal::count).sum();
         BigDecimal total = groups.stream().map(ExpenseSummaryResponse.CategoryTotal::totalAmount)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        return new ExpenseSummaryResponse(from, to, count, total, groups);
+        return new ExpenseSummaryResponse(f.from(), f.to(), count, total, groups);
     }
 
     public ArchivedExpenseListResponse getArchivedExpenses(UUID ownerId) {

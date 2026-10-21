@@ -73,8 +73,13 @@ public class ExpenseController {
     public ExpenseSummaryResponse getSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) List<String> category,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
             @AuthenticationPrincipal CustomUserDetails user) {
-        return service.getSummary(user.getUniqueId(), from, to);
+        return service.getSummary(user.getUniqueId(),
+            new ExpenseService.ListFilters(q, category, from, to, minAmount, maxAmount));
     }
 
     @GetMapping(value = "/{uniqueId}")

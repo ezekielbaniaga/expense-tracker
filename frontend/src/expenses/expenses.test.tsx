@@ -164,7 +164,52 @@ describe("expense list", () => {
     expect(requested!.searchParams.get("from")).toBe(periodRange("month").from);
     expect(requested!.searchParams.get("to")).toBe(todayIso());
     expect(version).toBe("1.0");
-    expect(queryClient.getQueryData(["expenses", "summary", { from: periodRange("month").from, to: todayIso() }])).toBeTruthy();
+    expect(queryClient.getQueryData(["expenses", "summary", { from: periodRange("month").from, to: todayIso(), q: "", category: [], minAmount: "", maxAmount: "" }])).toBeTruthy();
+  });
+
+  it("sends the list filters to the summary so its breakdown agrees with the filtered total", async () => {
+    const requests: URL[] = [];
+    server.use(
+      http.get(`${BASE}/api/expense`, () =>
+        HttpResponse.json({
+          ...EMPTY_PAGE,
+          expenses: [{ id: "e1", description: "Snack", amount: 5, category: "FOOD", date: todayIso(), version: 0 }],
+          total: 1,
+          total_pages: 1,
+          total_amount: 5,
+        }),
+      ),
+      http.get(`${BASE}/api/expense/summary`, ({ request }) => {
+        const url = new URL(request.url);
+        requests.push(url);
+        const foodOnly = url.searchParams.getAll("category").includes("FOOD");
+        return HttpResponse.json({
+          from: null,
+          to: null,
+          count: foodOnly ? 1 : 2,
+          total_amount: foodOnly ? 5 : 105,
+          by_category: foodOnly
+            ? [{ category: "FOOD", count: 1, total_amount: 5 }]
+            : [
+                { category: "BILLS", count: 1, total_amount: 100 },
+                { category: "FOOD", count: 1, total_amount: 5 },
+              ],
+        });
+      }),
+    );
+    renderAt("/?period=all&category=FOOD&q=snack&minAmount=1&maxAmount=50");
+    await screen.findByRole("img", { name: /Spending by category/ });
+    const last = requests[requests.length - 1];
+    expect(last.searchParams.getAll("category")).toEqual(["FOOD"]);
+    expect(last.searchParams.get("q")).toBe("snack");
+    expect(last.searchParams.get("minAmount")).toBe("1");
+    expect(last.searchParams.get("maxAmount")).toBe("50");
+    expect(last.searchParams.has("page")).toBe(false);
+    expect(last.searchParams.has("sort")).toBe(false);
+    expect(screen.getByRole("img", { name: /Spending by category/ }).getAttribute("aria-label")).not.toMatch(/Bills/);
+    expect(
+      queryClient.getQueryData(["expenses", "summary", { from: "", to: "", q: "snack", category: ["FOOD"], minAmount: "1", maxAmount: "50" }]),
+    ).toBeTruthy();
   });
 
   it("refetches the summary when an expense list is invalidated", async () => {

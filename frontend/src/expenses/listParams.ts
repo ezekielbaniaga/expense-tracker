@@ -153,6 +153,24 @@ export function toApiQuery(p: ListParams): string {
   return out.toString();
 }
 
+/** The filters `GET /api/expense/summary` takes: the list's filters without paging and sorting. */
+export function summaryFilters(p: ListParams) {
+  return { from: p.from, to: p.to, q: p.q.trim(), category: p.category, minAmount: p.minAmount, maxAmount: p.maxAmount };
+}
+
+/** The query string for `GET /api/expense/summary`; empty filters are left out. */
+export function toSummaryQuery(p: ListParams): string {
+  const f = summaryFilters(p);
+  const out = new URLSearchParams();
+  if (f.q !== "") out.set("q", f.q);
+  for (const c of f.category) out.append("category", c);
+  if (f.from !== "") out.set("from", f.from);
+  if (f.to !== "") out.set("to", f.to);
+  if (f.minAmount !== "") out.set("minAmount", f.minAmount);
+  if (f.maxAmount !== "") out.set("maxAmount", f.maxAmount);
+  return out.toString();
+}
+
 /** Which params a 400 code refers to, so just those go back to their defaults. */
 export const INVALID_CODE_PARAMS: Record<string, string[]> = {
   INVALID_PAGE: ["page", "size"],

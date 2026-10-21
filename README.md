@@ -1020,11 +1020,12 @@ first, then by creation time newest first. An unserved version is rejected with 
   Archived expenses are never listed.
 
 ```http
-GET /api/expense/summary?from=2026-10-01&to=2026-10-31
+GET /api/expense/summary?from=2026-10-01&to=2026-10-31&category=FOOD
 ```
 
-Totals for the caller's non-archived expenses, with the optional inclusive `from` and `to` dates (`from` after `to` is
-`400 INVALID_DATE_RANGE`): `{ from, to, count, total_amount, by_category: [{ category, count, total_amount }] }`.
+Totals for the caller's non-archived expenses, with the same optional filters as list `1.3` (`q`, repeatable `category`,
+`from`, `to`, `minAmount`, `maxAmount`, same rules and `400` codes), so the totals and the breakdown always agree with
+the filtered list's `total_amount`: `{ from, to, count, total_amount, by_category: [{ category, count, total_amount }] }`.
 `from` and `to` echo the request (`null` for all time); `by_category` is ordered by `total_amount`, largest first.
 It serves every version from `1.0`, but the request must carry a concrete `X-API-Version` (`1.0` to `1.3`); the UI sends `1.0`.
 

@@ -139,6 +139,78 @@ class ExpenseSummaryTests {
     }
 
     @Test
+    void categoryFilterNarrowsTotalsAndBreakdown() throws Exception {
+        seed();
+        summary("?category=FOOD").andExpect(status().isOk())
+            .andExpect(jsonPath("$.count").value(3))
+            .andExpect(jsonPath("$.total_amount").value(40.5))
+            .andExpect(jsonPath("$.by_category.length()").value(1))
+            .andExpect(jsonPath("$.by_category[0].category").value("FOOD"));
+        summary("?category=FOOD&category=BILLS").andExpect(jsonPath("$.count").value(4))
+            .andExpect(jsonPath("$.total_amount").value(140.5))
+            .andExpect(jsonPath("$.by_category.length()").value(2));
+    }
+
+    @Test
+    void qFilterIsCaseInsensitiveSubstring() throws Exception {
+        seed();
+        insert("Coffee beans", "7.00", "FOOD", "2026-10-02", 8);
+        summary("?q=COFFEE").andExpect(status().isOk())
+            .andExpect(jsonPath("$.count").value(1))
+            .andExpect(jsonPath("$.total_amount").value(7.0))
+            .andExpect(jsonPath("$.by_category.length()").value(1));
+    }
+
+    @Test
+    void amountFiltersAreInclusive() throws Exception {
+        seed();
+        summary("?minAmount=10").andExpect(jsonPath("$.count").value(3))
+            .andExpect(jsonPath("$.total_amount").value(140.5));
+        summary("?maxAmount=10").andExpect(jsonPath("$.count").value(2))
+            .andExpect(jsonPath("$.total_amount").value(15.0));
+        summary("?minAmount=10&maxAmount=30.50").andExpect(jsonPath("$.count").value(2))
+            .andExpect(jsonPath("$.total_amount").value(40.5))
+            .andExpect(jsonPath("$.by_category.length()").value(1));
+    }
+
+    @Test
+    void combinedFiltersAgreeWithTheListTotal() throws Exception {
+        seed();
+        String query = "?category=FOOD&q=b&from=2026-10-01&to=2026-10-31&minAmount=1&maxAmount=50";
+        summary(query).andExpect(status().isOk())
+            .andExpect(jsonPath("$.from").value("2026-10-01"))
+            .andExpect(jsonPath("$.count").value(1))
+            .andExpect(jsonPath("$.total_amount").value(30.5))
+            .andExpect(jsonPath("$.by_category.length()").value(1))
+            .andExpect(jsonPath("$.by_category[0].total_amount").value(30.5));
+        mockMvc.perform(get("/api/expense" + query).header(HttpHeaders.AUTHORIZATION, token)
+                .header("X-API-Version", "1.3"))
+            .andExpect(jsonPath("$.total").value(1))
+            .andExpect(jsonPath("$.total_amount").value(30.5));
+        // a broader filter: breakdown sums to the list's total_amount
+        String broad = "?category=FOOD&category=BILLS&minAmount=10";
+        summary(broad).andExpect(jsonPath("$.total_amount").value(140.5))
+            .andExpect(jsonPath("$.by_category[0].total_amount").value(100.0))
+            .andExpect(jsonPath("$.by_category[1].total_amount").value(40.5));
+        mockMvc.perform(get("/api/expense" + broad).header(HttpHeaders.AUTHORIZATION, token)
+                .header("X-API-Version", "1.3"))
+            .andExpect(jsonPath("$.total").value(3))
+            .andExpect(jsonPath("$.total_amount").value(140.5));
+    }
+
+    @Test
+    void invalidFiltersAreRejected() throws Exception {
+        summary("?category=NOPE").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_CATEGORY"));
+        summary("?minAmount=5&maxAmount=1").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_AMOUNT_RANGE"));
+        summary("?q=" + "x".repeat(101)).andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        summary("?minAmount=abc").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void summaryIsNotRoutedToUniqueId() throws Exception {
         summary("").andExpect(status().isOk()).andExpect(jsonPath("$.by_category").isArray());
     }

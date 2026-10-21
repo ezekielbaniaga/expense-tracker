@@ -26,7 +26,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
 import { CATEGORY_LABELS, type Category } from "../api/expense";
 import { ChipGroup } from "../ui/Chip";
-import { INVALID_CODE_PARAMS, PERIOD_CHIPS, detectPeriod, periodRange, readListParams, toApiQuery, type Period } from "./listParams";
+import { INVALID_CODE_PARAMS, PERIOD_CHIPS, detectPeriod, periodRange, readListParams, summaryFilters, toApiQuery, toSummaryQuery, type Period } from "./listParams";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABELS) as Category[]).map((c) => ({ value: c, label: CATEGORY_LABELS[c] }));
@@ -156,14 +156,11 @@ export function ExpenseListPage() {
     placeholderData: (previous) => previous,
   });
 
-  // By category for the same dates; shares the "expenses" prefix, so every expense mutation refetches it
+  // By category for the same filters as the list, so the card's numbers agree; shares the "expenses" prefix, so every expense mutation refetches it
   const summary = useQuery({
-    queryKey: ["expenses", "summary", { from: params.from, to: params.to }],
+    queryKey: ["expenses", "summary", summaryFilters(params)],
     queryFn: async () => {
-      const search = new URLSearchParams();
-      if (params.from !== "") search.set("from", params.from);
-      if (params.to !== "") search.set("to", params.to);
-      const qs = search.toString();
+      const qs = toSummaryQuery(params);
       return mapExpenseSummary(
         await client.request<ExpenseSummaryDto>(`/api/expense/summary${qs ? `?${qs}` : ""}`, { version: "1.0" }),
       );
