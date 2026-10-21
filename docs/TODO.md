@@ -15,13 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Bundle JetBrains Mono.** Copy the Latin 400/500/700 normal woff2 files and the OFL license from the npm package
-      `@fontsource/jetbrains-mono` (fetch with `npm pack @fontsource/jetbrains-mono@<exact version>` into the scratchpad;
-      do NOT add it as a dependency) into `frontend/src/assets/fonts/`, with `@font-face` (`font-display: swap`) in a new
-      `src/styles/base.css`. Set `build: { assetsInlineLimit: 0 }` in `vite.config.ts`; preload Regular in `index.html`.
-      Test: after `npm run build`, `dist/index.html` preloads a hashed `/assets/*.woff2` and `dist/assets/*.css` has no
-      `data:`. Careful: never take fonts from the LogicLabs repo or `~/.fonts`. If the download fails, commit only the
-      fallback stack and `assetsInlineLimit`, and add a Needs you entry for the files. Proposal: Typography.
 - [ ] **Restyle native elements with tokens.** Split `frontend/src/styles.css` into `src/styles/base.css` (reset, body,
       type scale, `.caps`, links, focus ring, skip link, reduced motion, `forced-colors`) and `components.css`/`layout.css`,
       using tokens only; delete `styles.css` and fix the import in `main.tsx`. Inputs use `--fs-input` (16px on
@@ -361,3 +354,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] A render error in a page no longer blanks the app: `Layout` wraps the `Outlet` in an `ErrorBoundary` keyed by the path, showing "Something went wrong" with a link back to the list, and navigating recovers (4ccd1ba)
 - [x] Added design tokens and contrast test (ebb5783)
 - [x] Theme and accent bootstrap in main.tsx with theme-color metas (596719c)
+- [x] Bundled JetBrains Mono (Latin 400/500/700 woff2 + OFL, base.css @font-face, assetsInlineLimit 0, Regular preload) (c170e99)
