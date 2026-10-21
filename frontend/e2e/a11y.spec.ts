@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { registerUser, seedExpenses, signIn } from "./helpers";
+import { ADMIN, registerUser, seedExpenses, signIn } from "./helpers";
 
 // Axe (all rules, including color-contrast, which jsdom cannot compute) on the main screens in both color
 // schemes at phone and desktop width. Screenshots are attached to the report as artifacts,
@@ -10,7 +10,7 @@ const WIDTHS = [360, 1280] as const;
 
 for (const colorScheme of SCHEMES) {
   for (const width of WIDTHS) {
-    test(`main screens have no axe violations (${colorScheme}, ${width}px)`, async ({ page, request }, testInfo) => {
+    test(`main screens have no axe violations (${colorScheme}, ${width}px)`, async ({ browser, page, request }, testInfo) => {
       await page.setViewportSize({ width, height: 800 });
       await page.emulateMedia({ colorScheme });
       const user = await registerUser(request);
@@ -37,6 +37,28 @@ for (const colorScheme of SCHEMES) {
         await screen.ready();
         await check(page, testInfo, `${screen.name}-${colorScheme}-${width}`);
       }
+
+      // The detail screen of the first seeded row
+      await page.goto("/");
+      await page.locator("table.expense-table tbody a").first().click();
+      await expect(page.getByRole("button", { name: "Edit description" })).toBeVisible();
+      await check(page, testInfo, `detail-${colorScheme}-${width}`);
+
+      // The admin screens, in a context of their own so the user's session is untouched
+      const adminContext = await browser.newContext({
+        baseURL: testInfo.project.use.baseURL,
+        viewport: { width, height: 800 },
+        colorScheme,
+      });
+      const admin = await adminContext.newPage();
+      await signIn(admin, ADMIN);
+      await admin.goto("/admin/users");
+      await expect(admin.getByRole("region", { name: "Users table" })).toBeVisible();
+      await check(admin, testInfo, `admin-users-${colorScheme}-${width}`);
+      await admin.getByRole("link", { name: ADMIN.username, exact: true }).click();
+      await expect(admin.getByRole("form", { name: "Edit user" })).toBeVisible();
+      await check(admin, testInfo, `admin-user-${colorScheme}-${width}`);
+      await adminContext.close();
     });
   }
 }

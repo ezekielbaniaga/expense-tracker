@@ -13,7 +13,7 @@ export function uniqueName(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** Registers a USER through the API (there is no register page yet). */
+/** Registers a USER through the API; register.spec.ts covers the register page itself. */
 export async function registerUser(request: APIRequestContext): Promise<Credentials> {
   const user = { username: uniqueName("e2e-user"), password: "e2e-user-test-password" };
   const response = await request.post("/auth/register", { data: user });
