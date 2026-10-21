@@ -15,13 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Frontend: list on version 1.3 with URL params and paging.** Add `frontend/src/expenses/listParams.ts` (URL ↔
-      `{q, category[], from, to, minAmount, maxAmount, sort, page, size}` with defaults `sort=date,desc`, `page=0`, size from
-      `ui.pageSize`; `toApiQuery()`); 1.3 DTO and mapper in `api/expense.ts`; `ExpenseListPage` sends version "1.3", key
-      `["expenses", params]`, `placeholderData: (previous) => previous`, `Pagination`; 400 `INVALID_*` resets that param
-      with a notice; any change resets page. Test: `listParams.test.ts`; `expenses.test.tsx` (version "1.3" at :82, query
-      string, paging, resets); move every list mock in `expenses.test.tsx` and `a11y.test.tsx` to the 1.3 shape.
-      Proposal: Expenses (home), Appendix B.
 - [ ] **Frontend: sortable list.** `SortableHeader` on the list table (Description, Category, Date, Amount) writing
       `sort` to the URL, plus a "Sort by" select (Newest / Oldest / Highest amount / Lowest amount / Description A–Z / Z–A
       / Category) writing the same param, shown by CSS only under 48rem. Test: header click sets `aria-sort`, URL and
@@ -232,3 +225,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Backend expense list 1.3: paging, sort (NULLs last) and filtered total (486f7e4)
 - [x] Backend expense list 1.3 filters: q, category, from/to, minAmount/maxAmount (41d0305)
 - [x] Backend expense summary: GET /api/expense/summary with from/to and per-category totals (36432d3)
+- [x] Frontend: list on version 1.3 with URL params and paging (a529f32)
