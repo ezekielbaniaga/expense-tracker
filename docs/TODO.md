@@ -10,11 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Findings 2026-10-21
 
-      Careful: the summary query key must then include those filters.
-- [ ] **The search box eats a trailing space.** `ExpenseListPage.tsx`: typing "coffee " and pausing 300 ms writes
-      `q=coffee` to the URL, and the `[urlQ]` effect then sets the box to "coffee", so continuing to type
-      "shop" gives "coffeeshop". Verified with a throwaway Vitest test. Fix: only copy `urlQ` into the box
-      when it differs from `searchText.trim()` (an outside change such as Clear filters or Back).
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
 - [ ] **Display names accept invisible and bidi characters.** `user/DisplayNameValidator.java` refuses only
       `Character.isISOControl` (C0/C1), so U+202E (right-to-left override), U+200B, U+FEFF, a lone U+00A0 and
@@ -230,3 +225,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] README documents the UI design system, preferences, list 1.3, summary and display name; UI design proposal marked implemented (f8cd8bf)
 - [x] A NUL or other control character in an expense description is now a 400 VALIDATION_ERROR instead of a 500 (15194e3)
 - [x] The summary endpoint takes the list's filters (q, category, amounts) and the UI sends them, so the card's breakdown agrees with its total (9dbda12)
+- [x] The search box keeps a trailing space after the debounce instead of copying the trimmed URL value back (152b5d9)
