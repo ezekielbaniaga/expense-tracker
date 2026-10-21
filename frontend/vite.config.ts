@@ -9,6 +9,8 @@ const backend = { target: "http://localhost:8080" };
 
 export default defineConfig({
   plugins: [react()],
+  // Never inline assets as data: URIs, so the fonts stay separate hashed files that can be preloaded
+  build: { assetsInlineLimit: 0 },
   server: {
     port: 5173,
     proxy: {
