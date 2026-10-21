@@ -8,19 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## UI design
-
-From docs/ui-design-proposal.md. Work in order. Frontend paths start with `frontend/`. Each item keeps
-`npm test -- --run` and `npm run build` (and `./mvnw test` for backend items) green, and updates the
-`frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
-Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
-      `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Docs: README and proposal done.** README "Web UI" (design system, theme/accent/currency preferences in
-      `localStorage`, screens, list 1.3), section 17 API versions (1.3 params, response, error codes; summary endpoint;
-      `PATCH /users/me`), Roadmap; `frontend/README.md` if tracked (fonts and OFL, styles layout, pinned TZ/locale in tests);
-      `CLAUDE.md` if commands changed. Set `docs/ui-design-proposal.md` to "Status: implemented (date). ..." like
-      `docs/web-ui-proposal.md`. Test: none; check names against the code. Proposal: whole document.
-
 ## Needs you
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
@@ -185,3 +172,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Backend: optional display name (V17, PATCH /users/me, INVALID_DISPLAY_NAME, on user and admin responses) (a746106)
 - [x] Frontend: display name (useMe, Profile add/edit/clear, initials from displayName in Profile, admin and account menu) (a6d1b8c)
 - [x] Frontend e2e: list.spec.ts (sort, category, paging, search) and a11y.spec.ts (axe with contrast, light/dark, 360/1280 px; @axe-core/playwright 4.13.0) (9b8282d)
+- [x] README documents the UI design system, preferences, list 1.3, summary and display name; UI design proposal marked implemented (f8cd8bf)
