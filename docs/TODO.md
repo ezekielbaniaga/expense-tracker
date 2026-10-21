@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Add/edit form: amount first, category chips.** Restyle `frontend/src/expenses/ExpenseFields.tsx`: `AmountField`
-      first, then description, category as a `ChipGroup` of radios with icons (fieldset/legend "Category", from
-      `GET /api/expense/categories`, none checked for a legacy null), sticky submit. Same zod rules and POST/PUT bodies.
-      Test: update `a11y.test.tsx:208` (radio "Food"), the `fill()` helper `expenses.test.tsx:292`, `:480` (no radio
-      checked), `e2e/helpers.ts:48` (`getByRole("radio", { name: "Food" }).check()`); assert the body is unchanged.
-      Careful: `ExpenseFields` is shared with the edit form on the detail page. Proposal: Add expense.
 - [ ] **Add form: date chips and back to the list.** Date: Today / Yesterday chips plus the native date input labelled
       "Date" (`max` today, computed with `todayIso`, local calendar). After a successful create navigate to `/` with the
       success toast and briefly highlight the new row; an "Add another" checkbox keeps the form open and resets it. No
@@ -285,3 +279,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Dialog for expense delete (4851bc3)
 - [x] Money and date formatting: formatMoney/date helpers, local times, no "(UTC)" labels, Profile currency select, TZ/locale pinned for Vitest and Playwright (55f43a3)
 - [x] Login and Register restyle: card, blobs, password toggle, rules checklist (6d26cbe)
+- [x] Add/edit form: amount first, category chips (ee770f1)
