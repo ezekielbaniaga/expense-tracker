@@ -32,6 +32,16 @@ export interface ExpenseListResponseDto {
   total_amount: number;
 }
 
+/** Version 1.3 list: one page of rows; `total` and `total_pages` cover every match. */
+export interface ExpenseListResponseV13Dto {
+  expenses: ExpenseListItemDto[];
+  page: number;
+  size: number;
+  total: number;
+  total_pages: number;
+  total_amount: number;
+}
+
 export interface AllCategoriesResponseDto {
   supported_categories: Category[];
 }
@@ -55,12 +65,34 @@ export interface ExpenseList {
   totalAmount: number;
 }
 
+export interface ExpensePage {
+  expenses: ExpenseListItemDto[];
+  page: number;
+  size: number;
+  /** Rows matching the filters, over all pages. */
+  total: number;
+  totalPages: number;
+  /** The server's total over all matches. Never sum amounts in the browser. */
+  totalAmount: number;
+}
+
 export interface Categories {
   supportedCategories: Category[];
 }
 
 export function mapExpenseList(dto: ExpenseListResponseDto): ExpenseList {
   return { expenses: dto.expenses, count: dto.count, totalAmount: dto.total_amount };
+}
+
+export function mapExpensePage(dto: ExpenseListResponseV13Dto): ExpensePage {
+  return {
+    expenses: dto.expenses,
+    page: dto.page,
+    size: dto.size,
+    total: dto.total,
+    totalPages: dto.total_pages,
+    totalAmount: dto.total_amount,
+  };
 }
 
 export function mapCategories(dto: AllCategoriesResponseDto): Categories {

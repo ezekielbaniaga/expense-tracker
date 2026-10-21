@@ -48,6 +48,7 @@ function renderAt(path: string) {
   );
 }
 
+const EMPTY_PAGE = { expenses: [], page: 0, size: 20, total: 0, total_pages: 0, total_amount: 0 };
 const LEGACY_ITEM = { id: "l1", description: null, amount: null, category: null, date: null, version: 0 };
 const LEGACY_EXPENSE = { ...LEGACY_ITEM, createdAt: null, lastModified: null };
 
@@ -59,7 +60,10 @@ describe("expense list", () => {
         http.get(`${BASE}/api/expense`, () =>
           HttpResponse.json({
             expenses: [{ id: "e1", description: "Lunch", amount: 1284.5, category: "FOOD", date: "2026-10-17", version: 0 }],
-            count: 1,
+            page: 0,
+            size: 20,
+            total: 1,
+            total_pages: 1,
             total_amount: 1284.5,
           }),
         ),
@@ -73,7 +77,7 @@ describe("expense list", () => {
     }
   });
 
-  it("shows rows, the server's count and total, and sends version 1.2 with the token", async () => {
+  it("shows rows, the server's count and total, and sends version 1.3 with the token", async () => {
     let version: string | null = null;
     let auth: string | null = null;
     server.use(
@@ -85,7 +89,10 @@ describe("expense list", () => {
             { id: "e1", description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17", version: 0 },
             { id: "e2", description: "Bus", amount: 3, category: "TRANSPORT", date: "2026-10-16", version: 1 },
           ],
-          count: 2,
+          page: 0,
+          size: 20,
+          total: 2,
+          total_pages: 1,
           // Deliberately not the sum of the rows: the browser must show the server's value
           total_amount: 99.1,
         });
@@ -102,9 +109,14 @@ describe("expense list", () => {
     expect(screen.getByText("3.00")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
     expect(screen.getByText("99.10")).toBeTruthy();
-    expect(version).toBe("1.2");
+    expect(version).toBe("1.3");
     expect(auth).toMatch(/^Bearer /);
-    expect(queryClient.getQueryData(["expenses"])).toBeTruthy();
+    expect(
+      queryClient.getQueryData([
+        "expenses",
+        { q: "", category: [], from: "", to: "", minAmount: "", maxAmount: "", sort: "date,desc", page: 0, size: 20 },
+      ]),
+    ).toBeTruthy();
   });
 
   it("renders a legacy row whose nullable fields are all null", async () => {
@@ -112,7 +124,10 @@ describe("expense list", () => {
       http.get(`${BASE}/api/expense`, () =>
         HttpResponse.json({
           expenses: [LEGACY_ITEM, { id: "e2", description: "Lunch", amount: 4, category: "FOOD", date: "2026-10-17", version: 1 }],
-          count: 2,
+          page: 0,
+          size: 20,
+          total: 2,
+          total_pages: 1,
           total_amount: 4,
         }),
       ),
@@ -126,12 +141,69 @@ describe("expense list", () => {
   it("shows an empty state", async () => {
     server.use(
       http.get(`${BASE}/api/expense`, () =>
-        HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
+        HttpResponse.json(EMPTY_PAGE),
       ),
     );
     renderAt("/");
     expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("sends the URL params as the 1.3 query string", async () => {
+    let search = "";
+    server.use(
+      http.get(`${BASE}/api/expense`, ({ request }) => {
+        search = new URL(request.url).search;
+        return HttpResponse.json(EMPTY_PAGE);
+      }),
+    );
+    renderAt("/?q=lunch&category=FOOD&category=BILLS&from=2026-10-01&sort=amount,asc&page=1&size=10");
+    expect(await screen.findByText("No expenses match these filters.")).toBeTruthy();
+    expect(search).toBe(
+      "?page=1&size=10&sort=amount%2Casc&q=lunch&category=FOOD&category=BILLS&from=2026-10-01",
+    );
+  });
+
+  it("pages through the results and a size change goes back to page 0", async () => {
+    const pages: string[] = [];
+    server.use(
+      http.get(`${BASE}/api/expense`, ({ request }) => {
+        const url = new URL(request.url);
+        pages.push(`${url.searchParams.get("page")}/${url.searchParams.get("size")}`);
+        return HttpResponse.json({
+          ...EMPTY_PAGE,
+          expenses: [{ id: "e1", description: "Lunch", amount: 1, category: "FOOD", date: "2026-10-17", version: 0 }],
+          page: Number(url.searchParams.get("page")),
+          size: Number(url.searchParams.get("size")),
+          total: 45,
+          total_pages: 3,
+          total_amount: 45,
+        });
+      }),
+    );
+    renderAt("/");
+    expect(await screen.findByText("Page 1 of 3")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(await screen.findByText("Page 2 of 3")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Page size"), { target: { value: "10" } });
+    await waitFor(() => expect(pages).toContain("0/10"));
+    expect(pages.slice(0, 2)).toEqual(["0/20", "1/20"]);
+  });
+
+  it("resets the param a 400 INVALID_SORT names and shows a notice", async () => {
+    const sorts: (string | null)[] = [];
+    server.use(
+      http.get(`${BASE}/api/expense`, ({ request }) => {
+        sorts.push(new URL(request.url).searchParams.get("sort"));
+        return sorts.length === 1
+          ? HttpResponse.json({ code: "INVALID_SORT", messages: ["Bad sort."] }, { status: 400 })
+          : HttpResponse.json(EMPTY_PAGE);
+      }),
+    );
+    renderAt("/?sort=description,asc&page=2");
+    expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
+    expect(sorts).toEqual(["description,asc", "date,desc"]);
+    expect(screen.getByRole("status").textContent).toMatch(/Bad sort\./);
   });
 
   it("shows an error toast and a retry that works", async () => {
@@ -141,7 +213,7 @@ describe("expense list", () => {
         calls++;
         return calls === 1
           ? HttpResponse.json({ code: "INTERNAL_ERROR", messages: ["Boom"] }, { status: 500 })
-          : HttpResponse.json({ expenses: [], count: 0, total_amount: 0 });
+          : HttpResponse.json(EMPTY_PAGE);
       }),
     );
     renderAt("/");
@@ -154,7 +226,7 @@ describe("expense list", () => {
   it("keeps the account menu and links to the archived screen reachable", async () => {
     server.use(
       http.get(`${BASE}/api/expense`, () =>
-        HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
+        HttpResponse.json(EMPTY_PAGE),
       ),
     );
     renderAt("/");
@@ -429,7 +501,10 @@ describe("create expense", () => {
       http.get(`${BASE}/api/expense`, () =>
         HttpResponse.json({
           expenses: [{ id: "n1", description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17", version: 0 }],
-          count: 1,
+          page: 0,
+          size: 20,
+          total: 1,
+          total_pages: 1,
           total_amount: 12.5,
         }),
       ),
@@ -643,7 +718,7 @@ describe("edit, patch description and delete", () => {
       categories(),
       http.put(`${BASE}/api/expense/e1`, () => conflict("MODIFY_ARCHIVED")),
       http.get(`${BASE}/api/expense`, () =>
-        HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
+        HttpResponse.json(EMPTY_PAGE),
       ),
     );
     await openEdit();
@@ -713,7 +788,7 @@ describe("edit, patch description and delete", () => {
         return new HttpResponse(null, { status: 204 });
       }),
       http.get(`${BASE}/api/expense`, () =>
-        HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
+        HttpResponse.json(EMPTY_PAGE),
       ),
     );
     queryClient.setQueryData(["expenses"], { expenses: [], count: 0, totalAmount: 0 });

@@ -20,7 +20,10 @@ const server = setupServer(
   http.get(`${BASE}/api/expense`, () =>
     HttpResponse.json({
       expenses: [{ id: "e1", description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17", version: 0 }],
-      count: 1,
+      page: 0,
+      size: 20,
+      total: 1,
+      total_pages: 1,
       total_amount: 12.5,
     }),
   ),
