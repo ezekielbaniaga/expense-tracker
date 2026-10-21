@@ -15,11 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Frontend: display name.** `useMe()` hook (`["me"]`, `displayName`); Profile Account card "Add your name" / Edit
-      inline form (PATCH `/users/me`, `INVALID_DISPLAY_NAME` on the field); initials from `displayName ?? username` in
-      Profile, the admin list (if the DTO has it), and the account menu once `["me"]` is in the cache (the shell itself
-      must not fetch it). Test: `profile.test.tsx` (edit, clear, error, initials change). Careful: render as text only.
-      Proposal: Initials.
 - [ ] **E2E: list spec and axe with contrast.** Add `frontend/e2e/list.spec.ts` (create ~25 expenses via the API, then
       sort by amount, filter by category, page and search in the UI) and the `@axe-core/playwright` dev dependency (exact
       version) with `e2e/a11y.spec.ts`: main screens in light and dark (`page.emulateMedia({ colorScheme })`) at 360 and
@@ -194,3 +189,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Backend: sort on the admin user list, INVALID_SORT on unknown values (0693c71)
 - [x] Frontend: sortable admin users with SortableHeader and INVALID_SORT reset (d8a102d)
 - [x] Backend: optional display name (V17, PATCH /users/me, INVALID_DISPLAY_NAME, on user and admin responses) (a746106)
+- [x] Frontend: display name (useMe, Profile add/edit/clear, initials from displayName in Profile, admin and account menu) (a6d1b8c)
