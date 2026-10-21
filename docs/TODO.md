@@ -1,6 +1,6 @@
 # TODO
 
-Last investigation: 2026-10-20 08:00 — 3 new findings (web UI add-expense flow)
+Last investigation: 2026-10-21 20:24 — 10 new findings (expense list 1.3, summary, display name, list and admin UI)
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
@@ -8,12 +8,80 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## Findings 2026-10-21
+
+- [ ] **A NUL character in an expense description is a 500.** `POST /api/expense` with `"description": "a\u0000b"`
+      passes `@NotBlank`/`@Size` and fails in PostgreSQL (`invalid byte sequence for encoding "UTF8": 0x00`,
+      `DataIntegrityViolationException`), which no handler maps, so the client gets a 500. PUT and
+      `PATCH /{id}/description` take the same text. Verified with a throwaway MockMvc test. Files:
+      `expense/dto/CreateExpenseRequest.java`, `UpdateExpenseRequest.java`, `PatchExpenseDescriptionRequest.java`.
+      Fix: reject `\u0000` (and probably other C0 controls but tab and newline) as `400 VALIDATION_ERROR`.
+      Test: POST, PUT and PATCH with a NUL give 400 and store nothing.
+- [ ] **The summary card's category breakdown ignores the list filters.** `frontend/src/expenses/ExpenseListPage.tsx`
+      shows the total and count from the filtered list (`q`, `category`, amounts) but the breakdown from
+      `GET /api/expense/summary`, which only takes `from`/`to`. With `category=FOOD` the card says 5.00 and
+      1 expense, then "Bills 100.00 · 95%, Food 5.00 · 5%" under it. Verified with a throwaway Vitest test.
+      Fix: either give the summary endpoint the same filters (share the list's `Specification` in
+      `ExpenseService`) and send them, or hide the breakdown while any non-date filter is active.
+      Careful: the summary query key must then include those filters.
+- [ ] **The search box eats a trailing space.** `ExpenseListPage.tsx`: typing "coffee " and pausing 300 ms writes
+      `q=coffee` to the URL, and the `[urlQ]` effect then sets the box to "coffee", so continuing to type
+      "shop" gives "coffeeshop". Verified with a throwaway Vitest test. Fix: only copy `urlQ` into the box
+      when it differs from `searchText.trim()` (an outside change such as Clear filters or Back).
+      Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
+- [ ] **Display names accept invisible and bidi characters.** `user/DisplayNameValidator.java` refuses only
+      `Character.isISOControl` (C0/C1), so U+202E (right-to-left override), U+200B, U+FEFF, a lone U+00A0 and
+      U+2028 are all saved (verified: each `PATCH /users/me` gave 200). A name can be blank on screen or
+      reorder text around it in any client that shows it (admin responses include it). Fix: also refuse
+      format characters (`Character.getType == FORMAT`), line/paragraph separators, and names with no visible
+      character after stripping (`strip()` keeps NBSP); mirror the rule in `ProfilePage.tsx`.
+      Test: each of those gives `400 INVALID_DISPLAY_NAME`; "José" and "李小龍" still pass.
+- [ ] **Unpaired UTF-16 surrogates are stored as "?" while the response echoes the original.** A JSON
+      `"\ud800"` in an expense description or display name gets 200 with `"a\uD800b"` in the body, but the row
+      holds `a?b` (verified), so the next GET differs from what the write returned. Files:
+      `user/DisplayNameValidator.java`, the expense request DTOs. Fix: refuse strings with unpaired surrogates
+      as 400 (`INVALID_DISPLAY_NAME` / `VALIDATION_ERROR`). Can share a helper with the NUL check above.
+- [ ] **A search over 100 characters blanks the list.** The backend caps `q` at 100 (`400 VALIDATION_ERROR`) but
+      the search input in `ExpenseListPage.tsx` has no `maxLength`, and `VALIDATION_ERROR` is not in
+      `INVALID_CODE_PARAMS`, so the rows disappear behind "Expenses could not be loaded" plus a toast
+      (verified with a throwaway Vitest test). Fix: `maxLength={100}` on the input (and cut a longer `q`
+      read from the URL in `listParams.ts`). Test: a 101-character URL `q` still loads.
+- [ ] **A page past the end shows an empty table.** `?page=9` with one page of data renders "Page 10 of 1" with the
+      summary card and no rows (verified with a throwaway Vitest test); it also happens after deleting the
+      only expense on the last page or opening an old link. Only Previous, one page at a time, gets back.
+      Files: `ExpenseListPage.tsx`, likely `admin/AdminUsersPage.tsx` too (same `Pagination`, not verified).
+      Fix: when `total > 0` and `page >= totalPages`, replace the URL's page with `totalPages - 1`.
+- [ ] **Summary ties are ordered by enum position, not category name.** `ExpenseService.getSummary` says "equal totals
+      ordered by category name" but compares `Category` by `naturalOrder()` (FOOD, TRANSPORT, BILLS,
+      ENTERTAINMENT): two 10.00 groups come back FOOD then BILLS (verified), while the list's `sort=category`
+      is alphabetical. Fix: compare `Category::name`, or fix the comment; `ExpenseSummaryTests` has no tie case.
+- [ ] **The admin user list shows the UTC creation date.** `frontend/src/admin/AdminUsersPage.tsx:229` formats
+      `u.createdAt.slice(0, 10)`, the UTC day, so a user created at 20:00 UTC shows the previous day for a
+      viewer in UTC+8 and later; every other timestamp uses `parseUtc`/local formatting. Not verified in a
+      browser (Vitest pins `TZ=UTC`, which hides it). Fix: format the local date from `parseUtc(createdAt)`.
+      Test: a non-UTC `timeZone` argument, as `formatLocalDateTime` takes.
+- [ ] **Docs that contradict the code.** README section 17 gives `category=FOOD&category=RENT` as the example, but
+      there is no `RENT` (`expense/entity/Category.java`), so that request is `400 INVALID_CATEGORY`; it says
+      the summary request "must carry a concrete `X-API-Version`", but one without the header is served as
+      the default `1.0` (verified, 200). `frontend/playwright.config.ts` says the server rejects future dates
+      "in UTC", but it allows up to UTC+14 since e2c4941. `UserService.updateDisplayName` and README say
+      "last write wins", but `User` has `@Version`, so a write racing a password change or admin PATCH gets
+      `409 CONCURRENT_MODIFICATION` (not verified). Fix the wording.
+
 ## Needs you
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
       `docker_compose/.env`, log in through `:8081` and check that `user_sessions.ip_address` holds your client
       IP, not nginx's. (2) Run `frontend/run_e2e.sh`. (3) Click through every
       screen with the keyboard only and on a narrow window.
+- [ ] **Decide whether `frontend/run_e2e.sh` should build its own image tags.** It runs `backend/build_docker_image.sh`
+      (`./mvnw clean install`, then `docker build -t expense-tracker:1.0`) and `frontend/build_docker_image.sh`
+      (`expense-tracker-web:1.0`), and `docker_compose/docker-compose.e2e.yml` runs those tags. So every e2e
+      run replaces the images the main Compose stack (`docker-compose.yml`) uses with a build of the current
+      working tree, and `clean` wipes `backend/target`. Suggested: let both build scripts take a tag
+      (e.g. `IMAGE_TAG`, default `1.0`), have `run_e2e.sh` build `expense-tracker:e2e` and
+      `expense-tracker-web:e2e`, and use those in the e2e Compose file (also `package` instead of
+      `clean install`). Until then, unattended runs must not run `run_e2e.sh` or `npm run e2e`.
 
 ## Done
 
