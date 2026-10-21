@@ -810,3 +810,37 @@ tr.row--new {
     display: none;
   }
 }
+
+/* Expense list controls: period chips, search and the Filters disclosure. One markup; the panel is
+   collapsed on phones until the button is pressed and always open from 48rem. */
+.list-controls {
+  display: grid;
+  gap: var(--sp-2);
+  margin-block: var(--sp-2);
+}
+
+.list-controls__search,
+.list-controls__range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.list-controls__search label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.list-controls__search input[type="search"] {
+  flex: 1 1 12rem;
+}
+
+@media (max-width: 47.999rem) {
+  .list-controls__filters[data-open="false"] {
+    display: none;
+  }
+}

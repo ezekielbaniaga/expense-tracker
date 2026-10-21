@@ -1,4 +1,4 @@
-import { CATEGORY_LABELS, type Category } from "../api/expense";
+import { CATEGORY_LABELS, todayIso, type Category } from "../api/expense";
 
 export const DEFAULT_SORT = "date,desc";
 
@@ -28,7 +28,53 @@ export const LIST_PARAM_NAMES = [
   "sort",
   "page",
   "size",
+  "period",
 ] as const;
+
+export type Period = "month" | "last-month" | "3-months" | "year" | "all" | "custom";
+
+/** The chips in display order; "custom" has no range of its own. */
+export const PERIOD_CHIPS: { value: Period; label: string }[] = [
+  { value: "month", label: "This month" },
+  { value: "last-month", label: "Last month" },
+  { value: "3-months", label: "Last 3 months" },
+  { value: "year", label: "This year" },
+  { value: "all", label: "All time" },
+  { value: "custom", label: "Custom" },
+];
+
+/**
+ * The from/to of a period in the local calendar (never toISOString, which is UTC).
+ * Periods that include the present end today; "last month" ends on its last day.
+ * "Last 3 months" is this month and the two before it.
+ */
+export function periodRange(period: Exclude<Period, "custom">, now: Date = new Date()): { from: string; to: string } {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const iso = (year: number, month: number, day: number) => todayIso(new Date(year, month, day));
+  switch (period) {
+    case "month":
+      return { from: iso(y, m, 1), to: todayIso(now) };
+    case "last-month":
+      return { from: iso(y, m - 1, 1), to: iso(y, m, 0) };
+    case "3-months":
+      return { from: iso(y, m - 2, 1), to: todayIso(now) };
+    case "year":
+      return { from: iso(y, 0, 1), to: todayIso(now) };
+    case "all":
+      return { from: "", to: "" };
+  }
+}
+
+/** Which chip the from/to pair is: a preset when it matches one exactly, else custom. */
+export function detectPeriod(from: string, to: string, now: Date = new Date()): Period {
+  for (const chip of PERIOD_CHIPS) {
+    if (chip.value === "custom") continue;
+    const r = periodRange(chip.value, now);
+    if (r.from === from && r.to === to) return chip.value;
+  }
+  return "custom";
+}
 
 const SORT_PATTERN = /^(date|amount|description|category|createdAt),(asc|desc)$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -50,14 +96,22 @@ function nonNegativeInt(value: string | null, fallback: number): number {
  * Reads the list state from the URL. A value that could not be sent (a bad date,
  * an unknown category) is dropped, so a hand-edited link still loads.
  */
-export function readListParams(params: URLSearchParams, defaultSize: number): ListParams {
+export function readListParams(
+  params: URLSearchParams,
+  defaultSize: number,
+  now: Date = new Date(),
+): ListParams {
   const size = nonNegativeInt(params.get("size"), defaultSize);
   const sort = params.get("sort");
+  let from = validDate(params.get("from"));
+  let to = validDate(params.get("to"));
+  // No dates in the URL means This month, unless period=all asks for no bounds
+  if (from === "" && to === "" && params.get("period") !== "all") ({ from, to } = periodRange("month", now));
   return {
     q: params.get("q") ?? "",
     category: [...new Set(params.getAll("category"))].filter((c): c is Category => c in CATEGORY_LABELS),
-    from: validDate(params.get("from")),
-    to: validDate(params.get("to")),
+    from,
+    to,
     minAmount: validAmount(params.get("minAmount")),
     maxAmount: validAmount(params.get("maxAmount")),
     sort: sort !== null && SORT_PATTERN.test(sort) ? sort : DEFAULT_SORT,
@@ -67,12 +121,15 @@ export function readListParams(params: URLSearchParams, defaultSize: number): Li
 }
 
 /** The URL form: defaults and empty filters are left out. */
-export function toSearchParams(p: ListParams, defaultSize: number): URLSearchParams {
+export function toSearchParams(p: ListParams, defaultSize: number, now: Date = new Date()): URLSearchParams {
   const out = new URLSearchParams();
   if (p.q.trim() !== "") out.set("q", p.q.trim());
   for (const c of p.category) out.append("category", c);
-  if (p.from !== "") out.set("from", p.from);
-  if (p.to !== "") out.set("to", p.to);
+  if (p.from === "" && p.to === "") out.set("period", "all");
+  else if (detectPeriod(p.from, p.to, now) !== "month") {
+    if (p.from !== "") out.set("from", p.from);
+    if (p.to !== "") out.set("to", p.to);
+  }
   if (p.minAmount !== "") out.set("minAmount", p.minAmount);
   if (p.maxAmount !== "") out.set("maxAmount", p.maxAmount);
   if (p.sort !== DEFAULT_SORT) out.set("sort", p.sort);

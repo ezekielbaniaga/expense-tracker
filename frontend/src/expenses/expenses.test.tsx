@@ -7,6 +7,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AppProviders, AppRoutes } from "../App";
 import { createApiClient, type ApiClient } from "../api/client";
 import { fakeJwt } from "../test/fakeJwt";
+import { periodRange } from "./listParams";
 import { categoryLabel, todayIso, yesterdayIso } from "../api/expense";
 
 const BASE = "http://localhost";
@@ -105,7 +106,7 @@ describe("expense list", () => {
     expect(within(row).getByText("Food")).toBeTruthy();
     expect(within(row).getByText("Oct 17, 2026")).toBeTruthy();
     expect(within(row).getByText("12.50")).toBeTruthy();
-    expect(screen.getByText("Transport")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("Transport")).toBeTruthy();
     expect(screen.getByText("3.00")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
     expect(screen.getByText("99.10")).toBeTruthy();
@@ -114,7 +115,10 @@ describe("expense list", () => {
     expect(
       queryClient.getQueryData([
         "expenses",
-        { q: "", category: [], from: "", to: "", minAmount: "", maxAmount: "", sort: "date,desc", page: 0, size: 20 },
+        {
+          q: "", category: [], from: periodRange("month").from, to: todayIso(), minAmount: "", maxAmount: "",
+          sort: "date,desc", page: 0, size: 20,
+        },
       ]),
     ).toBeTruthy();
   });
@@ -192,6 +196,105 @@ describe("expense list", () => {
     await waitFor(() => expect(sorts.at(-1)).toBe("amount,asc"));
     await waitFor(() => expect(th("Amount").getAttribute("aria-sort")).toBe("ascending"));
     expect(screen.getByText("Sorted by amount, lowest first")).toBeTruthy();
+  });
+
+  describe("search, period and filters", () => {
+    const ONE = { ...EMPTY_PAGE, expenses: [{ id: "e1", description: "Lunch", amount: 5, category: "FOOD", date: "2026-10-01", version: 0 }], total: 1, total_pages: 1 };
+    function record(page: typeof ONE = ONE) {
+      const queries: URLSearchParams[] = [];
+      server.use(
+        http.get(`${BASE}/api/expense`, ({ request }) => {
+          queries.push(new URL(request.url).searchParams);
+          return HttpResponse.json(page);
+        }),
+      );
+      return queries;
+    }
+
+    it("defaults to This month in the local calendar", async () => {
+      const queries = record();
+      renderAt("/");
+      await screen.findByText("Lunch");
+      const today = new Date();
+      expect(queries.at(-1)!.get("from")).toBe(todayIso(new Date(today.getFullYear(), today.getMonth(), 1)));
+      expect(queries.at(-1)!.get("to")).toBe(todayIso());
+      expect((screen.getByRole("radio", { name: "This month" }) as HTMLInputElement).checked).toBe(true);
+      expect(screen.queryByRole("button", { name: "Clear filters" })).toBeNull();
+    });
+
+    it("period chips write from/to; All time sends none; Custom opens Filters", async () => {
+      const queries = record();
+      renderAt("/");
+      await screen.findByText("Lunch");
+      const now = new Date();
+      fireEvent.click(screen.getByRole("radio", { name: "Last month" }));
+      await waitFor(() =>
+        expect(queries.at(-1)!.get("from")).toBe(todayIso(new Date(now.getFullYear(), now.getMonth() - 1, 1))),
+      );
+      expect(queries.at(-1)!.get("to")).toBe(todayIso(new Date(now.getFullYear(), now.getMonth(), 0)));
+      fireEvent.click(screen.getByRole("radio", { name: "All time" }));
+      await waitFor(() => expect(queries.at(-1)!.has("from")).toBe(false));
+      expect(queries.at(-1)!.has("to")).toBe(false);
+      expect((screen.getByRole("radio", { name: "All time" }) as HTMLInputElement).checked).toBe(true);
+      expect(screen.getByRole("button", { name: "Filters" }).getAttribute("aria-expanded")).toBe("false");
+      fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
+      expect(screen.getByRole("button", { name: "Filters" }).getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("debounces the search by 300 ms", async () => {
+      const queries = record();
+      renderAt("/?period=all");
+      await screen.findByText("Lunch");
+      const count = queries.length;
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        const box = screen.getByPlaceholderText("Search descriptions");
+        fireEvent.change(box, { target: { value: "lun" } });
+        vi.advanceTimersByTime(200);
+        fireEvent.change(box, { target: { value: "lunch" } });
+        vi.advanceTimersByTime(299);
+        expect(queries.length).toBe(count);
+        vi.advanceTimersByTime(1);
+      } finally {
+        vi.useRealTimers();
+      }
+      await waitFor(() => expect(queries.at(-1)!.get("q")).toBe("lunch"));
+      expect(queries.filter((q) => q.get("q") === "lun")).toHaveLength(0);
+    });
+
+    it("category chips, date range and amounts reach the request and count on the Filters button", async () => {
+      const queries = record();
+      renderAt("/?period=all");
+      await screen.findByText("Lunch");
+      // One change at a time: each one lands in the URL (and so the request) before the next
+      fireEvent.click(screen.getByRole("checkbox", { name: "Food" }));
+      await waitFor(() => expect(queries.at(-1)!.getAll("category")).toEqual(["FOOD"]));
+      fireEvent.click(screen.getByRole("checkbox", { name: "Bills" }));
+      await waitFor(() => expect(queries.at(-1)!.getAll("category")).toEqual(["FOOD", "BILLS"]));
+      fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-02" } });
+      await waitFor(() => expect(queries.at(-1)!.get("from")).toBe("2026-10-02"));
+      fireEvent.change(screen.getByLabelText("Min amount"), { target: { value: "1.5" } });
+      await waitFor(() => expect(queries.at(-1)!.get("minAmount")).toBe("1.5"));
+      fireEvent.change(screen.getByLabelText("Max amount"), { target: { value: "20" } });
+      await waitFor(() => expect(queries.at(-1)!.get("maxAmount")).toBe("20"));
+      const last = queries.at(-1)!;
+      expect(last.getAll("category")).toEqual(["FOOD", "BILLS"]);
+      expect(last.get("from")).toBe("2026-10-02");
+      expect(last.get("minAmount")).toBe("1.5");
+      expect(screen.getByRole("button", { name: "Filters \u00b7 3" })).toBeTruthy();
+    });
+
+    it("says nothing matches and Clear filters goes back to the defaults", async () => {
+      const queries = record(EMPTY_PAGE);
+      renderAt("/?q=zzz&category=FOOD&period=all");
+      expect(await screen.findByText("No expenses match these filters.")).toBeTruthy();
+      expect(screen.getAllByRole("button", { name: "Clear filters" })).toHaveLength(1);
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      await waitFor(() => expect(queries.at(-1)!.has("q")).toBe(false));
+      expect(queries.at(-1)!.has("category")).toBe(false);
+      expect(queries.at(-1)!.has("from")).toBe(true);
+      expect((screen.getByPlaceholderText("Search descriptions") as HTMLInputElement).value).toBe("");
+    });
   });
 
   it("the Sort by select writes the same sort param", async () => {
