@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { useLocation } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
-import { formatLocalDateTime } from "../format/dates";
+import { formatLocalDateTime, formatMonthYear, formatRelativeTime } from "../format/dates";
+import { deviceName } from "../format/userAgent";
 import { type RevokedSessionsDto, type SessionDto, type UserDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { tooManyAttemptsMessage } from "../auth/LoginPage";
@@ -16,6 +17,10 @@ import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { validateChangePassword, type ChangePasswordFormValues } from "./changePasswordSchema";
 import { Skeleton } from "../ui/Skeleton";
+import { Avatar } from "../ui/Avatar";
+import { SegmentedControl } from "../ui/Chip";
+import { THEME_OPTIONS } from "../ui/AccountMenu";
+import { ACCENTS, type Accent, type Theme } from "../ui/theme";
 
 const FIELDS = ["currentPassword", "newPassword"] as const;
 type Field = (typeof FIELDS)[number];
@@ -48,17 +53,21 @@ export function ProfilePage() {
           </p>
         )}
         {me && (
-          <dl>
-            <dt>Username</dt>
-            <dd>{me.username}</dd>
-            <dt>Role</dt>
-            <dd>{me.role}</dd>
-            <dt>Member since</dt>
-            <dd>{formatLocalDateTime(me.createdAt)}</dd>
-          </dl>
+          <div className="card">
+            <h2 className="card__title">Account</h2>
+            <Avatar name={me.username} id={me.id} className="avatar--lg" />
+            <dl>
+              <dt>Username</dt>
+              <dd>{me.username}</dd>
+              <dt>Role</dt>
+              <dd>{me.role}</dd>
+              <dt>Member since</dt>
+              <dd>{formatMonthYear(me.createdAt)}</dd>
+            </dl>
+          </div>
         )}
       </section>
-      <CurrencySection />
+      <AppearanceSection />
       <ChangePasswordSection username={me?.username} />
       <DevicesSection />
     </>
@@ -68,13 +77,41 @@ export function ProfilePage() {
 /** ISO 4217 codes offered for the display currency; empty means no symbol. */
 const CURRENCIES = ["PHP", "USD", "EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "INR", "CNY"];
 
-function CurrencySection() {
-  const { currency, setCurrency } = usePreferences();
+function AppearanceSection() {
+  const prefs = usePreferences();
+  const { currency, setCurrency } = prefs;
   // A code saved earlier that is not in the list stays selectable
   const options = currency && !CURRENCIES.includes(currency) ? [currency, ...CURRENCIES] : CURRENCIES;
   return (
-    <section aria-labelledby="display-heading">
-      <h2 id="display-heading">Display</h2>
+    <section className="card" aria-labelledby="appearance-heading">
+      <h2 id="appearance-heading" className="card__title">
+        Appearance
+      </h2>
+      <SegmentedControl
+        legend="Theme"
+        name="profile-theme"
+        options={THEME_OPTIONS}
+        value={prefs.theme}
+        onChange={(v) => prefs.setTheme(v as Theme)}
+      />
+      <fieldset className="swatches">
+        <legend className="field-label">Accent</legend>
+        <div className="swatches__row">
+          {ACCENTS.map((a: Accent) => (
+            <label key={a} className={`swatch swatch--${a}${prefs.accent === a ? " swatch--selected" : ""}`}>
+              <input
+                className="swatch__input"
+                type="radio"
+                name="profile-accent"
+                value={a}
+                checked={prefs.accent === a}
+                aria-label={a[0].toUpperCase() + a.slice(1)}
+                onChange={() => prefs.setAccent(a)}
+              />
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <SelectField id="display-currency" label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
         <option value="">None</option>
         {options.map((code) => (
@@ -162,10 +199,12 @@ function ChangePasswordSection({ username }: { username: string | undefined }) {
   });
 
   return (
-    <section aria-labelledby="password-heading">
-      <h2 id="password-heading">Change password</h2>
-      <p>Changing your password signs you out on every device, this one too.</p>
-      <form aria-labelledby="password-heading" onSubmit={onSubmit} noValidate>
+    <section className="card" aria-labelledby="password-heading">
+      <h2 id="password-heading" className="card__title">
+        Security
+      </h2>
+      <p role="note">Warning: changing your password signs you out on every device, this one too.</p>
+      <form aria-label="Change password" onSubmit={onSubmit} noValidate>
         <TextField
           label="Current password"
           id="currentPassword"
@@ -235,8 +274,10 @@ function DevicesSection() {
   }, [hash]);
 
   return (
-    <section id="devices" ref={section} tabIndex={-1} aria-labelledby="devices-heading">
-      <h2 id="devices-heading">Your devices</h2>
+    <section id="devices" className="card" ref={section} tabIndex={-1} aria-labelledby="devices-heading">
+      <h2 id="devices-heading" className="card__title">
+        Your devices
+      </h2>
       {query.isPending && <Skeleton label="Loading devices..." />}
       {query.isError && (
         <p>
@@ -311,7 +352,7 @@ function SessionItem({ session }: { session: SessionDto }) {
 
   return (
     <li>
-      <strong>{session.userAgent ?? "Unknown device"}</strong>
+      <strong>{deviceName(session.userAgent)}</strong>
       {session.current && (
         <>
           {" "}
@@ -319,8 +360,9 @@ function SessionItem({ session }: { session: SessionDto }) {
         </>
       )}
       <p>
-        IP {session.ipAddress ?? "unknown"}, last used {formatLocalDateTime(session.lastUsedAt)}, signed in{" "}
-        {formatLocalDateTime(session.createdAt)}, expires {formatLocalDateTime(session.expiresAt)}
+        IP {session.ipAddress ?? "unknown"}. Last active {formatRelativeTime(session.lastUsedAt)} (
+        {formatLocalDateTime(session.lastUsedAt)}), signed in {formatLocalDateTime(session.createdAt)}, expires{" "}
+        {formatLocalDateTime(session.expiresAt)}
       </p>
       {confirming ? (
         <div>

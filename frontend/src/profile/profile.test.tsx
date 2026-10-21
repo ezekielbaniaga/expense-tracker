@@ -104,7 +104,7 @@ describe("profile", () => {
     const profile = screen.getByRole("region", { name: "Profile" });
     expect(await within(profile).findByText("alice")).toBeTruthy();
     expect(within(profile).getByText("USER")).toBeTruthy();
-    expect(within(profile).getByText("Jan 2, 2026, 3:04 AM")).toBeTruthy();
+    expect(within(profile).getByText("Jan 2026")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/me");
   });
 });
@@ -217,6 +217,31 @@ describe("change password", () => {
   });
 });
 
+describe("profile cards", () => {
+  it("shows Account, Appearance, Security and Your devices cards with the sign-out warning", async () => {
+    server.use(sessions([THIS_DEVICE]));
+    await renderProfile();
+    for (const name of ["Account", "Appearance", "Security", "Your devices"]) {
+      expect(await screen.findByRole("heading", { name })).toBeTruthy();
+    }
+    expect(screen.getByText(/signs you out on every device/)).toBeTruthy();
+    expect(document.getElementById("devices")).toBeTruthy();
+  });
+
+  it("names a real User-Agent as browser and system", async () => {
+    server.use(
+      sessions([
+        {
+          ...THIS_DEVICE,
+          userAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0",
+        },
+      ]),
+    );
+    await renderProfile();
+    expect(await screen.findByText("Firefox on Linux")).toBeTruthy();
+  });
+});
+
 describe("your devices", () => {
   it("lists the sessions and marks this device", async () => {
     server.use(sessions([THIS_DEVICE, PHONE]));
@@ -227,7 +252,7 @@ describe("your devices", () => {
     expect(within(items[0]).getByText("Firefox on Linux")).toBeTruthy();
     expect(within(items[0]).getByText("This device")).toBeTruthy();
     expect(within(items[0]).getByText(/10\.0\.0\.1/)).toBeTruthy();
-    expect(within(items[0]).getByText(/Oct 18, 2026, 9:05 AM/)).toBeTruthy();
+    expect(within(items[0]).getByText(/Last active .*Oct 18, 2026, 9:05 AM/)).toBeTruthy();
     expect(within(items[1]).getByText("Safari on iPhone")).toBeTruthy();
     expect(within(items[1]).queryByText("This device")).toBeNull();
   });

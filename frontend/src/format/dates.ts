@@ -47,3 +47,25 @@ export function formatLongDay(day: string | null, locale?: string): string {
   const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
   return new Intl.DateTimeFormat(locale, { dateStyle: "full", timeZone: "UTC" }).format(date);
 }
+
+/** "just now", "5 min ago", "3 h ago", "2 days ago"; older than 30 days is the local date. */
+export function formatRelativeTime(value: string, now: Date = new Date(), locale?: string): string {
+  const date = parseUtc(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const minutes = Math.floor((now.getTime() - date.getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "1 day ago";
+  if (days <= 30) return `${days} days ago`;
+  return formatLocalDateTime(value, locale);
+}
+
+/** "Jan 2026" from a UTC timestamp, in the viewer's time zone. */
+export function formatMonthYear(value: string, locale?: string): string {
+  const date = parseUtc(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(date);
+}

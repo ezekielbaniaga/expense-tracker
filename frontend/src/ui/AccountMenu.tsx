@@ -8,7 +8,7 @@ import { ShieldIcon, UserIcon } from "./icons";
 import { usePreferences } from "./preferences";
 import { ACCENTS, THEMES, type Accent, type Theme } from "./theme";
 
-const THEME_OPTIONS = THEMES.map((t) => ({
+export const THEME_OPTIONS = THEMES.map((t) => ({
   value: t,
   label: t[0].toUpperCase() + t.slice(1),
 }));
