@@ -18,7 +18,7 @@ const server = setupServer(
   ),
   http.post(`${BASE}/auth/logout`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${BASE}/users/me`, () =>
-    HttpResponse.json({ id: "u-1", username: "alice", role: "USER", createdAt: "2026-01-02T03:04:05.678" }),
+    HttpResponse.json({ id: "u-1", username: "alice", role: "USER", createdAt: "2026-01-02T03:04:05.678", displayName: null }),
   ),
 );
 
@@ -106,6 +106,74 @@ describe("profile", () => {
     expect(within(profile).getByText("USER")).toBeTruthy();
     expect(within(profile).getByText("Jan 2026")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/me");
+  });
+});
+
+describe("display name", () => {
+  const ME = { id: "u-1", username: "alice", role: "USER", createdAt: "2026-01-02T03:04:05.678" };
+  const avatar = () => document.querySelector(".card .avatar")?.textContent;
+  let current: string | null;
+  beforeEach(() => {
+    current = null;
+    server.use(
+      sessions([THIS_DEVICE]),
+      http.get(`${BASE}/users/me`, () => HttpResponse.json({ ...ME, displayName: current })),
+    );
+  });
+
+  it("adds a name, saves it trimmed and changes the initials", async () => {
+    let body: unknown;
+    server.use(
+      http.patch(`${BASE}/users/me`, async ({ request }) => {
+        body = await request.json();
+        current = "Alice Smith";
+        return HttpResponse.json({ ...ME, displayName: current });
+      }),
+    );
+    await renderProfile();
+    fireEvent.click(await screen.findByRole("button", { name: "Add your name" }));
+    expect(avatar()).toBe("AL");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "  Alice Smith " } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(body).toEqual({ displayName: "Alice Smith" });
+    expect(screen.getByText("Alice Smith")).toBeTruthy();
+    expect(avatar()).toBe("AS");
+  });
+
+  it("clears the name by sending an empty string", async () => {
+    current = "Alice Smith";
+    let body: unknown;
+    server.use(
+      http.patch(`${BASE}/users/me`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ...ME, displayName: null });
+      }),
+    );
+    await renderProfile();
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("button", { name: "Add your name" })).toBeTruthy();
+    expect(body).toEqual({ displayName: "" });
+    expect(avatar()).toBe("AL");
+  });
+
+  it("puts INVALID_DISPLAY_NAME on the field and keeps the form open", async () => {
+    server.use(http.patch(`${BASE}/users/me`, () => error(400, "INVALID_DISPLAY_NAME", ["Name has bad characters"])));
+    await renderProfile();
+    fireEvent.click(await screen.findByRole("button", { name: "Add your name" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("Name has bad characters")).toBeTruthy();
+    expect(screen.getByLabelText("Name").getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("renders a name with markup as plain text", async () => {
+    current = "<b>Eve</b>";
+    await renderProfile();
+    expect(await screen.findByText("<b>Eve</b>")).toBeTruthy();
+    expect(document.querySelector(".card b")).toBeNull();
   });
 });
 

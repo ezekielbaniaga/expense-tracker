@@ -216,7 +216,7 @@ export function AdminUsersPage() {
                   <tr key={u.id}>
                     <td>
                       <span className="user-cell">
-                        <Avatar name={u.username} id={u.id} />
+                        <Avatar name={u.displayName ?? u.username} id={u.id} />
                         <Link to={`/admin/users/${encodeURIComponent(u.id)}`}>{u.username}</Link>
                       </span>
                     </td>

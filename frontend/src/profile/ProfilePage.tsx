@@ -5,7 +5,8 @@ import { useLocation } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
 import { formatLocalDateTime, formatMonthYear, formatRelativeTime } from "../format/dates";
 import { deviceName } from "../format/userAgent";
-import { type RevokedSessionsDto, type SessionDto, type UserDto } from "../api/user";
+import { type RevokedSessionsDto, type SessionDto, type UpdateMeRequest, type UserDto } from "../api/user";
+import { useMe } from "./useMe";
 import { useAuth } from "../auth/AuthProvider";
 import { tooManyAttemptsMessage } from "../auth/LoginPage";
 import { errorMessage } from "../expenses/ExpenseListPage";
@@ -26,12 +27,8 @@ const FIELDS = ["currentPassword", "newPassword"] as const;
 type Field = (typeof FIELDS)[number];
 
 export function ProfilePage() {
-  const { client } = useAuth();
   const toast = useToast();
-  const query = useQuery({
-    queryKey: ["me"],
-    queryFn: () => client.request<UserDto>("/users/me"),
-  });
+  const query = useMe();
 
   const failure = query.error;
   useEffect(() => {
@@ -55,10 +52,14 @@ export function ProfilePage() {
         {me && (
           <div className="card">
             <h2 className="card__title">Account</h2>
-            <Avatar name={me.username} id={me.id} className="avatar--lg" />
+            <Avatar name={me.displayName ?? me.username} id={me.id} className="avatar--lg" />
             <dl>
               <dt>Username</dt>
               <dd>{me.username}</dd>
+              <dt>Name</dt>
+              <dd>
+                <DisplayNameEditor displayName={me.displayName} />
+              </dd>
               <dt>Role</dt>
               <dd>{me.role}</dd>
               <dt>Member since</dt>
@@ -71,6 +72,82 @@ export function ProfilePage() {
       <ChangePasswordSection username={me?.username} />
       <DevicesSection />
     </>
+  );
+}
+
+/** Shows the display name with Edit, or "Add your name"; saving PATCHes /users/me. */
+function DisplayNameEditor({ displayName }: { displayName: string | null }) {
+  const { client } = useAuth();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | undefined>();
+  const opener = useRefocusOnClose<HTMLButtonElement>(editing);
+
+  const save = useMutation({
+    mutationFn: (name: string) =>
+      client.request<UserDto>("/users/me", { method: "PATCH", body: { displayName: name } satisfies UpdateMeRequest }),
+    onSuccess: (user) => {
+      queryClient.setQueryData(["me"], user);
+      setEditing(false);
+      toast.showSuccess(user.displayName ? "Name saved." : "Name removed.");
+    },
+    onError: (failure) => {
+      if (failure instanceof ApiError && failure.status === 400 && failure.code === "INVALID_DISPLAY_NAME") {
+        setError(failure.messages[0] ?? "Invalid name");
+      } else {
+        setError(`Could not save your name. ${errorMessage(failure)}`);
+      }
+    },
+  });
+
+  if (!editing) {
+    return (
+      <>
+        {displayName && <span>{displayName} </span>}
+        <button
+          type="button"
+          ref={opener}
+          onClick={() => {
+            setValue(displayName ?? "");
+            setError(undefined);
+            save.reset();
+            setEditing(true);
+          }}
+        >
+          {displayName ? "Edit" : "Add your name"}
+        </button>
+      </>
+    );
+  }
+  return (
+    <form
+      aria-label="Edit name"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        setError(undefined);
+        save.mutate(value.trim());
+      }}
+    >
+      <TextField
+        label="Name"
+        id="displayName"
+        autoComplete="name"
+        maxLength={100}
+        autoFocus
+        value={value}
+        error={error}
+        onChange={(event) => setValue(event.target.value)}
+      />
+      <Button type="submit" variant="primary" pending={save.isPending}>
+        Save
+      </Button>{" "}
+      <Button type="button" onClick={() => setEditing(false)}>
+        Cancel
+      </Button>
+    </form>
   );
 }
 

@@ -36,7 +36,7 @@ function Where() {
   return <p data-testid="where">{pathname + hash}</p>;
 }
 
-function renderMenu() {
+function renderMenu(queryClient = new QueryClient()) {
   const client = createApiClient({
     baseUrl: "http://localhost",
     scheduler: () => () => {},
@@ -44,7 +44,7 @@ function renderMenu() {
     createChannel: null,
   });
   render(
-    <AppProviders client={client} queryClient={new QueryClient()}>
+    <AppProviders client={client} queryClient={queryClient}>
       <MemoryRouter initialEntries={["/"]}>
         <button>outside</button>
         <Routes>
@@ -59,6 +59,23 @@ function renderMenu() {
 
 const trigger = () =>
   screen.findByRole("button", { name: "Account menu for ezekiel.baniaga" });
+
+describe("AccountMenu initials", () => {
+  it("uses the cached display name and falls back to the username without one", async () => {
+    role = "USER";
+    const qc = new QueryClient();
+    qc.setQueryData(["me"], { id: "u", username: "ezekiel.baniaga", role: "USER", createdAt: "x", displayName: "Mary Jane" });
+    renderMenu(qc);
+    const button = await trigger();
+    expect(button.textContent).toBe("MJ");
+  });
+
+  it("shows the username initials when nothing is cached, without fetching /users/me", async () => {
+    role = "USER";
+    renderMenu();
+    expect((await trigger()).textContent).toBe("EB");
+  });
+});
 
 describe("AccountMenu", () => {
   it("discloses a labelled region with the user, role and links, Admin only for ADMIN", async () => {

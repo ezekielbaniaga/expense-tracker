@@ -58,7 +58,7 @@ export function AdminUserPage() {
       {user && (
         <>
           <Card className="user-header">
-            <Avatar name={user.username} id={user.id} className="avatar--lg" />
+            <Avatar name={user.displayName ?? user.username} id={user.id} className="avatar--lg" />
             <div>
               <PageHeading id="user-heading">{user.username}</PageHeading>
               <p className="user-header__chips">

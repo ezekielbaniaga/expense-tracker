@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { useCachedMe } from "../profile/useMe";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
 import { SegmentedControl } from "./Chip";
@@ -21,6 +22,8 @@ export const THEME_OPTIONS = THEMES.map((t) => ({
 export function AccountMenu() {
   const { state, logout } = useAuth();
   const prefs = usePreferences();
+  // Only reads the cache; the shell never fetches /users/me. Profile fills it.
+  const avatarName = useCachedMe()?.displayName;
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -62,7 +65,7 @@ export function AccountMenu() {
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen((o) => !o)}
       >
-        <Avatar name={username} />
+        <Avatar name={avatarName ?? username} />
       </button>
       {open && (
         <div
@@ -72,7 +75,7 @@ export function AccountMenu() {
           className="account-menu__panel"
         >
           <div className="account-menu__who">
-            <Avatar name={username} />
+            <Avatar name={avatarName ?? username} />
             <div>
               <strong id={headingId}>{username}</strong>
               {role && <p className="account-menu__role">{role}</p>}

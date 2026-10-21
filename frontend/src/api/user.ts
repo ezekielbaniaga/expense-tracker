@@ -9,6 +9,13 @@ export interface UserDto {
   username: string;
   role: Role;
   createdAt: string;
+  /** Null until the user sets one; render as text only. */
+  displayName: string | null;
+}
+
+/** Body of `PATCH /users/me`; trimmed, 1-100 characters, an empty string clears it. */
+export interface UpdateMeRequest {
+  displayName: string;
 }
 
 /** Item of `GET /users/me/sessions`, most recently used first. */
@@ -48,6 +55,7 @@ export interface AdminUserDto {
   version: number;
   createdAt: string;
   lastModified: string | null;
+  displayName?: string | null;
 }
 
 /** One page of `GET /users`, oldest first. `page` is zero-based; `total` counts every match. */
