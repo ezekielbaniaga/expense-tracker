@@ -1,0 +1,208 @@
+/*
+ * Design tokens (docs/ui-design-proposal.md, Appendix A). Components use these, never raw colors.
+ * Plain CSS cannot share one block between a media query and an attribute selector, so the dark values
+ * appear twice: in the media query and in :root[data-theme="dark"]. tokens.test.ts fails if they differ.
+ */
+:root {
+  /* pastel hues: fill / ink / strong */
+  --rose-fill: #ffe1ec;
+  --rose-ink: #8c2251;
+  --rose-strong: #c93d74;
+  --peach-fill: #ffe6d5;
+  --peach-ink: #8a3b12;
+  --peach-strong: #b5531f;
+  --lemon-fill: #fff4c2;
+  --lemon-ink: #6b5300;
+  --lemon-strong: #8a6d00;
+  --mint-fill: #d9f5e6;
+  --mint-ink: #1c6440;
+  --mint-strong: #25804f;
+  --sky-fill: #dceeff;
+  --sky-ink: #1d5486;
+  --sky-strong: #2a6cb0;
+  --lavender-fill: #e9e2ff;
+  --lavender-ink: #4f3a9e;
+  --lavender-strong: #6a52c7;
+
+  /* neutrals; --line is for dividers only (1.27:1 on --surface), --line-strong for input borders */
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --surface-2: #f3f0ec;
+  --line: #e7e3ec;
+  --line-strong: #85819a;
+  --ink: #24212f;
+  --muted: #625e73;
+  --danger: #b3261e;
+  --danger-fill: #fce8e6;
+  --success: #1c6440;
+
+  /* built on the accent */
+  --primary-bg: var(--accent-strong);
+  --primary-text: #ffffff;
+  --focus-ring: var(--accent-strong);
+  --selected-bg: var(--accent-fill);
+  --selected-text: var(--accent-ink);
+
+  /* categories keep their hue whatever the accent is */
+  --cat-food-bg: var(--peach-fill);
+  --cat-food-fg: var(--peach-ink);
+  --cat-transport-bg: var(--sky-fill);
+  --cat-transport-fg: var(--sky-ink);
+  --cat-bills-bg: var(--lemon-fill);
+  --cat-bills-fg: var(--lemon-ink);
+  --cat-entertainment-bg: var(--mint-fill);
+  --cat-entertainment-fg: var(--mint-ink);
+  --cat-unknown-bg: var(--surface-2);
+  --cat-unknown-fg: var(--muted);
+
+  --font: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --fs-caps: 0.65625rem;
+  --fs-sm: 0.75rem;
+  --fs-base: 0.8125rem;
+  --fs-md: 0.9375rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.75rem;
+  --fs-input: var(--fs-base);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-full: 999px;
+
+  --shadow-1: 0 1px 2px rgb(36 33 47 / 6%), 0 4px 12px rgb(36 33 47 / 6%);
+  --shadow-2: 0 8px 32px rgb(36 33 47 / 14%);
+
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 280ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: light;
+}
+
+/* accents: Lavender is the default */
+:root,
+[data-accent="lavender"] {
+  --accent-fill: var(--lavender-fill);
+  --accent-ink: var(--lavender-ink);
+  --accent-strong: var(--lavender-strong);
+}
+[data-accent="rose"] {
+  --accent-fill: var(--rose-fill);
+  --accent-ink: var(--rose-ink);
+  --accent-strong: var(--rose-strong);
+}
+[data-accent="peach"] {
+  --accent-fill: var(--peach-fill);
+  --accent-ink: var(--peach-ink);
+  --accent-strong: var(--peach-strong);
+}
+[data-accent="lemon"] {
+  --accent-fill: var(--lemon-fill);
+  --accent-ink: var(--lemon-ink);
+  --accent-strong: var(--lemon-strong);
+}
+[data-accent="mint"] {
+  --accent-fill: var(--mint-fill);
+  --accent-ink: var(--mint-ink);
+  --accent-strong: var(--mint-strong);
+}
+[data-accent="sky"] {
+  --accent-fill: var(--sky-fill);
+  --accent-ink: var(--sky-ink);
+  --accent-strong: var(--sky-strong);
+}
+
+@media (pointer: coarse) {
+  :root {
+    --fs-input: 1rem; /* iOS zooms into inputs under 16px */
+  }
+}
+
+/* dark: deep fills, light pastel inks; strong = ink, so solid buttons are the pastel with --bg text */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rose-fill: #3a1e2b;
+    --rose-ink: #ffb3cf;
+    --rose-strong: #ffb3cf;
+    --peach-fill: #3a2419;
+    --peach-ink: #ffc4a1;
+    --peach-strong: #ffc4a1;
+    --lemon-fill: #33301a;
+    --lemon-ink: #f5de7a;
+    --lemon-strong: #f5de7a;
+    --mint-fill: #1a3127;
+    --mint-ink: #9fe3c1;
+    --mint-strong: #9fe3c1;
+    --sky-fill: #1a2a3a;
+    --sky-ink: #a9d2ff;
+    --sky-strong: #a9d2ff;
+    --lavender-fill: #262039;
+    --lavender-ink: #c9bbff;
+    --lavender-strong: #c9bbff;
+
+    --bg: #14131a;
+    --surface: #1c1b24;
+    --surface-2: #24232e;
+    --line: #2e2c3a;
+    --line-strong: #7a7690;
+    --ink: #ece9f5;
+    --muted: #a6a2b8;
+    --danger: #ffb4ab;
+    --danger-fill: #3b1d1b;
+    --success: #9fe3c1;
+
+    --primary-text: var(--bg);
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 30%);
+    --shadow-2: 0 8px 32px rgb(0 0 0 / 50%);
+
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --rose-fill: #3a1e2b;
+  --rose-ink: #ffb3cf;
+  --rose-strong: #ffb3cf;
+  --peach-fill: #3a2419;
+  --peach-ink: #ffc4a1;
+  --peach-strong: #ffc4a1;
+  --lemon-fill: #33301a;
+  --lemon-ink: #f5de7a;
+  --lemon-strong: #f5de7a;
+  --mint-fill: #1a3127;
+  --mint-ink: #9fe3c1;
+  --mint-strong: #9fe3c1;
+  --sky-fill: #1a2a3a;
+  --sky-ink: #a9d2ff;
+  --sky-strong: #a9d2ff;
+  --lavender-fill: #262039;
+  --lavender-ink: #c9bbff;
+  --lavender-strong: #c9bbff;
+
+  --bg: #14131a;
+  --surface: #1c1b24;
+  --surface-2: #24232e;
+  --line: #2e2c3a;
+  --line-strong: #7a7690;
+  --ink: #ece9f5;
+  --muted: #a6a2b8;
+  --danger: #ffb4ab;
+  --danger-fill: #3b1d1b;
+  --success: #9fe3c1;
+
+  --primary-text: var(--bg);
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 30%);
+  --shadow-2: 0 8px 32px rgb(0 0 0 / 50%);
+
+  color-scheme: dark;
+}
