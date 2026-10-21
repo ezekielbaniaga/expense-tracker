@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Add form: date chips and back to the list.** Date: Today / Yesterday chips plus the native date input labelled
-      "Date" (`max` today, computed with `todayIso`, local calendar). After a successful create navigate to `/` with the
-      success toast and briefly highlight the new row; an "Add another" checkbox keeps the form open and resets it. No
-      autofocus on the amount (heading focus stays). Test: update `expenses.test.tsx:302` (expects `/` and the toast; drop
-      the detail GET mock), `e2e/helpers.ts createExpense` (find the new row link on the list), a11y `getByLabelText("Date")`.
-      Careful: `conflict.spec.ts` and `isolation.spec.ts` use `createExpense`. Proposal: Add expense.
 - [ ] **Expense detail restyle.** Hero (category icon, description as the `PageHeading`, amount in `--fs-xl`, category chip,
       long date); muted "Details" card (Created, Last modified "Never", Version, Id shortened with a copy button and the
       full id as accessible text); a back link for detail and form pages. Edit and inline description edit keep PUT/PATCH
@@ -280,3 +274,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Money and date formatting: formatMoney/date helpers, local times, no "(UTC)" labels, Profile currency select, TZ/locale pinned for Vitest and Playwright (55f43a3)
 - [x] Login and Register restyle: card, blobs, password toggle, rules checklist (6d26cbe)
 - [x] Add/edit form: amount first, category chips (ee770f1)
+- [x] Add form: Today/Yesterday date chips, back to the list with a highlighted row, Add another (f0fe9ba)
