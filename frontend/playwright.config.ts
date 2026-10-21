@@ -11,6 +11,7 @@ export default defineConfig({
     baseURL: "http://localhost:18081",
     // The date field defaults to today here, and the server rejects future dates in UTC
     timezoneId: "UTC",
+    locale: "en-US",
     trace: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

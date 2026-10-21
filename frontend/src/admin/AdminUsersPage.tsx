@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/errors";
-import { DEFAULT_USER_PAGE_SIZE, formatTimestamp, type UserListDto } from "../api/user";
+import { formatLocalDateTime } from "../format/dates";
+import { DEFAULT_USER_PAGE_SIZE, type UserListDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
 import { Button } from "../ui/Button";
@@ -156,7 +157,7 @@ export function AdminUsersPage() {
                   <th>Username</th>
                   <th>Role</th>
                   <th>Status</th>
-                  <th>Created (UTC)</th>
+                  <th>Created</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,7 +168,7 @@ export function AdminUsersPage() {
                     </td>
                     <td>{u.role}</td>
                     <td>{u.enabled ? "Enabled" : "Disabled"}</td>
-                    <td>{formatTimestamp(u.createdAt)}</td>
+                    <td>{formatLocalDateTime(u.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

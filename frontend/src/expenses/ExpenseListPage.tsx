@@ -4,12 +4,13 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import {
-  MISSING,
   NO_DESCRIPTION,
-  formatAmount,
   mapExpenseList,
   type ExpenseListResponseDto,
 } from "../api/expense";
+import { formatDay } from "../format/dates";
+import { formatMoney } from "../format/money";
+import { usePreferences } from "../ui/preferences";
 import { CategoryChip } from "../ui/Chip";
 import { PageHeading } from "../ui/focus";
 import { TableScroll } from "../ui/forms";
@@ -24,6 +25,7 @@ export function errorMessage(error: unknown): string {
 
 export function ExpenseListPage() {
   const { client } = useAuth();
+  const { currency } = usePreferences();
   const toast = useToast();
   const query = useQuery({
     queryKey: ["expenses"],
@@ -66,7 +68,7 @@ export function ExpenseListPage() {
           <>
             <p>
               <span>{query.data.count}</span> expenses, total{" "}
-              <strong>{formatAmount(query.data.totalAmount)}</strong>
+              <strong>{formatMoney(query.data.totalAmount, currency)}</strong>
             </p>
             <TableScroll label="Expenses table">
             <table>
@@ -87,8 +89,8 @@ export function ExpenseListPage() {
                     <td>
                       <CategoryChip category={e.category} />
                     </td>
-                    <td>{e.date ?? MISSING}</td>
-                    <td>{formatAmount(e.amount)}</td>
+                    <td>{formatDay(e.date)}</td>
+                    <td>{formatMoney(e.amount, currency)}</td>
                   </tr>
                 ))}
               </tbody>

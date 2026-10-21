@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import {
-  formatAmount,
-  formatArchivedAt,
   NO_DESCRIPTION,
   sortArchivedDesc,
   type ArchivedExpenseListDto,
 } from "../api/expense";
+import { formatLocalDateTime } from "../format/dates";
+import { formatMoney } from "../format/money";
+import { usePreferences } from "../ui/preferences";
 import { PageHeading } from "../ui/focus";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -18,6 +19,7 @@ import { EmptyState } from "../ui/EmptyState";
 /** Read-only: there is no restore endpoint. */
 export function ArchivedPage() {
   const { client } = useAuth();
+  const { currency } = usePreferences();
   const toast = useToast();
   const query = useQuery({
     queryKey: ["archived"],
@@ -61,8 +63,8 @@ export function ArchivedPage() {
               {query.data.map((e) => (
                 <tr key={e.id}>
                   <td>{e.description ?? NO_DESCRIPTION}</td>
-                  <td>{formatAmount(e.amount)}</td>
-                  <td>{formatArchivedAt(e.archivedAt)}</td>
+                  <td>{formatMoney(e.amount, currency)}</td>
+                  <td>{formatLocalDateTime(e.archivedAt)}</td>
                 </tr>
               ))}
             </tbody>

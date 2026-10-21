@@ -85,13 +85,26 @@ function changePassword(current: string, next: string) {
 }
 
 describe("profile", () => {
+  it("sets the display currency, saved in the browser and never sent to the server", async () => {
+    server.use(sessions([THIS_DEVICE]));
+    localStorage.removeItem("ui.currency");
+    await renderProfile();
+    const select = screen.getByLabelText("Currency") as HTMLSelectElement;
+    expect(select.value).toBe("");
+    expect(screen.getByText("Only changes how amounts look. Amounts are saved as numbers.")).toBeTruthy();
+    fireEvent.change(select, { target: { value: "PHP" } });
+    expect(select.value).toBe("PHP");
+    expect(localStorage.getItem("ui.currency")).toBe("PHP");
+    localStorage.removeItem("ui.currency");
+  });
+
   it("shows the user from /users/me and is linked from the header", async () => {
     server.use(sessions([THIS_DEVICE]));
     await renderProfile();
     const profile = screen.getByRole("region", { name: "Profile" });
     expect(await within(profile).findByText("alice")).toBeTruthy();
     expect(within(profile).getByText("USER")).toBeTruthy();
-    expect(within(profile).getByText("2026-01-02 03:04")).toBeTruthy();
+    expect(within(profile).getByText("Jan 2, 2026, 3:04 AM")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/me");
   });
 });
@@ -214,7 +227,7 @@ describe("your devices", () => {
     expect(within(items[0]).getByText("Firefox on Linux")).toBeTruthy();
     expect(within(items[0]).getByText("This device")).toBeTruthy();
     expect(within(items[0]).getByText(/10\.0\.0\.1/)).toBeTruthy();
-    expect(within(items[0]).getByText(/2026-10-18 09:05/)).toBeTruthy();
+    expect(within(items[0]).getByText(/Oct 18, 2026, 9:05 AM/)).toBeTruthy();
     expect(within(items[1]).getByText("Safari on iPhone")).toBeTruthy();
     expect(within(items[1]).queryByText("This device")).toBeNull();
   });

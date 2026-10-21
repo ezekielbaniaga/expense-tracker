@@ -36,11 +36,6 @@ export interface RevokedSessionsDto {
   revoked: number;
 }
 
-/** "2026-10-18T09:05:03.123" to "2026-10-18 09:05". */
-export function formatTimestamp(value: string): string {
-  return value.replace("T", " ").slice(0, 16);
-}
-
 /**
  * What an admin sees of a user (`GET /users`, `GET /users/{id}`, `PATCH /users/{id}`).
  * Send `version` back on PATCH. `lastModified` is null until the first change.

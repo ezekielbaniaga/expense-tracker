@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { useLocation } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
-import { formatTimestamp, type RevokedSessionsDto, type SessionDto, type UserDto } from "../api/user";
+import { formatLocalDateTime } from "../format/dates";
+import { type RevokedSessionsDto, type SessionDto, type UserDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { tooManyAttemptsMessage } from "../auth/LoginPage";
 import { errorMessage } from "../expenses/ExpenseListPage";
 import { Button } from "../ui/Button";
 import { PageHeading, useRefocusOnClose } from "../ui/focus";
-import { TextField } from "../ui/fields";
+import { SelectField, TextField } from "../ui/fields";
+import { usePreferences } from "../ui/preferences";
 import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { validateChangePassword, type ChangePasswordFormValues } from "./changePasswordSchema";
@@ -52,13 +54,37 @@ export function ProfilePage() {
             <dt>Role</dt>
             <dd>{me.role}</dd>
             <dt>Member since</dt>
-            <dd>{formatTimestamp(me.createdAt)}</dd>
+            <dd>{formatLocalDateTime(me.createdAt)}</dd>
           </dl>
         )}
       </section>
+      <CurrencySection />
       <ChangePasswordSection username={me?.username} />
       <DevicesSection />
     </>
+  );
+}
+
+/** ISO 4217 codes offered for the display currency; empty means no symbol. */
+const CURRENCIES = ["PHP", "USD", "EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "INR", "CNY"];
+
+function CurrencySection() {
+  const { currency, setCurrency } = usePreferences();
+  // A code saved earlier that is not in the list stays selectable
+  const options = currency && !CURRENCIES.includes(currency) ? [currency, ...CURRENCIES] : CURRENCIES;
+  return (
+    <section aria-labelledby="display-heading">
+      <h2 id="display-heading">Display</h2>
+      <SelectField id="display-currency" label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+        <option value="">None</option>
+        {options.map((code) => (
+          <option key={code} value={code}>
+            {code}
+          </option>
+        ))}
+      </SelectField>
+      <p>Only changes how amounts look. Amounts are saved as numbers.</p>
+    </section>
   );
 }
 
@@ -293,8 +319,8 @@ function SessionItem({ session }: { session: SessionDto }) {
         </>
       )}
       <p>
-        IP {session.ipAddress ?? "unknown"}, last used {formatTimestamp(session.lastUsedAt)}, signed in{" "}
-        {formatTimestamp(session.createdAt)}, expires {formatTimestamp(session.expiresAt)} (UTC)
+        IP {session.ipAddress ?? "unknown"}, last used {formatLocalDateTime(session.lastUsedAt)}, signed in{" "}
+        {formatLocalDateTime(session.createdAt)}, expires {formatLocalDateTime(session.expiresAt)}
       </p>
       {confirming ? (
         <div>

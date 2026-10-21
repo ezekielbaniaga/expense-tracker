@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import type { Role } from "../api/jwt";
-import { formatTimestamp, type AdminUserDto, type UpdateUserRequest } from "../api/user";
+import { formatLocalDateTime } from "../format/dates";
+import { type AdminUserDto, type UpdateUserRequest } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
 import { Button } from "../ui/Button";
@@ -61,10 +62,10 @@ export function AdminUserPage() {
             <dd>{user.enabled ? "Enabled" : "Disabled"}</dd>
             <dt>Version</dt>
             <dd>{user.version}</dd>
-            <dt>Created (UTC)</dt>
-            <dd>{formatTimestamp(user.createdAt)}</dd>
-            <dt>Last modified (UTC)</dt>
-            <dd>{user.lastModified ? formatTimestamp(user.lastModified) : "Never"}</dd>
+            <dt>Created</dt>
+            <dd>{formatLocalDateTime(user.createdAt)}</dd>
+            <dt>Last modified</dt>
+            <dd>{user.lastModified ? formatLocalDateTime(user.lastModified) : "Never"}</dd>
           </dl>
           <UserForm user={user} onReload={() => void query.refetch()} />
         </>

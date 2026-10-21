@@ -120,9 +120,3 @@ export function categoryLabel(category: string | null): string {
 export function sortArchivedDesc(expenses: ArchivedExpenseDto[]): ArchivedExpenseDto[] {
   return [...expenses].sort((a, b) => Date.parse(b.archivedAt) - Date.parse(a.archivedAt));
 }
-
-/** "2026-10-18T09:05:03.123" to "2026-10-18 09:05". */
-export function formatArchivedAt(archivedAt: string | null): string {
-  if (archivedAt === null) return MISSING;
-  return archivedAt.replace("T", " ").slice(0, 16);
-}

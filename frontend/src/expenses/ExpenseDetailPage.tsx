@@ -4,7 +4,10 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
-import { categoryLabel, formatAmount, formatArchivedAt, MISSING, NO_DESCRIPTION, type ExpenseDto } from "../api/expense";
+import { categoryLabel, NO_DESCRIPTION, type ExpenseDto } from "../api/expense";
+import { formatDay, formatLocalDateTime } from "../format/dates";
+import { formatMoney } from "../format/money";
+import { usePreferences } from "../ui/preferences";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { PageHeading } from "../ui/focus";
@@ -31,6 +34,7 @@ function isNotFound(error: unknown): boolean {
 export function ExpenseDetailPage() {
   const { id = "" } = useParams();
   const { client } = useAuth();
+  const { currency } = usePreferences();
   const toast = useToast();
   const query = useQuery({
     queryKey: ["expense", id],
@@ -81,17 +85,17 @@ export function ExpenseDetailPage() {
             <dt>Id</dt>
             <dd>{e.id}</dd>
             <dt>Amount</dt>
-            <dd>{formatAmount(e.amount)}</dd>
+            <dd>{formatMoney(e.amount, currency)}</dd>
             <dt>Category</dt>
             <dd>{categoryLabel(e.category)}</dd>
             <dt>Date</dt>
-            <dd>{e.date ?? MISSING}</dd>
+            <dd>{formatDay(e.date)}</dd>
             <dt>Version</dt>
             <dd>{e.version}</dd>
             <dt>Created</dt>
-            <dd>{formatArchivedAt(e.createdAt)}</dd>
+            <dd>{formatLocalDateTime(e.createdAt)}</dd>
             <dt>Last modified</dt>
-            <dd>{e.lastModified ? formatArchivedAt(e.lastModified) : "Never"}</dd>
+            <dd>{e.lastModified ? formatLocalDateTime(e.lastModified) : "Never"}</dd>
           </dl>
           {mode === "view" && (
             <p>

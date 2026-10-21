@@ -50,6 +50,27 @@ const LEGACY_ITEM = { id: "l1", description: null, amount: null, category: null,
 const LEGACY_EXPENSE = { ...LEGACY_ITEM, createdAt: null, lastModified: null };
 
 describe("expense list", () => {
+  it("shows amounts with the symbol once a display currency is set", async () => {
+    localStorage.setItem("ui.currency", "USD");
+    try {
+      server.use(
+        http.get(`${BASE}/api/expense`, () =>
+          HttpResponse.json({
+            expenses: [{ id: "e1", description: "Lunch", amount: 1284.5, category: "FOOD", date: "2026-10-17", version: 0 }],
+            count: 1,
+            total_amount: 1284.5,
+          }),
+        ),
+      );
+      renderAt("/");
+      const row = await screen.findByRole("row", { name: /Lunch/ });
+      expect(within(row).getByText("$1,284.50")).toBeTruthy();
+      expect(screen.getAllByText("$1,284.50").length).toBe(2);
+    } finally {
+      localStorage.removeItem("ui.currency");
+    }
+  });
+
   it("shows rows, the server's count and total, and sends version 1.2 with the token", async () => {
     let version: string | null = null;
     let auth: string | null = null;
@@ -73,7 +94,7 @@ describe("expense list", () => {
     expect(lunch.getAttribute("href")).toBe("/expenses/e1");
     const row = screen.getByRole("row", { name: /Lunch/ });
     expect(within(row).getByText("Food")).toBeTruthy();
-    expect(within(row).getByText("2026-10-17")).toBeTruthy();
+    expect(within(row).getByText("Oct 17, 2026")).toBeTruthy();
     expect(within(row).getByText("12.50")).toBeTruthy();
     expect(screen.getByText("Transport")).toBeTruthy();
     expect(screen.getByText("3.00")).toBeTruthy();
@@ -162,7 +183,7 @@ describe("archived screen", () => {
       "Middle",
       "Old",
     ]);
-    expect(within(rows[0]).getByText("2026-10-01 08:30")).toBeTruthy();
+    expect(within(rows[0]).getByText("Oct 1, 2026, 8:30 AM")).toBeTruthy();
     expect(within(rows[0]).getByText("2.50")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Newest" })).toBeNull();
     expect(queryClient.getQueryData(["archived"])).toBeTruthy();
@@ -178,7 +199,7 @@ describe("archived screen", () => {
       ),
     );
     renderAt("/archived");
-    await screen.findByText("2026-09-01 10:00");
+    await screen.findByText("Sep 1, 2026, 10:00 AM");
     const cells = within(screen.getAllByRole("row")[1]).getAllByRole("cell");
     expect(cells.map((c) => c.textContent).slice(0, 2)).toEqual(["(no description)", "—"]);
   });
@@ -225,10 +246,10 @@ describe("expense detail", () => {
     expect(screen.getByText("e1")).toBeTruthy();
     expect(screen.getByText("12.50")).toBeTruthy();
     expect(screen.getByText("Food")).toBeTruthy();
-    expect(screen.getByText("2026-10-17")).toBeTruthy();
+    expect(screen.getByText("Oct 17, 2026")).toBeTruthy();
     expect(screen.getByText("3")).toBeTruthy();
-    expect(screen.getByText("2026-10-17 12:30")).toBeTruthy();
-    expect(screen.getByText("2026-10-18 08:05")).toBeTruthy();
+    expect(screen.getByText("Oct 17, 2026, 12:30 PM")).toBeTruthy();
+    expect(screen.getByText("Oct 18, 2026, 8:05 AM")).toBeTruthy();
     expect(auth).toMatch(/^Bearer /);
   });
 
