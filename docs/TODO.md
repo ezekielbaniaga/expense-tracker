@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Icons and Button.** Add `frontend/src/ui/icons.tsx` (inline SVG components, `currentColor`, `aria-hidden` by
-      default, the proposal's icon set; Lucide ISC attribution comment if shapes follow it) and `src/ui/Button.tsx`
-      (`Button` variants primary/secondary/ghost/danger, sizes md/sm, `pending` → `aria-busy` + spinner keeping the label;
-      `IconButton` requires `label`). Use them for the submit buttons of login, register, expense create/edit, password
-      change and admin forms, same names. Test: `Button.test.tsx`; existing tests that find buttons by name pass.
-      Careful: never import `.svg` files (CSP blocks `data:`). Proposal: Iconography, Components.
 - [ ] **Field components.** Add `frontend/src/ui/fields.tsx` with `TextField`, `SelectField`, `DateField`, `AmountField`
       (caps label above, error below through the existing `errorProps`/`FieldError`, error icon + border, `AmountField`
       large with `inputMode="decimal"`). Use them in `ExpenseFields`, `LoginPage`, `RegisterPage` and the profile
@@ -350,3 +344,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Theme and accent bootstrap in main.tsx with theme-color metas (596719c)
 - [x] Bundled JetBrains Mono (Latin 400/500/700 woff2 + OFL, base.css @font-face, assetsInlineLimit 0, Regular preload) (c170e99)
 - [x] Restyle native elements with tokens: styles.css split into base/layout/components (8769dc7)
+- [x] Icons and Button components, used by the submit buttons (617c5a6)
