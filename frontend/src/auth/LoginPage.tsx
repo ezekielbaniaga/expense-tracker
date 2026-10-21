@@ -58,7 +58,7 @@ export function LoginPage() {
 
   return (
     <main>
-      <PageHeading as="h1">Sign in</PageHeading>
+      <PageHeading>Sign in</PageHeading>
       <form onSubmit={onSubmit} noValidate>
         <TextField
           label="Username"

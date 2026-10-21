@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { Button } from "./Button";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { ArchiveIcon, ListIcon, PlusIcon, ShieldIcon, UserIcon } from "./icons";
 
-/** Header with navigation and Sign out around every signed-in page. */
+/** Top bar, the one main nav and Sign out around every signed-in page. */
 export function Layout() {
   const { state, logout } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
@@ -22,34 +24,50 @@ export function Layout() {
       >
         Skip to content
       </a>
-      <header>
-        <h1>Expense Tracker</h1>
-        {state.status === "authenticated" && (
-          <p>
-            Signed in as <strong>{state.username}</strong>
-            {state.role && (
-              <>
-                {" "}
-                (<span>{state.role}</span>)
-              </>
-            )}
-          </p>
-        )}
-        <nav aria-label="Main">
+      <header className="topbar">
+        <Link to="/" className="topbar__name">
+          Expense Tracker
+        </Link>
+        <NavLink to="/expenses/new" className="btn btn--primary add-expense">
+          <PlusIcon />
+          <span>Add expense</span>
+        </NavLink>
+        {/* One nav for every size: CSS makes it the bottom tab bar on phones and inline in the bar on wide screens */}
+        <nav aria-label="Main" className="main-nav">
           <NavLink to="/" end>
-            Expenses
-          </NavLink>{" "}
-          <NavLink to="/expenses/new">New expense</NavLink>{" "}
-          <NavLink to="/archived">Archived</NavLink>{" "}
-          <NavLink to="/me">Profile</NavLink>{" "}
+            <ListIcon />
+            <span>Expenses</span>
+          </NavLink>
+          <NavLink to="/archived">
+            <ArchiveIcon />
+            <span>Archived</span>
+          </NavLink>
+          <NavLink to="/me">
+            <UserIcon />
+            <span>Profile</span>
+          </NavLink>
           {/* Only hides the link; the server checks the role on every /users call */}
           {state.role === "ADMIN" && (
-            <>
-              <NavLink to="/admin/users">Admin</NavLink>{" "}
-            </>
+            <NavLink to="/admin/users">
+              <ShieldIcon />
+              <span>Admin</span>
+            </NavLink>
           )}
-          <button
-            type="button"
+        </nav>
+        <div className="topbar__account">
+          {state.status === "authenticated" && (
+            <p>
+              Signed in as <strong>{state.username}</strong>
+              {state.role && (
+                <>
+                  {" "}
+                  (<span>{state.role}</span>)
+                </>
+              )}
+            </p>
+          )}
+          <Button
+            size="sm"
             disabled={signingOut}
             onClick={() => {
               setSigningOut(true);
@@ -57,8 +75,8 @@ export function Layout() {
             }}
           >
             Sign out
-          </button>
-        </nav>
+          </Button>
+        </div>
       </header>
       <main id="main" ref={main} tabIndex={-1}>
         <ErrorBoundary key={pathname}>

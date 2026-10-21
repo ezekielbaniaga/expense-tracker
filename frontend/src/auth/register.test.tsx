@@ -79,7 +79,7 @@ describe("register", () => {
     );
     await renderRegister();
     fillRegister("  carol ", "a-long-password");
-    expect(await screen.findByRole("heading", { name: "Expense Tracker" })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "Expense Tracker" })).toBeTruthy();
     // The server strips the name too; logging in with the same text keeps the two in step
     expect(calls).toEqual([
       { path: "register", body: { username: "carol", password: "a-long-password" } },

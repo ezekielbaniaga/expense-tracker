@@ -91,7 +91,7 @@ export function RegisterPage() {
 
   return (
     <main>
-      <PageHeading as="h1">Create account</PageHeading>
+      <PageHeading>Create account</PageHeading>
       <form onSubmit={onSubmit} noValidate>
         <TextField
           label="Username"

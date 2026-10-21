@@ -29,7 +29,7 @@ test("two tabs refreshing together stay signed in", async ({ page, context, requ
     await expect(signedIn(p, user)).toBeVisible();
     await p.getByRole("link", { name: "Archived", exact: true }).click();
     await p.getByRole("link", { name: "Expenses", exact: true }).click();
-    await expect(p.getByRole("heading", { name: "Expenses", level: 2 })).toBeVisible();
+    await expect(p.getByRole("heading", { name: "Expenses", level: 1 })).toBeVisible();
     await expect(p).toHaveURL(/\/$/);
   }
 });

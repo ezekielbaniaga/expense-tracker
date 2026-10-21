@@ -74,7 +74,7 @@ describe("boot", () => {
     server.use(withSession);
     renderApp("/");
     expect(screen.getByRole("status").textContent).toMatch(/loading/i);
-    expect(await screen.findByRole("heading", { name: "Expense Tracker" })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "Expense Tracker" })).toBeTruthy();
     expect(screen.getByText("alice")).toBeTruthy();
     expect(screen.getByText("ADMIN")).toBeTruthy();
   });
@@ -95,7 +95,7 @@ describe("boot", () => {
       }),
     );
     renderApp("/");
-    await screen.findByRole("heading", { name: "Expense Tracker" });
+    await screen.findByRole("link", { name: "Expense Tracker" });
     expect(refreshes).toBe(1);
   });
 });
@@ -114,7 +114,7 @@ describe("login", () => {
     await screen.findByRole("heading", { name: "Sign in" });
     queryClient.setQueryData(["expenses"], ["someone else's"]);
     fillLogin("bob", "secret-password");
-    expect(await screen.findByRole("heading", { name: "Expense Tracker" })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "Expense Tracker" })).toBeTruthy();
     expect(body).toEqual({ username: "bob", password: "secret-password" });
     expect(screen.getByText("bob")).toBeTruthy();
     expect(screen.getByText("USER")).toBeTruthy();
@@ -214,7 +214,7 @@ describe("logout", () => {
       }),
     );
     renderApp("/");
-    await screen.findByRole("heading", { name: "Expense Tracker" });
+    await screen.findByRole("link", { name: "Expense Tracker" });
     queryClient.setQueryData(["expenses"], ["alice's"]);
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeTruthy();
@@ -226,7 +226,7 @@ describe("logout", () => {
   it("a sign-out from elsewhere (refresh 401, another tab) also lands on /login", async () => {
     server.use(withSession);
     renderApp("/");
-    await screen.findByRole("heading", { name: "Expense Tracker" });
+    await screen.findByRole("link", { name: "Expense Tracker" });
     queryClient.setQueryData(["expenses"], ["alice's"]);
     client.signOut();
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeTruthy();
@@ -242,7 +242,7 @@ describe("refresh after boot", () => {
   it("shows a promotion from the next refresh without a reload", async () => {
     server.use(refreshAs("alice", "USER"));
     renderApp("/");
-    await screen.findByRole("heading", { name: "Expense Tracker" });
+    await screen.findByRole("link", { name: "Expense Tracker" });
     expect(screen.getByText("USER")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
 
@@ -255,7 +255,7 @@ describe("refresh after boot", () => {
   it("hides the Admin link when a refresh brings a USER token", async () => {
     server.use(withSession);
     renderApp("/");
-    await screen.findByRole("heading", { name: "Expense Tracker" });
+    await screen.findByRole("link", { name: "Expense Tracker" });
     expect(screen.getByRole("link", { name: "Admin" })).toBeTruthy();
 
     server.use(refreshAs("alice", "USER"));
@@ -267,7 +267,7 @@ describe("refresh after boot", () => {
   it("keeps the Query cache when the refresh is for the same user", async () => {
     server.use(withSession);
     renderApp("/");
-    await screen.findByRole("heading", { name: "Expense Tracker" });
+    await screen.findByRole("link", { name: "Expense Tracker" });
     queryClient.setQueryData(["probe"], ["alice's"]);
 
     server.use(refreshAs("alice", "USER"));
@@ -280,7 +280,7 @@ describe("refresh after boot", () => {
     // The cookie is shared, so another tab signing in as bob makes this tab's next refresh bob's
     server.use(withSession);
     renderApp("/");
-    await screen.findByRole("heading", { name: "Expense Tracker" });
+    await screen.findByRole("link", { name: "Expense Tracker" });
     queryClient.setQueryData(["probe"], ["alice's"]);
 
     server.use(refreshAs("bob", "USER"));

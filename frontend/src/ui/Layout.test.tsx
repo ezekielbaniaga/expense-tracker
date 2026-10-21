@@ -1,17 +1,19 @@
 import { QueryClient } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppProviders } from "../App";
 import { createApiClient } from "../api/client";
 import { fakeJwt } from "../test/fakeJwt";
+import { PageHeading } from "./focus";
 import { Layout } from "./Layout";
 
+let role = "USER";
 const server = setupServer(
   http.post("http://localhost/auth/refresh", () =>
     HttpResponse.json({
-      accessToken: fakeJwt({ sub: "alice", role: "USER" }),
+      accessToken: fakeJwt({ sub: "alice", role }),
       accessTokenExpiresIn: 900,
       refreshTokenExpiresAt: "2026-11-17T00:00:00",
     }),
@@ -20,6 +22,27 @@ const server = setupServer(
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterAll(() => server.close());
+
+function renderLayout(path: string) {
+  const client = createApiClient({
+    baseUrl: "http://localhost",
+    scheduler: () => () => {},
+    locks: null,
+    createChannel: null,
+  });
+  render(
+    <AppProviders client={client} queryClient={new QueryClient()}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<PageHeading>Expenses</PageHeading>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </AppProviders>,
+  );
+  return client;
+}
 
 function Broken(): never {
   throw new Error("boom");
@@ -56,5 +79,26 @@ describe("Layout", () => {
     expect(screen.queryByRole("heading", { name: "Something went wrong" })).toBeNull();
     client.dispose();
     vi.restoreAllMocks();
+  });
+
+  it("has one Main nav, one h1, the skip link first and Admin only for ADMIN", async () => {
+    role = "USER";
+    let client = renderLayout("/");
+    await screen.findByRole("button", { name: "Sign out" });
+    expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Expense Tracker" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Add expense" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Admin" })).toBeNull();
+    expect(document.body.querySelector("a")?.textContent).toBe("Skip to content");
+    cleanup();
+    client.dispose();
+
+    role = "ADMIN";
+    client = renderLayout("/");
+    expect(await screen.findByRole("link", { name: "Admin" })).toBeTruthy();
+    expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
+    client.dispose();
+    role = "USER";
   });
 });

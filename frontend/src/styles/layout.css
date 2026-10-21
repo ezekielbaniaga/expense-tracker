@@ -5,23 +5,127 @@ body {
   margin-inline: auto;
 }
 
-nav {
+/* Top bar and the one main nav: bottom tab bar on phones, inline in the bar from 48rem */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-1) var(--sp-2);
+  gap: var(--sp-2) var(--sp-4);
+  padding: var(--sp-2) 0;
+  background: var(--bg);
 }
 
-nav a {
-  display: inline-block;
-  padding: 0.6rem var(--sp-2);
+.topbar__name {
+  font-weight: 700;
+  font-size: var(--fs-md);
+  color: var(--ink);
+  text-decoration: none;
 }
 
-nav a[aria-current="page"] {
+.topbar__account {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-left: auto;
+}
+
+.topbar__account p {
+  margin: 0;
+}
+
+.main-nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+.main-nav a {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 3.5rem;
+  justify-content: center;
+  font-size: var(--fs-caps);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.main-nav a[aria-current="page"] {
   font-weight: 700;
   background: var(--selected-bg);
   color: var(--selected-text);
-  border-radius: var(--r-sm);
+}
+
+/* Floating button on phones, a primary button in the bar on wide screens */
+.add-expense {
+  position: fixed;
+  right: var(--sp-4);
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  z-index: 6;
+  min-height: 3.5rem;
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow-2);
+  text-decoration: none;
+}
+
+main {
+  padding-bottom: 6rem;
+}
+
+@media (min-width: 48rem) {
+  .topbar {
+    flex-wrap: nowrap;
+  }
+
+  .main-nav {
+    position: static;
+    padding: 0;
+    background: none;
+    border-top: 0;
+    justify-content: flex-start;
+    gap: var(--sp-1);
+  }
+
+  .main-nav a {
+    flex: 0 0 auto;
+    flex-direction: row;
+    min-height: 0;
+    padding: 0.6rem var(--sp-3);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-base);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .add-expense {
+    position: static;
+    order: 3;
+    margin-left: auto;
+    min-height: 2.5rem;
+    border-radius: var(--r-sm);
+    box-shadow: none;
+  }
+
+  .topbar__account {
+    order: 4;
+    margin-left: 0;
+  }
+
+  main {
+    padding-bottom: 0;
+  }
 }
 
 /* Tables scroll inside their box instead of widening the page */
