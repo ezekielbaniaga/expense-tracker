@@ -15,15 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Money and date formatting.** Add `frontend/src/format/money.ts` (`formatMoney(amount, currency?, locale?)`: browser
-      locale by default, grouping, 2 decimals, symbol only when `ui.currency` is set, `MISSING` for null) and
-      `src/format/dates.ts` (`parseUtc` appends `Z`, `formatLocalDateTime`, `formatDay`, `formatRelativeDay`). Use them for
-      display on list, archived, detail, profile devices and admin; drop the "(UTC)" labels (`ProfilePage.tsx:287`,
-      `AdminUsersPage.tsx:157`, `AdminUserPage.tsx:62,64`); `formatAmount` stays for form values. Add a currency select to
-      Profile ("Only changes how amounts look. Amounts are saved as numbers."). Test: `money.test.ts`, `dates.test.ts`
-      (midnight, DST, null). Pin `TZ=UTC` and the `en-US` locale for Vitest and Playwright (`locale`/`timezoneId` in
-      `playwright.config.ts`); update tests asserting old text. Careful: `e2e/conflict.spec.ts:18,27` expects "20.00".
-      Proposal: Preferences.
 - [ ] **Login and Register restyle.** Centred card on `--bg` with CSS radial-gradient blobs, the name "Expense Tracker" and
       "Track what you spend, nothing more."; show/hide password toggle (`aria-pressed`, "Show password"); on Register a
       live rules checklist (12+ characters, at most 72 bytes, not the username) from `registerSchema`. No change to API
@@ -298,3 +289,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Account menu in the top bar replacing "Signed in as" and the nav Sign out (24dd7bf)
 - [x] Success toasts: showSuccess in Toast.tsx (4 s, paused on hover/focus) for add, save, description, delete and session sign-outs (00eb77d)
 - [x] Dialog for expense delete (4851bc3)
+- [x] Money and date formatting: formatMoney/date helpers, local times, no "(UTC)" labels, Profile currency select, TZ/locale pinned for Vitest and Playwright (55f43a3)
