@@ -15,13 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Initials, avatar and preferences.** Add `frontend/src/ui/initials.ts` (`initials()` as in the proposal, `hueFor(id)`
-      stable hash into the six hues), `src/ui/Avatar.tsx`, and `src/ui/preferences.tsx` (`PreferencesProvider` +
-      `usePreferences()` for `ui.theme`, `ui.accent`, `ui.currency`, `ui.density`, `ui.pageSize`, all storage in try/catch;
-      theme/accent changes call `theme.ts`). Wrap the app in `PreferencesProvider` inside `AppProviders`. Test:
-      `initials.test.ts` (doc examples, "Mary Jane Watson" → MW, camelCase, astral chars, empty → "?"), `hueFor` stable and
-      in range, `preferences.test.tsx` with throwing storage. Careful: avatar colors by palette index only, no user value in
-      CSS. Proposal: Account avatar and menu, Preferences.
 - [ ] **App shell: top bar and one responsive nav.** Rewrite `frontend/src/ui/Layout.tsx`: a top bar with the app name
       "Expense Tracker" as a link (no longer an `h1`), and ONE `<nav aria-label="Main">` (Expenses, Archived, Profile,
       Admin for ADMIN) that CSS shows as a bottom tab bar under 48rem and inline in the bar above. "New expense" becomes an
@@ -330,3 +323,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Field components: TextField, SelectField, DateField, AmountField in ui/fields.tsx (d22cd25)
 - [x] Chips and segmented control: ChipGroup, SegmentedControl, CategoryChip (0dc00f3)
 - [x] Card, Skeleton and EmptyState added and used for loading, empty and error states (536107b)
+- [x] Added initials, hueFor, Avatar and PreferencesProvider with tests (6bc85a7)
