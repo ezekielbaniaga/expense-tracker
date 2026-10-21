@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Login and Register restyle.** Centred card on `--bg` with CSS radial-gradient blobs, the name "Expense Tracker" and
-      "Track what you spend, nothing more."; show/hide password toggle (`aria-pressed`, "Show password"); on Register a
-      live rules checklist (12+ characters, at most 72 bytes, not the username) from `registerSchema`. No change to API
-      calls, `AuthProvider` or error mapping. Test: `auth.test.tsx`, `register.test.tsx` (toggle switches type, checklist
-      ticks, errors still map); a11y green. Careful: `getByLabelText("Password")` must stay unique (use
-      `{ selector: "input" }` if needed). Proposal: Sign in and Create account.
 - [ ] **Add/edit form: amount first, category chips.** Restyle `frontend/src/expenses/ExpenseFields.tsx`: `AmountField`
       first, then description, category as a `ChipGroup` of radios with icons (fieldset/legend "Category", from
       `GET /api/expense/categories`, none checked for a legacy null), sticky submit. Same zod rules and POST/PUT bodies.
@@ -290,3 +284,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Success toasts: showSuccess in Toast.tsx (4 s, paused on hover/focus) for add, save, description, delete and session sign-outs (00eb77d)
 - [x] Dialog for expense delete (4851bc3)
 - [x] Money and date formatting: formatMoney/date helpers, local times, no "(UTC)" labels, Profile currency select, TZ/locale pinned for Vitest and Playwright (55f43a3)
+- [x] Login and Register restyle: card, blobs, password toggle, rules checklist (6d26cbe)
