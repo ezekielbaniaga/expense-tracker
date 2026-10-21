@@ -11,11 +11,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 ## Findings 2026-10-21
 
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
-- [ ] **A search over 100 characters blanks the list.** The backend caps `q` at 100 (`400 VALIDATION_ERROR`) but
-      the search input in `ExpenseListPage.tsx` has no `maxLength`, and `VALIDATION_ERROR` is not in
-      `INVALID_CODE_PARAMS`, so the rows disappear behind "Expenses could not be loaded" plus a toast
-      (verified with a throwaway Vitest test). Fix: `maxLength={100}` on the input (and cut a longer `q`
-      read from the URL in `listParams.ts`). Test: a 101-character URL `q` still loads.
 - [ ] **A page past the end shows an empty table.** `?page=9` with one page of data renders "Page 10 of 1" with the
       summary card and no rows (verified with a throwaway Vitest test); it also happens after deleting the
       only expense on the last page or opening an old link. Only Previous, one page at a time, gets back.
@@ -216,3 +211,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] The search box keeps a trailing space after the debounce instead of copying the trimmed URL value back (152b5d9)
 - [x] Display names now refuse format (zero-width, bidi, BOM) and line/paragraph separator characters and names with nothing visible, in the backend and the Profile form (775fdca)
 - [x] Unpaired UTF-16 surrogates in expense descriptions and display names are now a 400 instead of being stored as "?" (3b43f5e)
+- [x] The expense search is capped at 100 characters in the box and in a q read from the URL, so a long search no longer blanks the list (588c5ae)
