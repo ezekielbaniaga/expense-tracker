@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **E2E: list spec and axe with contrast.** Add `frontend/e2e/list.spec.ts` (create ~25 expenses via the API, then
-      sort by amount, filter by category, page and search in the UI) and the `@axe-core/playwright` dev dependency (exact
-      version) with `e2e/a11y.spec.ts`: main screens in light and dark (`page.emulateMedia({ colorScheme })`) at 360 and
-      1280 px with `color-contrast` on; screenshots as artifacts, not baselines. Test: `npm run e2e` (needs Docker),
-      `npm run build`. Careful: needs network for `npm install`; if unavailable, add a Needs you entry instead.
-      Proposal: Testing.
 - [ ] **Docs: README and proposal done.** README "Web UI" (design system, theme/accent/currency preferences in
       `localStorage`, screens, list 1.3), section 17 API versions (1.3 params, response, error codes; summary endpoint;
       `PATCH /users/me`), Roadmap; `frontend/README.md` if tracked (fonts and OFL, styles layout, pinned TZ/locale in tests);
@@ -190,3 +184,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Frontend: sortable admin users with SortableHeader and INVALID_SORT reset (d8a102d)
 - [x] Backend: optional display name (V17, PATCH /users/me, INVALID_DISPLAY_NAME, on user and admin responses) (a746106)
 - [x] Frontend: display name (useMe, Profile add/edit/clear, initials from displayName in Profile, admin and account menu) (a6d1b8c)
+- [x] Frontend e2e: list.spec.ts (sort, category, paging, search) and a11y.spec.ts (axe with contrast, light/dark, 360/1280 px; @axe-core/playwright 4.13.0) (9b8282d)
