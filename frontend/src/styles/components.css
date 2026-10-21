@@ -607,3 +607,18 @@ select[aria-invalid="true"] {
 .rules__item[data-met="true"] {
   color: var(--success);
 }
+
+/* Submit row of the expense forms: stays in view above the tab bar on phones */
+.form-actions {
+  position: sticky;
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  z-index: 4;
+  padding: var(--sp-3) 0;
+  background: var(--bg);
+}
+
+@media (min-width: 48rem) {
+  .form-actions {
+    bottom: 0;
+  }
+}

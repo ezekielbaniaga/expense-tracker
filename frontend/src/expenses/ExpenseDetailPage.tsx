@@ -244,6 +244,7 @@ function EditFormFields({
   const saved = useSaved(onDone, "Saved");
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -282,14 +283,16 @@ function EditFormFields({
       })}
       noValidate
     >
-      <ExpenseFields categories={categories} register={register} errors={errors} autoFocus />
+      <ExpenseFields categories={categories} register={register} control={control} errors={errors} autoFocus />
       <WriteNotice failure={failure} onReload={onReload} />
-      <Button type="submit" variant="primary" pending={update.isPending}>
-        Save
-      </Button>{" "}
-      <button type="button" onClick={onDone}>
-        Cancel
-      </button>
+      <div className="form-actions">
+        <Button type="submit" variant="primary" pending={update.isPending}>
+          Save
+        </Button>{" "}
+        <button type="button" onClick={onDone}>
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

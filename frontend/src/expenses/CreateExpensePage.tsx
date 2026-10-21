@@ -45,6 +45,7 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -83,12 +84,14 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
 
   return (
     <form onSubmit={onSubmit} noValidate>
-      <ExpenseFields categories={categories} register={register} errors={errors} />
+      <ExpenseFields categories={categories} register={register} control={control} errors={errors} />
 
       {formError && <FormAlert>{formError}</FormAlert>}
-      <Button type="submit" variant="primary" pending={create.isPending}>
-        Add expense
-      </Button>
+      <div className="form-actions">
+        <Button type="submit" variant="primary" pending={create.isPending}>
+          Add expense
+        </Button>
+      </div>
     </form>
   );
 }

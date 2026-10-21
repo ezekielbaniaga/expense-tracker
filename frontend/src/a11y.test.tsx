@@ -164,7 +164,7 @@ describe("axe", () => {
     const { container } = await renderAt("/expenses/e1", "Lunch");
     expect(await axe(container)).toHaveNoViolations();
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    await screen.findByLabelText("Category");
+    await screen.findByRole("group", { name: "Category" });
     expect(await axe(container)).toHaveNoViolations();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -205,7 +205,8 @@ describe("labels", () => {
     for (const name of ["Description", "Amount"]) {
       expect(await screen.findByRole("textbox", { name })).toBeTruthy();
     }
-    expect(screen.getByRole("combobox", { name: "Category" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Food" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Category" })).toBeTruthy();
     expect(screen.getByLabelText("Date")).toBeTruthy();
   });
 
@@ -292,12 +293,12 @@ describe("focus after a failed submit", () => {
     signedIn();
     await renderAt("/expenses/new", "New expense");
     fireEvent.click(await screen.findByRole("button", { name: "Add expense" }));
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Description")));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Amount")));
 
     server.use(http.post(`${BASE}/api/expense`, () => error(400, "INVALID_CATEGORY", ["Invalid category: FOOD"])));
     type("Description", "Lunch");
     type("Amount", "12.50");
-    fireEvent.change(screen.getByLabelText("Category"), { target: { value: "FOOD" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Food" }));
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
     const alert = await screen.findByRole("alert");
     await waitFor(() => expect(document.activeElement).toBe(alert));

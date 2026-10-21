@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { categoryLabel } from "../api/expense";
+import { errorProps, FieldError } from "./forms";
 import {
   BusIcon,
   CheckIcon,
@@ -21,6 +22,8 @@ export interface ChipOption {
   value: string;
   label: string;
   disabled?: boolean;
+  /** Decorative icon shown before the label (hidden from assistive tech by the icon itself). */
+  icon?: ReactNode;
 }
 
 interface GroupBase {
@@ -29,6 +32,8 @@ interface GroupBase {
   name: string;
   options: ChipOption[];
   className?: string;
+  /** Error text shown under the group; the fieldset is marked invalid and described by it. */
+  error?: string;
 }
 
 type ChipGroupProps = GroupBase &
@@ -38,7 +43,7 @@ type ChipGroupProps = GroupBase &
   );
 
 export function ChipGroup(props: ChipGroupProps) {
-  const { legend, name, options, className } = props;
+  const { legend, name, options, className, error } = props;
   const classes = ["chip-group", className].filter(Boolean).join(" ");
   const isSelected = (v: string) => (props.multiple ? props.value.includes(v) : props.value === v);
 
@@ -51,7 +56,7 @@ export function ChipGroup(props: ChipGroupProps) {
   }
 
   return (
-    <fieldset className={classes}>
+    <fieldset className={classes} {...errorProps(name, error)}>
       <legend className="field-label">{legend}</legend>
       <div className="chip-group__items">
         {options.map((o) => {
@@ -67,12 +72,13 @@ export function ChipGroup(props: ChipGroupProps) {
                 disabled={o.disabled}
                 onChange={() => toggle(o.value)}
               />
-              {selected && <CheckIcon size={16} />}
+              {selected ? <CheckIcon size={16} /> : o.icon}
               {o.label}
             </label>
           );
         })}
       </div>
+      <FieldError id={name} message={error} />
     </fieldset>
   );
 }
@@ -116,6 +122,12 @@ const CATEGORY_LOOK: Record<string, { key: string; Icon: (p: IconProps) => React
   BILLS: { key: "bills", Icon: ReceiptIcon },
   ENTERTAINMENT: { key: "entertainment", Icon: TicketIcon },
 };
+
+/** The category's icon for a chip option; the neutral dot for an unknown value. */
+export function categoryIcon(category: string): ReactNode {
+  const Icon = CATEGORY_LOOK[category]?.Icon ?? DotIcon;
+  return <Icon size={16} />;
+}
 
 /** Read-only icon + label on the category's fill; neutral with a dot for null or unknown values. */
 export function CategoryChip({ category }: { category: string | null }) {

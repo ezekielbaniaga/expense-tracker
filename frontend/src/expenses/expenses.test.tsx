@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AppProviders, AppRoutes } from "../App";
 import { createApiClient, type ApiClient } from "../api/client";
 import { fakeJwt } from "../test/fakeJwt";
+import { categoryLabel } from "../api/expense";
 
 const BASE = "http://localhost";
 const server = setupServer(
@@ -316,7 +317,9 @@ describe("create expense", () => {
     };
     set("Description", values.description);
     set("Amount", values.amount);
-    set("Category", values.category);
+    if (values.category !== undefined) {
+      fireEvent.click(screen.getByRole("radio", { name: categoryLabel(values.category) }));
+    }
     set("Date", values.date);
   }
 
@@ -330,7 +333,7 @@ describe("create expense", () => {
       }),
     );
     renderAt("/expenses/new");
-    await screen.findByLabelText("Category");
+    await screen.findByRole("group", { name: "Category" });
     fill({ description: "   ", amount: "0", date: "2999-01-01" });
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
     expect(await screen.findByText("Description is required")).toBeTruthy();
@@ -384,7 +387,7 @@ describe("create expense", () => {
     );
     queryClient.setQueryData(["expenses"], { expenses: [], count: 0, totalAmount: 0 });
     renderAt("/expenses/new");
-    await screen.findByLabelText("Category");
+    await screen.findByRole("group", { name: "Category" });
     fill({ description: "Lunch", amount: "12.50", category: "FOOD", date: "2026-10-17" });
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
     expect(await screen.findByRole("heading", { name: "Lunch" })).toBeTruthy();
@@ -404,7 +407,7 @@ describe("create expense", () => {
       ),
     );
     renderAt("/expenses/new");
-    await screen.findByLabelText("Category");
+    await screen.findByRole("group", { name: "Category" });
     fill({ description: "Lunch", amount: "5", category: "FOOD", date: "2026-10-17" });
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
     expect(await screen.findByText("size must be between 0 and 250")).toBeTruthy();
@@ -423,7 +426,7 @@ describe("create expense", () => {
       ),
     );
     renderAt("/expenses/new");
-    await screen.findByLabelText("Category");
+    await screen.findByRole("group", { name: "Category" });
     fill({ description: "Lunch", amount: "5", category: "FOOD", date: "2026-10-17" });
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
     expect((await screen.findByRole("alert")).textContent).toBe("Invalid category: FOOD");
@@ -458,7 +461,7 @@ describe("edit, patch description and delete", () => {
     renderAt("/expenses/e1");
     await screen.findByRole("heading", { name: "Lunch" });
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    await screen.findByLabelText("Category");
+    await screen.findByRole("group", { name: "Category" });
   }
 
   it("PUTs the form with the version, then shows the response and invalidates the list", async () => {
@@ -496,11 +499,11 @@ describe("edit, patch description and delete", () => {
     renderAt("/expenses/e1");
     await screen.findByRole("heading", { name: "(no description)" });
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    await screen.findByLabelText("Category");
+    await screen.findByRole("group", { name: "Category" });
     expect(input("Description").value).toBe("");
     expect(input("Amount").value).toBe("");
     expect(input("Date").value).toBe("");
-    expect((screen.getByLabelText("Category") as HTMLSelectElement).value).toBe("");
+    expect(screen.getAllByRole("radio").filter((r) => (r as HTMLInputElement).checked)).toHaveLength(0);
   });
 
   it("shows client messages and sends nothing", async () => {

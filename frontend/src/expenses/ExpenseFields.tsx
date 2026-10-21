@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { FieldErrors, Resolver, UseFormRegister, UseFormSetError } from "react-hook-form";
+import { Controller, type Control, type FieldErrors, type Resolver, type UseFormRegister, type UseFormSetError } from "react-hook-form";
 import { useAuth } from "../auth/AuthProvider";
 import { fieldErrors, type ApiError } from "../api/errors";
 import {
@@ -8,7 +8,8 @@ import {
   todayIso,
   type AllCategoriesResponseDto,
 } from "../api/expense";
-import { AmountField, DateField, SelectField, TextField } from "../ui/fields";
+import { categoryIcon, ChipGroup } from "../ui/Chip";
+import { AmountField, DateField, TextField } from "../ui/fields";
 import { validateExpense, type ExpenseFormValues } from "./expenseSchema";
 
 const FIELDS = ["description", "amount", "category", "date"] as const;
@@ -61,14 +62,21 @@ export function applyServerErrors(
 interface Props {
   categories: readonly string[];
   register: UseFormRegister<ExpenseFormValues>;
+  control: Control<ExpenseFormValues>;
   errors: FieldErrors<ExpenseFormValues>;
   /** Focuses the description when the form opens (the edit form; the create page keeps focus on its heading). */
   autoFocus?: boolean;
 }
 
-export function ExpenseFields({ categories, register, errors, autoFocus }: Props) {
+export function ExpenseFields({ categories, register, control, errors, autoFocus }: Props) {
   return (
     <>
+      <AmountField
+        id="amount"
+        label="Amount"
+        error={errors.amount?.message}
+        {...register("amount")}
+      />
       <TextField
         id="description"
         label="Description"
@@ -76,25 +84,20 @@ export function ExpenseFields({ categories, register, errors, autoFocus }: Props
         error={errors.description?.message}
         {...register("description")}
       />
-      <AmountField
-        id="amount"
-        label="Amount"
-        error={errors.amount?.message}
-        {...register("amount")}
+      <Controller
+        name="category"
+        control={control}
+        render={({ field }) => (
+          <ChipGroup
+            legend="Category"
+            name="category"
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.category?.message}
+            options={categories.map((c) => ({ value: c, label: categoryLabel(c), icon: categoryIcon(c) }))}
+          />
+        )}
       />
-      <SelectField
-        id="category"
-        label="Category"
-        error={errors.category?.message}
-        {...register("category")}
-      >
-        <option value="">Select...</option>
-        {categories.map((c) => (
-          <option key={c} value={c}>
-            {categoryLabel(c)}
-          </option>
-        ))}
-      </SelectField>
       <DateField
         id="date"
         label="Date"

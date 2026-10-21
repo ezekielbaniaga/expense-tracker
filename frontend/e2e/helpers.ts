@@ -45,7 +45,7 @@ export async function createExpense(page: Page, description: string): Promise<st
   await page.goto("/expenses/new");
   await page.getByLabel("Description").fill(description);
   await page.getByLabel("Amount").fill("12.50");
-  await page.getByLabel("Category").selectOption({ label: "Food" });
+  await page.getByRole("radio", { name: "Food" }).check();
   await page.getByRole("button", { name: "Add expense" }).click();
   await page.waitForURL((url) => /^\/expenses\/[^/]+$/.test(url.pathname) && url.pathname !== "/expenses/new");
   await expect(page.getByRole("heading", { name: description })).toBeVisible();
