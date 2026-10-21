@@ -15,18 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Backend: expense list 1.3 with paging, sort and filtered total.** `@GetMapping(version = "1.3")` in
-      `expense/ExpenseController` with `@RequestParam` `page` (0), `size` (20), `String sort` (`date,desc`); no `Pageable`
-      argument. `ExpenseService` checks page/size like `UserService.listUsers` (400 `INVALID_PAGE`), maps sort fields
-      `date`→`expenseDate`, `amount`, `description`, `category`, `createdAt` (else 400 `INVALID_SORT`), `nullsLast()`,
-      always then `createdAt desc, id desc`; a `Specification` for owner + not archived; `SUM(amount)` via a new
-      `ExpenseRepositoryCustom`/`Impl`. `ExpenseRepository` extends `JpaSpecificationExecutor`. New record
-      `ExpenseListResponseV1_3(expenses, page, size, total, total_pages, total_amount)` with V1_2 items. Add "1.3" to
-      `config/WebMVCConfig`. No new index. Test: new `ExpenseListV1_3Tests` (each sort both ways, tie-break, a JdbcTemplate
-      legacy row with null date/amount last both ways, totals over all pages, page bounds, both 400s, other users' and
-      archived rows absent); update `ExpenseApiVersionTests.java:36` and `:137` (reject "1.4", "2.0"). Careful: PostgreSQL
-      puts NULLs first on DESC; use Spring's `@Transactional(readOnly = true)` (the service imports jakarta's); 1.0–1.2
-      unchanged. Proposal: Backend changes 1.
 - [ ] **Backend: list 1.3 filters.** Optional params on 1.3: `q` (≤ 100 chars else 400 `VALIDATION_ERROR` via
       `BadRequestException`; case-insensitive contains, LIKE wildcards literal; move `UserService.escapeLike` to
       `common/` and use it in both); `category` bound as `List<String>`, repeatable, parsed case-insensitively like
@@ -257,3 +245,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Profile cards (Account, Appearance, Security, Your devices) and device names (b3e391e)
 - [x] SortableHeader and archived list sorting in the browser, retention note, muted rows (9d0b2ff)
 - [x] Admin restyle: user avatars and chips, detail header card, Admin pill, ui/Pagination extracted (1c889b1)
+- [x] Backend expense list 1.3: paging, sort (NULLs last) and filtered total (486f7e4)
