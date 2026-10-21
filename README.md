@@ -998,10 +998,35 @@ The complete lifecycle can be summarized as:
 
 Every error below uses the same JSON body as the rest of the API: `{"code": "...", "messages": [...], "timestamp": "..."}`.
 
-**API versions.** Send the version in the `X-API-Version` header (`1.0` is the default; `1.1` and `1.2` are also
+**API versions.** Send the version in the `X-API-Version` header (`1.0` is the default; `1.1`, `1.2` and `1.3` are also
 served). Only the expense list differs: `1.0` returns `{ expenses: [{ id, description, amount }], count }`, `1.1` adds
 `total_amount`, and `1.2` also returns `category`, `date` and `version` on each expense, ordered by `date` newest
 first, then by creation time newest first. An unserved version is rejected with a `4xx`.
+
+`1.3` is the same list, paged, sorted and filtered, with query parameters:
+
+* `page` (zero-based, default 0) and `size` (default 20, maximum 100); anything outside that is `400 INVALID_PAGE`.
+* `sort` is `field` or `field,dir` with `field` one of `date` (default, `date,desc`), `amount`, `description`,
+  `category` or `createdAt` and `dir` `asc` (default) or `desc`; anything else is `400 INVALID_SORT`. Missing
+  dates and amounts sort last in both directions; ties fall back to creation time and id, newest first.
+* Filters, all optional and combined with AND: `q` (case-insensitive substring of the description, at most 100
+  characters), `category` (repeatable, e.g. `category=FOOD&category=RENT`; an unknown value is
+  `400 INVALID_CATEGORY`), `from` and `to` (inclusive `YYYY-MM-DD` dates; `from` after `to` is
+  `400 INVALID_DATE_RANGE`) and `minAmount` and `maxAmount` (inclusive; `minAmount` above `maxAmount` is
+  `400 INVALID_AMOUNT_RANGE`). Expenses without a date or amount never match a filter on that field. A
+  too-long `q` or a malformed date or number is `400 VALIDATION_ERROR`.
+* The response is `{ expenses, page, size, total, total_pages, total_amount }`, with the same items as `1.2`.
+  `total`, `total_pages` and `total_amount` cover every expense that matches the filters, not only the page.
+  Archived expenses are never listed.
+
+```http
+GET /api/expense/summary?from=2026-10-01&to=2026-10-31
+```
+
+Totals for the caller's non-archived expenses, with the optional inclusive `from` and `to` dates (`from` after `to` is
+`400 INVALID_DATE_RANGE`): `{ from, to, count, total_amount, by_category: [{ category, count, total_amount }] }`.
+`from` and `to` echo the request (`null` for all time); `by_category` is ordered by `total_amount`, largest first.
+It serves every version from `1.0`, but the request must carry a concrete `X-API-Version` (`1.0` to `1.3`); the UI sends `1.0`.
 
 **Timestamps are UTC.** Every timestamp in a response (`createdAt`, `lastModified`, `expiresAt`, the error
 `timestamp`, ...) is a UTC time written without an offset, e.g. `"2026-10-16T08:00:00"`: read it as
@@ -1340,12 +1365,26 @@ app, so the browser sees one origin (`http://localhost:8081`) and no CORS config
   revokes the session. Inside a tab all refreshes share one request. Across tabs, which share the cookie,
   each refresh holds the Web Lock `refresh` (`navigator.locks`), so a tab that waited sends the cookie the
   previous tab just received. Logging out is broadcast on a `BroadcastChannel` so every tab signs out.
-* **List `1.2`.** The expense list screens send `X-API-Version: 1.2`, which adds `category`, `date` and
-  `version` to each list item, so one call renders the whole table. `1.0` and `1.1` are unchanged. Archived
-  expenses have their own screen.
-* **Screens.** Login and register; the expense list, archived list, create and detail/edit (optimistic
-  locking through `version`); profile with password change and sessions; for admins, the user list and a
-  user's role and status.
+* **List `1.3`.** The expense list sends `X-API-Version: 1.3`: one call returns a sorted, filtered page with
+  `category`, `date` and `version` on each item plus the totals of the whole match. The list state (search,
+  categories, period chips or dates, amount range, sort, page, page size) lives in the URL query string, so
+  it survives a reload and can be bookmarked. A summary card above the list calls `GET /api/expense/summary`
+  for the selected dates. `1.0` to `1.2` are unchanged. Archived expenses have their own screen.
+* **Design system.** Hand-written CSS, no UI library: design tokens in `src/styles/tokens.css` (mild pastel
+  light and dark palettes, six accents), then `base.css`, `layout.css` and `components.css`. Components are in
+  `src/ui/` (`Layout`, `AccountMenu`, `Button`, `Card`, `Chip`, `Dialog`, `Pagination`, `SortableHeader`,
+  `Toast`, `Skeleton`, `EmptyState`, ...). The type is JetBrains Mono, self-hosted from `src/assets/fonts/`
+  (SIL Open Font License, `OFL.txt` alongside). One markup serves every size: the main nav is a bottom tab bar on
+  phones and sits in the top bar on wide screens.
+* **Display preferences.** Theme (`system`, `light`, `dark`), accent (`lavender`, `rose`, `peach`, `lemon`,
+  `mint`, `sky`), currency (an ISO 4217 code, display only), density and list page size are set in the account menu and on the Profile page
+  and kept per browser in `localStorage` under `ui.theme`, `ui.accent`, `ui.currency`,
+  `ui.density` and `ui.pageSize`. Nothing is sent to the server and, if storage is blocked, the defaults
+  apply. They are the only things the UI stores there; tokens never are.
+* **Screens.** Login and register; the expense list (`/`), archived list (`/archived`), create
+  (`/expenses/new`) and detail/edit (`/expenses/:id`, optimistic locking through `version`); profile
+  (`/me`) with display name (`PATCH /users/me`), password change and sessions; for admins, the user list
+  (`/admin/users`) and a user's role and status (`/admin/users/:id`).
 
 Run it with Compose (`docker_compose/run_compose.sh`) and open `http://localhost:8081`; see
 `docker_compose/README.md`. For development, run the backend on `localhost:8080` and, from `frontend/`
@@ -1395,6 +1434,7 @@ The authentication system is being developed incrementally.
 * [x] `X-Forwarded-For` trusted only from `TRUSTED_PROXIES`
 * [x] Nightly session and expense cleanups, deleted in batches
 * [x] Web UI (React + Vite + TypeScript behind an nginx same-origin proxy), refresh token in an `HttpOnly` cookie with an `Origin` check, expense list `1.2`
+* [x] Web UI design system: pastel light/dark themes with accents, mobile-first shell and account menu, display preferences, sortable, filterable, paged expense list `1.3`, expense summary, display name (`PATCH /users/me`)
 
 ### Next
 
