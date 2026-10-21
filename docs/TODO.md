@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Field components.** Add `frontend/src/ui/fields.tsx` with `TextField`, `SelectField`, `DateField`, `AmountField`
-      (caps label above, error below through the existing `errorProps`/`FieldError`, error icon + border, `AmountField`
-      large with `inputMode="decimal"`). Use them in `ExpenseFields`, `LoginPage`, `RegisterPage` and the profile
-      password form without changing labels, ids or rules. Test: `fields.test.tsx` (label association, `aria-invalid`,
-      `aria-describedby`); existing form and a11y tests unchanged. Careful: labels "Description", "Amount", "Category",
-      "Date", "Username", "Password" must stay, tests and e2e use them. Proposal: Components.
 - [ ] **Chips and segmented control.** Add `frontend/src/ui/Chip.tsx`: `ChipGroup` (fieldset + legend of native radios
       or checkboxes with styled labels), `SegmentedControl` (radio group as a track), `CategoryChip` (icon + label on the
       category fill, neutral for null/unknown via `categoryLabel`). Use a read-only `CategoryChip` in the list table's
@@ -345,3 +339,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Bundled JetBrains Mono (Latin 400/500/700 woff2 + OFL, base.css @font-face, assetsInlineLimit 0, Regular preload) (c170e99)
 - [x] Restyle native elements with tokens: styles.css split into base/layout/components (8769dc7)
 - [x] Icons and Button components, used by the submit buttons (617c5a6)
+- [x] Field components: TextField, SelectField, DateField, AmountField in ui/fields.tsx (d22cd25)
