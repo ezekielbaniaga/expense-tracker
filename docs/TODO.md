@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Card, Skeleton and EmptyState.** Add them in `frontend/src/ui/`. Replace the "Loading ..." paragraphs on list,
-      archived, detail, profile and admin with skeletons plus the same text visually hidden in `role="status"`. Empty
-      list: "Nothing here yet." / "Add your first expense and it shows up here." + Add expense link; empty archived:
-      "Nothing archived. Deleted expenses wait here for a while.". `ErrorBoundary` fallback becomes an `EmptyState`
-      keeping "Something went wrong" and "Back to expenses". Test: update `expenses.test.tsx:128` and the archived empty
-      test; `Layout.test.tsx` still passes. Proposal: Components, Appendix C.
 - [ ] **Initials, avatar and preferences.** Add `frontend/src/ui/initials.ts` (`initials()` as in the proposal, `hueFor(id)`
       stable hash into the six hues), `src/ui/Avatar.tsx`, and `src/ui/preferences.tsx` (`PreferencesProvider` +
       `usePreferences()` for `ui.theme`, `ui.accent`, `ui.currency`, `ui.density`, `ui.pageSize`, all storage in try/catch;
@@ -335,3 +329,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Icons and Button components, used by the submit buttons (617c5a6)
 - [x] Field components: TextField, SelectField, DateField, AmountField in ui/fields.tsx (d22cd25)
 - [x] Chips and segmented control: ChipGroup, SegmentedControl, CategoryChip (0dc00f3)
+- [x] Card, Skeleton and EmptyState added and used for loading, empty and error states (536107b)
