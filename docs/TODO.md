@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Frontend: summary card.** Hero card above the list with the server `total_amount` and `total` of the current
-      filters, and a category breakdown from `GET /api/expense/summary` (key `["expenses", "summary", {from, to}]`): a
-      stacked bar of category fills (`role="img"`, `aria-label` with amounts and percentages) and a text legend. Test:
-      numbers from mocks, legend, `aria-label`, refetch after delete; add a summary handler to every test file that
-      renders `/` (`expenses.test.tsx`, `a11y.test.tsx`, others found by grep), since MSW errors on unhandled requests.
-      Careful: never sum amounts in the browser; percentages only size the bar. Proposal: Expenses (home), Backend 2.
 - [ ] **Backend: admin user list sort.** `@RequestParam(required = false) String sort` on `user/AdminUserController.list`
       and a `sort` argument to `UserService.listUsers` (only caller `AdminUserController.java:58`): `createdAt` (default
       asc), `username` (by `lower(username)`), `role`, `enabled`, each asc/desc, always then `id` asc; unknown → 400
@@ -213,3 +207,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Frontend sortable list: SortableHeader columns and a phone-only Sort by select write `sort` to the URL (dd3ecfc)
 - [x] Frontend: search, period chips and filters on the expense list (09128ea)
 - [x] Frontend: phone rows as cards and day grouping under the date sort (90197e8)
+- [x] Frontend: summary card above the expense list with category breakdown bar and legend (801b239)
