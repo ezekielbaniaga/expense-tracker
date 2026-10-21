@@ -11,11 +11,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 ## Findings 2026-10-21
 
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
-- [ ] **A page past the end shows an empty table.** `?page=9` with one page of data renders "Page 10 of 1" with the
-      summary card and no rows (verified with a throwaway Vitest test); it also happens after deleting the
-      only expense on the last page or opening an old link. Only Previous, one page at a time, gets back.
-      Files: `ExpenseListPage.tsx`, likely `admin/AdminUsersPage.tsx` too (same `Pagination`, not verified).
-      Fix: when `total > 0` and `page >= totalPages`, replace the URL's page with `totalPages - 1`.
 - [ ] **Summary ties are ordered by enum position, not category name.** `ExpenseService.getSummary` says "equal totals
       ordered by category name" but compares `Category` by `naturalOrder()` (FOOD, TRANSPORT, BILLS,
       ENTERTAINMENT): two 10.00 groups come back FOOD then BILLS (verified), while the list's `sort=category`
@@ -212,3 +207,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Display names now refuse format (zero-width, bidi, BOM) and line/paragraph separator characters and names with nothing visible, in the backend and the Profile form (775fdca)
 - [x] Unpaired UTF-16 surrogates in expense descriptions and display names are now a 400 instead of being stored as "?" (3b43f5e)
 - [x] The expense search is capped at 100 characters in the box and in a q read from the URL, so a long search no longer blanks the list (588c5ae)
+- [x] A page past the end (old link, or the last item of the last page deleted) now moves to the last page instead of showing an empty table, on the expense list and the admin users list (67eaa45)
