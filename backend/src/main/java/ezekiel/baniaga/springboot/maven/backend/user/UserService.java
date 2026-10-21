@@ -158,12 +158,14 @@ public class UserService {
     }
 
     /**
-     * Admin list, oldest first. username is a case-insensitive substring
+     * Admin list, oldest first unless sort says otherwise (field[,dir] with
+     * field createdAt, username, role or enabled; dir asc or desc; unknown is
+     * 400 INVALID_SORT; id always breaks ties). username is a case-insensitive substring
      * match (LIKE wildcards in it are literal); enabled filters exactly.
      * Either filter may be null.
      */
     @Transactional(readOnly = true)
-    public Page<User> listUsers(String username, Boolean enabled, int page, int size) {
+    public Page<User> listUsers(String username, Boolean enabled, String sortParam, int page, int size) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new BadRequestException("INVALID_PAGE",
                 "page must be 0 or more and size between 1 and " + MAX_PAGE_SIZE + ".");
@@ -181,8 +183,20 @@ public class UserService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
+        String[] parts = (sortParam == null || sortParam.isBlank() ? "createdAt" : sortParam).split(",", -1);
+        String field = parts[0].trim();
+        String dir = parts.length == 1 ? "asc" : parts[1].trim().toLowerCase();
+        if (!List.of("createdAt", "username", "role", "enabled").contains(field)
+                || parts.length > 2 || !(dir.equals("asc") || dir.equals("desc"))) {
+            throw new BadRequestException("INVALID_SORT",
+                "sort must be field,dir with field one of createdAt, enabled, role, username and dir asc or desc.");
+        }
+        Sort.Order order = dir.equals("asc") ? Sort.Order.asc(field) : Sort.Order.desc(field);
+        if (field.equals("username")) {
+            order = order.ignoreCase(); // orders by lower(username)
+        }
         // id breaks ties so rows created in the same instant keep a stable order across pages
-        Sort sort = Sort.by("createdAt").ascending().and(Sort.by("id").ascending());
+        Sort sort = Sort.by(order).and(Sort.by("id").ascending());
         return userRepository.findAll(filters, PageRequest.of(page, size, sort));
     }
 

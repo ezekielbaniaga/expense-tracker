@@ -1094,11 +1094,14 @@ disabled still holds an access token that says `ADMIN` (until it expires), and g
 from all of them, so they cannot read users or undo their own demotion.
 
 ```http
-GET /users?username=ali&enabled=true&page=0&size=20
+GET /users?username=ali&enabled=true&sort=username,asc&page=0&size=20
 ```
 
 * `username` is a case-insensitive substring match (`%` and `_` are taken literally); `enabled` filters
-  exactly; both are optional. Results are ordered oldest first.
+  exactly; both are optional.
+* `sort` is `field` or `field,dir`: `createdAt` (default, ascending, so oldest first), `username`
+  (case-insensitive), `role` or `enabled`, with `dir` `asc` (default) or `desc`. Ties always fall back to
+  `id` ascending. Anything else is `400 INVALID_SORT`.
 * `page` is zero-based (default 0), `size` defaults to 20 (maximum 100). Anything outside that range is
   `400 INVALID_PAGE`.
 * `200` with `{ users: [...], page, size, total, totalPages }`. Each user is

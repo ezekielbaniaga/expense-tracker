@@ -201,6 +201,47 @@ class AdminUserTests {
     }
 
     @Test
+    void listSortsByEachFieldAndDirection() throws Exception {
+        String tag = UUID.randomUUID().toString().substring(0, 8);
+        User b = userService.createUser("sort-" + tag + "-B", PASSWORD, Role.USER);
+        User a = userService.createUser("sort-" + tag + "-a", PASSWORD, Role.ADMIN);
+        User c = userService.createUser("sort-" + tag + "-c", PASSWORD, Role.USER);
+        disable(c);
+
+        // default is createdAt ascending
+        assertSortedIds(tag, null, b, a, c);
+        assertSortedIds(tag, "createdAt", b, a, c);
+        assertSortedIds(tag, "createdAt,desc", c, a, b);
+        // username is case-insensitive: a, B, c
+        assertSortedIds(tag, "username", a, b, c);
+        assertSortedIds(tag, "username,desc", c, b, a);
+        // role: ADMIN before USER, ties by id (creation order)
+        assertSortedIds(tag, "role,asc", a, b, c);
+        assertSortedIds(tag, "role,desc", b, c, a);
+        // enabled: false before true
+        assertSortedIds(tag, "enabled", c, b, a);
+        assertSortedIds(tag, "enabled,desc", b, a, c);
+    }
+
+    @Test
+    void unknownSortIs400() throws Exception {
+        for (String bad : List.of("password", "username,sideways", "username,asc,x")) {
+            mockMvc.perform(get("/users").param("sort", bad).header(HttpHeaders.AUTHORIZATION, adminBearer))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SORT"));
+        }
+    }
+
+    private void assertSortedIds(String tag, String sort, User... expected) throws Exception {
+        var req = get("/users").param("username", "sort-" + tag).header(HttpHeaders.AUTHORIZATION, adminBearer);
+        if (sort != null) req = req.param("sort", sort);
+        MvcResult result = mockMvc.perform(req).andExpect(status().isOk()).andReturn();
+        List<String> ids = JsonPath.read(result.getResponse().getContentAsString(), "$.users[*].id");
+        assertThat(ids).as("sort=%s", sort)
+            .containsExactly(java.util.Arrays.stream(expected).map(u -> u.getUniqueId().toString()).toArray(String[]::new));
+    }
+
+    @Test
     void invalidPagingIs400() throws Exception {
         mockMvc.perform(get("/users").param("page", "-1").header(HttpHeaders.AUTHORIZATION, adminBearer))
             .andExpect(status().isBadRequest())

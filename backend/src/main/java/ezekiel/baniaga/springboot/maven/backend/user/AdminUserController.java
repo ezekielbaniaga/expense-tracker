@@ -50,12 +50,13 @@ public class AdminUserController {
     public UserListResponse list(
         @RequestParam(required = false) String username,
         @RequestParam(required = false) Boolean enabled,
+        @RequestParam(required = false) String sort,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size,
         @AuthenticationPrincipal CustomUserDetails admin) {
 
         userService.requireEnabledAdmin(admin.getUniqueId());
-        Page<User> users = userService.listUsers(username, enabled, page, size);
+        Page<User> users = userService.listUsers(username, enabled, sort, page, size);
         return new UserListResponse(
             users.getContent().stream().map(userMapper::toAdminResponse).toList(),
             users.getNumber(),
