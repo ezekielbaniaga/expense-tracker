@@ -11,10 +11,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 ## Findings 2026-10-21
 
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
-- [ ] **Summary ties are ordered by enum position, not category name.** `ExpenseService.getSummary` says "equal totals
-      ordered by category name" but compares `Category` by `naturalOrder()` (FOOD, TRANSPORT, BILLS,
-      ENTERTAINMENT): two 10.00 groups come back FOOD then BILLS (verified), while the list's `sort=category`
-      is alphabetical. Fix: compare `Category::name`, or fix the comment; `ExpenseSummaryTests` has no tie case.
 - [ ] **The admin user list shows the UTC creation date.** `frontend/src/admin/AdminUsersPage.tsx:229` formats
       `u.createdAt.slice(0, 10)`, the UTC day, so a user created at 20:00 UTC shows the previous day for a
       viewer in UTC+8 and later; every other timestamp uses `parseUtc`/local formatting. Not verified in a
@@ -208,3 +204,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Unpaired UTF-16 surrogates in expense descriptions and display names are now a 400 instead of being stored as "?" (3b43f5e)
 - [x] The expense search is capped at 100 characters in the box and in a q read from the URL, so a long search no longer blanks the list (588c5ae)
 - [x] A page past the end (old link, or the last item of the last page deleted) now moves to the last page instead of showing an empty table, on the expense list and the admin users list (67eaa45)
+- [x] Summary ties (equal totals) are now ordered by category name like the list's sort=category, not by enum position, with a tie test (7060912)
