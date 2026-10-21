@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **SortableHeader and archived sorting.** Add `frontend/src/ui/SortableHeader.tsx` (`aria-sort` only on the active
-      column, a `<button>` named by the column, polite live region "Sorted by amount, highest first", first click natural
-      direction, second flips). On `ArchivedPage` sort by description, amount and archived date in the browser (default
-      newest archived first), muted rows with an archive icon, and the note "Deleted expenses stay here for 30 days, then
-      are removed." (`ExpenseCleanup.RETENTION_MAX_DAYS`). Test: `SortableHeader.test.tsx`; archived order after clicks,
-      nulls last. Careful: only reorder, never sum. Proposal: Sorting, Archived.
 - [ ] **Admin restyle and Pagination.** Users list: avatar (`hueFor(user.id)`) + username, role chip, status chip with text,
       created via `formatDay`; user detail header card; an "Admin" pill in the top bar on `/admin/*`. Extract
       `frontend/src/ui/Pagination.tsx` (Prev/Next, "Page x of y", size `[10, 20, 50, 100]`) from `AdminUsersPage`.
@@ -266,3 +260,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Add form: Today/Yesterday date chips, back to the list with a highlighted row, Add another (f0fe9ba)
 - [x] Expense detail restyle: hero, Details card, shortened id with copy, back links (27ff8ea)
 - [x] Profile cards (Account, Appearance, Security, Your devices) and device names (b3e391e)
+- [x] SortableHeader and archived list sorting in the browser, retention note, muted rows (9d0b2ff)
