@@ -40,14 +40,18 @@ export function isRefresh(response: Response): boolean {
   return new URL(response.url()).pathname === "/auth/refresh";
 }
 
-/** Creates an expense through the form and returns its id; the page ends on its detail screen. */
+/** Creates an expense through the form and returns its id; the page ends on its detail screen (opened from the list row). */
 export async function createExpense(page: Page, description: string): Promise<string> {
   await page.goto("/expenses/new");
   await page.getByLabel("Description").fill(description);
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("radio", { name: "Food" }).check();
   await page.getByRole("button", { name: "Add expense" }).click();
-  await page.waitForURL((url) => /^\/expenses\/[^/]+$/.test(url.pathname) && url.pathname !== "/expenses/new");
+  await page.waitForURL((url) => url.pathname === "/");
+  const link = page.getByRole("link", { name: description, exact: true });
+  await expect(link).toBeVisible();
+  const id = (await link.getAttribute("href"))!.split("/").pop()!;
+  await link.click();
   await expect(page.getByRole("heading", { name: description })).toBeVisible();
-  return new URL(page.url()).pathname.split("/").pop()!;
+  return id;
 }

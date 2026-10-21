@@ -42,11 +42,14 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
+  const [addAnother, setAddAnother] = useState(false);
 
   const {
     register,
     control,
     handleSubmit,
+    reset,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<ExpenseFormValues>({
@@ -60,7 +63,11 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ["expenses"] });
       toast.showSuccess(`Added ${created.description ?? NO_DESCRIPTION} · ${formatAmount(created.amount)}`);
-      navigate(`/expenses/${created.id}`);
+      if (addAnother) {
+        reset({ description: "", amount: "", category: "", date: todayIso() });
+      } else {
+        navigate("/", { state: { highlightId: created.id } });
+      }
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 400) {
@@ -84,9 +91,15 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
 
   return (
     <form onSubmit={onSubmit} noValidate>
-      <ExpenseFields categories={categories} register={register} control={control} errors={errors} />
+      <ExpenseFields categories={categories} register={register} control={control}
+        errors={errors}
+        onPickDate={(date) => setValue("date", date, { shouldDirty: true, shouldValidate: true })}
+      />
 
       {formError && <FormAlert>{formError}</FormAlert>}
+      <label>
+        <input type="checkbox" checked={addAnother} onChange={(e) => setAddAnother(e.target.checked)} /> Add another
+      </label>
       <div className="form-actions">
         <Button type="submit" variant="primary" pending={create.isPending}>
           Add expense

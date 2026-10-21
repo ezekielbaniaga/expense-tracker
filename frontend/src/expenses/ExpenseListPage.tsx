@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import {
@@ -27,6 +27,7 @@ export function ExpenseListPage() {
   const { client } = useAuth();
   const { currency } = usePreferences();
   const toast = useToast();
+  const highlightId = (useLocation().state as { highlightId?: string } | null)?.highlightId;
   const query = useQuery({
     queryKey: ["expenses"],
     queryFn: async () =>
@@ -82,7 +83,7 @@ export function ExpenseListPage() {
               </thead>
               <tbody>
                 {query.data.expenses.map((e) => (
-                  <tr key={e.id}>
+                  <tr key={e.id} className={e.id === highlightId ? "row--new" : undefined}>
                     <td>
                       <Link to={`/expenses/${e.id}`}>{e.description ?? NO_DESCRIPTION}</Link>
                     </td>

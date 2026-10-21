@@ -6,7 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AppProviders, AppRoutes } from "../App";
 import { createApiClient, type ApiClient } from "../api/client";
 import { fakeJwt } from "../test/fakeJwt";
-import { categoryLabel } from "../api/expense";
+import { categoryLabel, todayIso, yesterdayIso } from "../api/expense";
 
 const BASE = "http://localhost";
 const server = setupServer(
@@ -352,7 +352,7 @@ describe("create expense", () => {
     expect(posts).toBe(0);
   });
 
-  it("posts the expense, invalidates the list and opens the new expense", async () => {
+  it("posts the expense, invalidates the list and returns to it", async () => {
     let body: unknown;
     server.use(
       categories(),
@@ -372,16 +372,11 @@ describe("create expense", () => {
           { status: 201 },
         );
       }),
-      http.get(`${BASE}/api/expense/n1`, () =>
+      http.get(`${BASE}/api/expense`, () =>
         HttpResponse.json({
-          id: "n1",
-          version: 0,
-          description: "Lunch",
-          amount: 12.5,
-          category: "FOOD",
-          date: "2026-10-17",
-          createdAt: "2026-10-18T09:00:00",
-          lastModified: null,
+          expenses: [{ id: "n1", description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17", version: 0 }],
+          count: 1,
+          total_amount: 12.5,
         }),
       ),
     );
@@ -390,10 +385,46 @@ describe("create expense", () => {
     await screen.findByRole("group", { name: "Category" });
     fill({ description: "Lunch", amount: "12.50", category: "FOOD", date: "2026-10-17" });
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
-    expect(await screen.findByRole("heading", { name: "Lunch" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Expenses" })).toBeTruthy();
     expect((await screen.findByRole("status")).textContent).toBe("Added Lunch · 12.50");
     expect(body).toEqual({ description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17" });
-    expect(queryClient.getQueryState(["expenses"])?.isInvalidated).toBe(true);
+    // The seeded list was empty, so the row proves the list was invalidated and refetched
+    expect((await screen.findByRole("row", { name: /Lunch/ })).className).toBe("row--new");
+  });
+
+  it("sets the date from the Today and Yesterday chips", async () => {
+    server.use(categories());
+    renderAt("/expenses/new");
+    await screen.findByRole("group", { name: "Category" });
+    const date = screen.getByLabelText("Date") as HTMLInputElement;
+    expect(date.max).toBe(todayIso());
+    expect((screen.getByRole("radio", { name: "Today" }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole("radio", { name: "Yesterday" }));
+    expect(date.value).toBe(yesterdayIso());
+    fireEvent.click(screen.getByRole("radio", { name: "Today" }));
+    expect(date.value).toBe(todayIso());
+  });
+
+  it("keeps the form open and resets it with Add another", async () => {
+    server.use(
+      categories(),
+      http.post(`${BASE}/api/expense`, () =>
+        HttpResponse.json(
+          { id: "n2", version: 0, description: "Bus", amount: 3, category: "TRANSPORT", date: todayIso(), createdAt: "2026-10-18T09:00:00", lastModified: null },
+          { status: 201 },
+        ),
+      ),
+    );
+    renderAt("/expenses/new");
+    await screen.findByRole("group", { name: "Category" });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Add another" }));
+    fill({ description: "Bus", amount: "3", category: "TRANSPORT" });
+    fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
+    expect((await screen.findByRole("status")).textContent).toBe("Added Bus · 3.00");
+    expect(screen.getByRole("heading", { name: "New expense" })).toBeTruthy();
+    expect((screen.getByLabelText("Description") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe("");
+    expect((screen.getByRole("radio", { name: "Transport" }) as HTMLInputElement).checked).toBe(false);
   });
 
   it("attaches a server VALIDATION_ERROR to the fields", async () => {

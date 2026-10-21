@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Controller, type Control, type FieldErrors, type Resolver, type UseFormRegister, type UseFormSetError } from "react-hook-form";
+import { Controller, useWatch, type Control, type FieldErrors, type Resolver, type UseFormRegister, type UseFormSetError } from "react-hook-form";
 import { useAuth } from "../auth/AuthProvider";
 import { fieldErrors, type ApiError } from "../api/errors";
 import {
   categoryLabel,
   mapCategories,
   todayIso,
+  yesterdayIso,
   type AllCategoriesResponseDto,
 } from "../api/expense";
 import { categoryIcon, ChipGroup } from "../ui/Chip";
@@ -66,9 +67,14 @@ interface Props {
   errors: FieldErrors<ExpenseFormValues>;
   /** Focuses the description when the form opens (the edit form; the create page keeps focus on its heading). */
   autoFocus?: boolean;
+  /** Called with a day when its Today or Yesterday chip is picked; the chips show only when given. */
+  onPickDate?: (date: string) => void;
 }
 
-export function ExpenseFields({ categories, register, control, errors, autoFocus }: Props) {
+export function ExpenseFields({ categories, register, control, errors, autoFocus, onPickDate }: Props) {
+  const date = useWatch({ control, name: "date" });
+  const today = todayIso();
+  const yesterday = yesterdayIso();
   return (
     <>
       <AmountField
@@ -98,10 +104,22 @@ export function ExpenseFields({ categories, register, control, errors, autoFocus
           />
         )}
       />
+      {onPickDate && (
+        <ChipGroup
+          legend="Quick date"
+          name="quick-date"
+          value={date === today ? "today" : date === yesterday ? "yesterday" : ""}
+          onChange={(v) => onPickDate(v === "today" ? today : yesterday)}
+          options={[
+            { value: "today", label: "Today" },
+            { value: "yesterday", label: "Yesterday" },
+          ]}
+        />
+      )}
       <DateField
         id="date"
         label="Date"
-        max={todayIso()}
+        max={today}
         error={errors.date?.message}
         {...register("date")}
       />

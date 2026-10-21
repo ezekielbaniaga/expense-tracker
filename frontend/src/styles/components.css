@@ -622,3 +622,14 @@ select[aria-invalid="true"] {
     bottom: 0;
   }
 }
+
+/* The row just added: a soft accent wash that fades out */
+@keyframes row-new {
+  from {
+    background: var(--accent-fill);
+  }
+}
+
+tr.row--new {
+  animation: row-new 2.5s ease-out;
+}

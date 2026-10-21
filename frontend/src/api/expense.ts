@@ -85,6 +85,11 @@ export function todayIso(now: Date = new Date()): string {
   return `${now.getFullYear()}-${m}-${d}`;
 }
 
+/** The local calendar day before `now`, as YYYY-MM-DD. */
+export function yesterdayIso(now: Date = new Date()): string {
+  return todayIso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+}
+
 /** The backend requires today or earlier; YYYY-MM-DD compares correctly as text. */
 export function isFutureDate(date: string, now: Date = new Date()): boolean {
   return date > todayIso(now);
