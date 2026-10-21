@@ -221,6 +221,36 @@ public class ExpenseService {
             repository.sumAmount(filters));
     }
 
+    @Transactional(readOnly = true)
+    public ExpenseSummaryResponse getSummary(UUID ownerId, LocalDate from, LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new BadRequestException("INVALID_DATE_RANGE", "from must not be after to.");
+        }
+        Specification<Expense> spec = (root, query, cb) -> {
+            List<Predicate> p = new ArrayList<>();
+            p.add(cb.equal(root.get("ownerId"), ownerId));
+            p.add(cb.or(cb.isNull(root.get("archived")), cb.isFalse(root.get("archived"))));
+            if (from != null) {
+                p.add(cb.greaterThanOrEqualTo(root.<LocalDate>get("expenseDate"), from));
+            }
+            if (to != null) {
+                p.add(cb.lessThanOrEqualTo(root.<LocalDate>get("expenseDate"), to));
+            }
+            return cb.and(p.toArray(new Predicate[0]));
+        };
+        // Largest total first; equal totals ordered by category name, the uncategorized group last
+        List<ExpenseSummaryResponse.CategoryTotal> groups = repository.totalsByCategory(spec).stream()
+            .map(t -> new ExpenseSummaryResponse.CategoryTotal(t.category(), t.count(), t.totalAmount()))
+            .sorted(Comparator.comparing(ExpenseSummaryResponse.CategoryTotal::totalAmount).reversed()
+                .thenComparing(ExpenseSummaryResponse.CategoryTotal::category,
+                    Comparator.nullsLast(Comparator.naturalOrder())))
+            .toList();
+        long count = groups.stream().mapToLong(ExpenseSummaryResponse.CategoryTotal::count).sum();
+        BigDecimal total = groups.stream().map(ExpenseSummaryResponse.CategoryTotal::totalAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new ExpenseSummaryResponse(from, to, count, total, groups);
+    }
+
     public ArchivedExpenseListResponse getArchivedExpenses(UUID ownerId) {
         List<ArchivedExpenseListItemResponse> expensesResponse = repository.findAllByOwnerIdAndArchivedIsTrue(ownerId)
                 .stream().map(expenseMapper::toArchivedListItem).toList();

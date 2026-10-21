@@ -69,6 +69,14 @@ public class ExpenseController {
         return service.getAllCategories();
     }
 
+    @GetMapping(value = "/summary", version = "1.0+")
+    public ExpenseSummaryResponse getSummary(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return service.getSummary(user.getUniqueId(), from, to);
+    }
+
     @GetMapping(value = "/{uniqueId}")
     public ExpenseResponse getByUniqueId(@PathVariable UUID uniqueId, @AuthenticationPrincipal CustomUserDetails user) {
         return service.getExpenseByUniqueId(uniqueId, user.getUniqueId());
