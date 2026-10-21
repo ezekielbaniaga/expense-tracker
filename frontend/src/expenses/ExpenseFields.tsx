@@ -8,7 +8,7 @@ import {
   todayIso,
   type AllCategoriesResponseDto,
 } from "../api/expense";
-import { FieldError, errorProps } from "../ui/forms";
+import { AmountField, DateField, SelectField, TextField } from "../ui/fields";
 import { validateExpense, type ExpenseFormValues } from "./expenseSchema";
 
 const FIELDS = ["description", "amount", "category", "date"] as const;
@@ -69,44 +69,39 @@ interface Props {
 export function ExpenseFields({ categories, register, errors, autoFocus }: Props) {
   return (
     <>
-      <label htmlFor="description">Description</label>
-      <input
+      <TextField
         id="description"
+        label="Description"
         autoFocus={autoFocus}
-        {...errorProps("description", errors.description?.message)}
+        error={errors.description?.message}
         {...register("description")}
       />
-      <FieldError id="description" message={errors.description?.message} />
-
-      <label htmlFor="amount">Amount</label>
-      <input
+      <AmountField
         id="amount"
-        inputMode="decimal"
-        {...errorProps("amount", errors.amount?.message)}
+        label="Amount"
+        error={errors.amount?.message}
         {...register("amount")}
       />
-      <FieldError id="amount" message={errors.amount?.message} />
-
-      <label htmlFor="category">Category</label>
-      <select id="category" {...errorProps("category", errors.category?.message)} {...register("category")}>
+      <SelectField
+        id="category"
+        label="Category"
+        error={errors.category?.message}
+        {...register("category")}
+      >
         <option value="">Select...</option>
         {categories.map((c) => (
           <option key={c} value={c}>
             {categoryLabel(c)}
           </option>
         ))}
-      </select>
-      <FieldError id="category" message={errors.category?.message} />
-
-      <label htmlFor="date">Date</label>
-      <input
+      </SelectField>
+      <DateField
         id="date"
-        type="date"
+        label="Date"
         max={todayIso()}
-        {...errorProps("date", errors.date?.message)}
+        error={errors.date?.message}
         {...register("date")}
       />
-      <FieldError id="date" message={errors.date?.message} />
     </>
   );
 }

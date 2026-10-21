@@ -8,7 +8,8 @@ import { tooManyAttemptsMessage } from "../auth/LoginPage";
 import { errorMessage } from "../expenses/ExpenseListPage";
 import { Button } from "../ui/Button";
 import { PageHeading, useRefocusOnClose } from "../ui/focus";
-import { FieldError, errorProps, FormAlert } from "../ui/forms";
+import { TextField } from "../ui/fields";
+import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { validateChangePassword, type ChangePasswordFormValues } from "./changePasswordSchema";
 
@@ -137,25 +138,23 @@ function ChangePasswordSection({ username }: { username: string | undefined }) {
       <h2 id="password-heading">Change password</h2>
       <p>Changing your password signs you out on every device, this one too.</p>
       <form aria-labelledby="password-heading" onSubmit={onSubmit} noValidate>
-        <label htmlFor="currentPassword">Current password</label>
-        <input
+        <TextField
+          label="Current password"
           id="currentPassword"
           type="password"
           autoComplete="current-password"
-          {...errorProps("currentPassword", errors.currentPassword?.message)}
+          error={errors.currentPassword?.message}
           {...register("currentPassword")}
         />
-        <FieldError id="currentPassword" message={errors.currentPassword?.message} />
 
-        <label htmlFor="newPassword">New password</label>
-        <input
+        <TextField
+          label="New password"
           id="newPassword"
           type="password"
           autoComplete="new-password"
-          {...errorProps("newPassword", errors.newPassword?.message)}
+          error={errors.newPassword?.message}
           {...register("newPassword")}
         />
-        <FieldError id="newPassword" message={errors.newPassword?.message} />
 
         {serverError && <FormAlert>{serverError}</FormAlert>}
         <Button type="submit" variant="primary" pending={isSubmitting}>

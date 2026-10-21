@@ -1,10 +1,12 @@
 import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
+import { AlertIcon } from "./icons";
 
 /** The text under an input; pair it with errorProps(id, message) on the input. */
 export function FieldError({ id, message }: { id: string; message: string | undefined }) {
   if (!message) return null;
   return (
     <p id={`${id}-error`} className="field-error">
+      <AlertIcon size={16} />
       {message}
     </p>
   );

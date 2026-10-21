@@ -4,7 +4,8 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import { useAuth } from "./AuthProvider";
 import { Button } from "../ui/Button";
-import { FieldError, errorProps, FormAlert } from "../ui/forms";
+import { TextField } from "../ui/fields";
+import { FormAlert } from "../ui/forms";
 import { PageHeading } from "../ui/focus";
 import type { FromState } from "./RequireAuth";
 
@@ -59,28 +60,26 @@ export function LoginPage() {
     <main>
       <PageHeading as="h1">Sign in</PageHeading>
       <form onSubmit={onSubmit} noValidate>
-        <label htmlFor="username">Username</label>
-        <input
+        <TextField
+          label="Username"
           id="username"
           autoComplete="username"
-          {...errorProps("username", errors.username?.message)}
+          error={errors.username?.message}
           {...register("username", {
             validate: (v) => v.trim() !== "" || "Username is required",
           })}
         />
-        <FieldError id="username" message={errors.username?.message} />
 
-        <label htmlFor="password">Password</label>
-        <input
+        <TextField
+          label="Password"
           id="password"
           type="password"
           autoComplete="current-password"
-          {...errorProps("password", errors.password?.message)}
+          error={errors.password?.message}
           {...register("password", {
             validate: (v) => v.trim() !== "" || "Password is required",
           })}
         />
-        <FieldError id="password" message={errors.password?.message} />
 
         {serverError && <FormAlert>{serverError}</FormAlert>}
         <Button type="submit" variant="primary" pending={isSubmitting}>

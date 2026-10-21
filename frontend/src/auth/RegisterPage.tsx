@@ -5,7 +5,8 @@ import { ApiError, fieldErrors } from "../api/errors";
 import { useAuth } from "./AuthProvider";
 import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
-import { FieldError, errorProps, FormAlert } from "../ui/forms";
+import { TextField } from "../ui/fields";
+import { FormAlert } from "../ui/forms";
 import { tooManyAttemptsMessage } from "./LoginPage";
 import { toRegisterRequest, validateRegister, type RegisterFormValues } from "./registerSchema";
 
@@ -92,24 +93,22 @@ export function RegisterPage() {
     <main>
       <PageHeading as="h1">Create account</PageHeading>
       <form onSubmit={onSubmit} noValidate>
-        <label htmlFor="username">Username</label>
-        <input
+        <TextField
+          label="Username"
           id="username"
           autoComplete="username"
-          {...errorProps("username", errors.username?.message)}
+          error={errors.username?.message}
           {...register("username")}
         />
-        <FieldError id="username" message={errors.username?.message} />
 
-        <label htmlFor="password">Password</label>
-        <input
+        <TextField
+          label="Password"
           id="password"
           type="password"
           autoComplete="new-password"
-          {...errorProps("password", errors.password?.message)}
+          error={errors.password?.message}
           {...register("password")}
         />
-        <FieldError id="password" message={errors.password?.message} />
 
         {serverError && <FormAlert>{serverError}</FormAlert>}
         <Button type="submit" variant="primary" pending={isSubmitting}>

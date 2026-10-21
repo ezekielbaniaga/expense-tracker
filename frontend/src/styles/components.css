@@ -63,6 +63,31 @@ select[aria-invalid="true"] {
   color: var(--danger);
 }
 
+/* TextField, SelectField, DateField and AmountField (ui/fields.tsx) */
+.field-label {
+  font-size: var(--fs-caps);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.field-error svg {
+  flex: none;
+}
+
+.field--amount input {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  text-align: center;
+}
+
 /* Button and IconButton (ui/Button.tsx) */
 .btn {
   display: inline-flex;
