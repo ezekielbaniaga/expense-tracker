@@ -3,6 +3,7 @@ import { useForm, type Resolver } from "react-hook-form";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
 import { useAuth } from "./AuthProvider";
+import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { tooManyAttemptsMessage } from "./LoginPage";
@@ -111,9 +112,9 @@ export function RegisterPage() {
         <FieldError id="password" message={errors.password?.message} />
 
         {serverError && <FormAlert>{serverError}</FormAlert>}
-        <button type="submit" disabled={isSubmitting}>
+        <Button type="submit" variant="primary" pending={isSubmitting}>
           Create account
-        </button>
+        </Button>
       </form>
       <p>
         Have an account? <Link to="/login">Sign in</Link>

@@ -62,3 +62,103 @@ select[aria-invalid="true"] {
 [role="alert"] {
   color: var(--danger);
 }
+
+/* Button and IconButton (ui/Button.tsx) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4);
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn--sm {
+  position: relative;
+  min-height: 2.25rem;
+  padding: 0 var(--sp-3);
+}
+
+/* 44px hit area around the 36px visual size */
+.btn--sm::after {
+  content: "";
+  position: absolute;
+  inset: -0.25rem 0;
+}
+
+.btn--primary {
+  color: var(--primary-text);
+  background: var(--primary-bg);
+  border-color: var(--primary-bg);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--primary-bg);
+  filter: brightness(0.92);
+}
+
+.btn--primary:disabled {
+  color: var(--primary-text);
+  opacity: 0.6;
+}
+
+.btn--secondary {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.btn--danger {
+  color: var(--danger);
+  background: var(--danger-fill);
+  border-color: var(--danger);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--danger-fill);
+  filter: brightness(0.95);
+}
+
+.btn--icon {
+  width: 2.75rem;
+  padding: 0;
+  border-radius: var(--r-full);
+}
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: var(--r-full);
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (forced-colors: active) {
+  .btn--primary,
+  .btn--danger {
+    border-color: CanvasText;
+  }
+}

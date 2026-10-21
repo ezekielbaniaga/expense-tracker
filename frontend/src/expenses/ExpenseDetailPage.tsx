@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import { categoryLabel, formatAmount, formatArchivedAt, MISSING, NO_DESCRIPTION, type ExpenseDto } from "../api/expense";
+import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -275,9 +276,9 @@ function EditFormFields({
     >
       <ExpenseFields categories={categories} register={register} errors={errors} autoFocus />
       <WriteNotice failure={failure} onReload={onReload} />
-      <button type="submit" disabled={update.isPending}>
+      <Button type="submit" variant="primary" pending={update.isPending}>
         Save
-      </button>{" "}
+      </Button>{" "}
       <button type="button" onClick={onDone}>
         Cancel
       </button>
@@ -332,9 +333,9 @@ function DescriptionForm({ expense, onReload, onDone }: FormProps) {
       />
       <FieldError id="description" message={fieldError} />
       <WriteNotice failure={failure} onReload={onReload} />
-      <button type="submit" disabled={patch.isPending}>
+      <Button type="submit" variant="primary" pending={patch.isPending}>
         Save description
-      </button>{" "}
+      </Button>{" "}
       <button type="button" onClick={onDone}>
         Cancel
       </button>

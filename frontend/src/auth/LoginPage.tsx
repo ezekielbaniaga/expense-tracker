@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/errors";
 import { useAuth } from "./AuthProvider";
+import { Button } from "../ui/Button";
 import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { PageHeading } from "../ui/focus";
 import type { FromState } from "./RequireAuth";
@@ -82,9 +83,9 @@ export function LoginPage() {
         <FieldError id="password" message={errors.password?.message} />
 
         {serverError && <FormAlert>{serverError}</FormAlert>}
-        <button type="submit" disabled={isSubmitting}>
+        <Button type="submit" variant="primary" pending={isSubmitting}>
           Sign in
-        </button>
+        </Button>
       </form>
       <p>
         No account? <Link to="/register">Create an account</Link>

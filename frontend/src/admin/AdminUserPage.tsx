@@ -6,6 +6,7 @@ import type { Role } from "../api/jwt";
 import { formatTimestamp, type AdminUserDto, type UpdateUserRequest } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { Button } from "../ui/Button";
 import { PageHeading, useRefocusOnClose } from "../ui/focus";
 import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -208,9 +209,9 @@ function UserForm({ user, onReload }: { user: AdminUserDto; onReload: () => void
           </button>
         </div>
       ) : (
-        <button type="submit" ref={saveButton} disabled={save.isPending}>
+        <Button type="submit" variant="primary" ref={saveButton} pending={save.isPending}>
           Save
-        </button>
+        </Button>
       )}
     </form>
   );

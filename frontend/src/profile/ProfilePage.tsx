@@ -6,6 +6,7 @@ import { formatTimestamp, type RevokedSessionsDto, type SessionDto, type UserDto
 import { useAuth } from "../auth/AuthProvider";
 import { tooManyAttemptsMessage } from "../auth/LoginPage";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { Button } from "../ui/Button";
 import { PageHeading, useRefocusOnClose } from "../ui/focus";
 import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -157,9 +158,9 @@ function ChangePasswordSection({ username }: { username: string | undefined }) {
         <FieldError id="newPassword" message={errors.newPassword?.message} />
 
         {serverError && <FormAlert>{serverError}</FormAlert>}
-        <button type="submit" disabled={isSubmitting}>
+        <Button type="submit" variant="primary" pending={isSubmitting}>
           Change password
-        </button>
+        </Button>
       </form>
     </section>
   );

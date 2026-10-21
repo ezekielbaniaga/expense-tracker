@@ -5,6 +5,7 @@ import { ApiError } from "../api/errors";
 import { DEFAULT_USER_PAGE_SIZE, formatTimestamp, type UserListDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -130,7 +131,7 @@ export function AdminUsersPage() {
           <option value="true">Enabled</option>
           <option value="false">Disabled</option>
         </select>{" "}
-        <button type="submit">Search</button>
+        <Button type="submit" variant="primary">Search</Button>
       </form>
       {notice && <p role="status">{notice}</p>}
       {query.isPending && <p role="status">Loading users...</p>}

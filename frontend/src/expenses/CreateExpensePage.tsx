@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import { todayIso, type ExpenseDto } from "../api/expense";
 import { applyServerErrors, ExpenseFields, expenseResolver, useCategories } from "./ExpenseFields";
+import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { FormAlert } from "../ui/forms";
 import { toCreateRequest, type ExpenseFormValues } from "./expenseSchema";
@@ -81,9 +82,9 @@ function CreateExpenseForm({ categories }: { categories: readonly string[] }) {
       <ExpenseFields categories={categories} register={register} errors={errors} />
 
       {formError && <FormAlert>{formError}</FormAlert>}
-      <button type="submit" disabled={create.isPending}>
+      <Button type="submit" variant="primary" pending={create.isPending}>
         Add expense
-      </button>
+      </Button>
     </form>
   );
 }
