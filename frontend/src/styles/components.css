@@ -187,3 +187,137 @@ select[aria-invalid="true"] {
     border-color: CanvasText;
   }
 }
+
+/* ChipGroup, SegmentedControl and CategoryChip (ui/Chip.tsx) */
+.chip-group,
+.segmented {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.chip-group__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0 var(--sp-3);
+  position: relative;
+  font-size: var(--fs-base);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-full);
+  cursor: pointer;
+}
+
+.chip--selected {
+  color: var(--selected-text);
+  background: var(--selected-bg);
+  border: 2px solid var(--accent-strong);
+}
+
+.chip-group input.chip__input,
+.segmented input.chip__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.chip:has(.chip__input:focus-visible),
+.segmented__item:has(.chip__input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.chip:has(.chip__input:disabled),
+.segmented__item:has(.chip__input:disabled) {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* the read-only chip is not a control: smaller, no border, no pointer */
+.chip--category {
+  min-height: 0;
+  padding: 2px var(--sp-2);
+  font-size: var(--fs-sm);
+  border: 0;
+  cursor: default;
+}
+
+.chip--cat-food {
+  color: var(--cat-food-fg);
+  background: var(--cat-food-bg);
+}
+
+.chip--cat-transport {
+  color: var(--cat-transport-fg);
+  background: var(--cat-transport-bg);
+}
+
+.chip--cat-bills {
+  color: var(--cat-bills-fg);
+  background: var(--cat-bills-bg);
+}
+
+.chip--cat-entertainment {
+  color: var(--cat-entertainment-fg);
+  background: var(--cat-entertainment-bg);
+}
+
+.chip--cat-unknown {
+  color: var(--cat-unknown-fg);
+  background: var(--cat-unknown-bg);
+}
+
+.segmented__track {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: var(--sp-1);
+  padding: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-full);
+}
+
+.segmented__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 2.5rem;
+  margin: 0;
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-base);
+  border: 2px solid transparent;
+  border-radius: var(--r-full);
+  cursor: pointer;
+}
+
+.segmented__item--selected {
+  color: var(--selected-text);
+  background: var(--selected-bg);
+  border-color: var(--accent-strong);
+}
+
+@media (forced-colors: active) {
+  .chip--selected,
+  .segmented__item--selected {
+    border-color: Highlight;
+  }
+}

@@ -4,13 +4,13 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import {
-  categoryLabel,
   MISSING,
   NO_DESCRIPTION,
   formatAmount,
   mapExpenseList,
   type ExpenseListResponseDto,
 } from "../api/expense";
+import { CategoryChip } from "../ui/Chip";
 import { PageHeading } from "../ui/focus";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -73,7 +73,9 @@ export function ExpenseListPage() {
                     <td>
                       <Link to={`/expenses/${e.id}`}>{e.description ?? NO_DESCRIPTION}</Link>
                     </td>
-                    <td>{categoryLabel(e.category)}</td>
+                    <td>
+                      <CategoryChip category={e.category} />
+                    </td>
                     <td>{e.date ?? MISSING}</td>
                     <td>{formatAmount(e.amount)}</td>
                   </tr>
