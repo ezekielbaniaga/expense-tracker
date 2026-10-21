@@ -1,3 +1,4 @@
+import { ChevronLeftIcon } from "../ui/icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -19,7 +20,10 @@ export function CreateExpensePage() {
   return (
     <section aria-labelledby="create-heading">
       <p>
-        <Link to="/">Back to expenses</Link>
+        <Link to="/" className="back-link">
+          <ChevronLeftIcon size={16} />
+          Back to expenses
+        </Link>
       </p>
       <PageHeading id="create-heading">New expense</PageHeading>
       {categories.isPending && <Skeleton label="Loading categories..." />}

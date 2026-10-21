@@ -633,3 +633,66 @@ select[aria-invalid="true"] {
 tr.row--new {
   animation: row-new 2.5s ease-out;
 }
+
+/* Expense detail (expenses/ExpenseDetailPage.tsx) */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.detail-hero {
+  display: grid;
+  gap: var(--sp-2);
+  justify-items: start;
+  margin-bottom: var(--sp-4);
+}
+
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.detail-hero__amount {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+}
+
+.detail-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  color: var(--muted);
+}
+
+.detail-card {
+  margin-bottom: var(--sp-4);
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--sp-2) var(--sp-4);
+  margin: 0;
+}
+
+.detail-list dt {
+  color: var(--muted);
+}
+
+.detail-list dd {
+  margin: 0;
+}
+
+.short-id {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}

@@ -1,5 +1,6 @@
+import { vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { MemoryRouter } from "react-router-dom";
@@ -247,11 +248,35 @@ describe("expense detail", () => {
     expect(screen.getByText("e1")).toBeTruthy();
     expect(screen.getByText("12.50")).toBeTruthy();
     expect(screen.getByText("Food")).toBeTruthy();
-    expect(screen.getByText("Oct 17, 2026")).toBeTruthy();
+    expect(screen.getByText("Saturday, October 17, 2026")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Details" })).toBeTruthy();
     expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByText("Oct 17, 2026, 12:30 PM")).toBeTruthy();
     expect(screen.getByText("Oct 18, 2026, 8:05 AM")).toBeTruthy();
     expect(auth).toMatch(/^Bearer /);
+  });
+
+  it("shortens a long id, keeps the full id as text and copies it", async () => {
+    const id = "3f2a9c1e-7b4d-4e8a-9a10-5d6c7e8f0c91";
+    server.use(
+      http.get(`${BASE}/api/expense/${id}`, () =>
+        HttpResponse.json({ ...LEGACY_EXPENSE, id, version: 0, description: "Lunch", lastModified: null }),
+      ),
+    );
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    try {
+      renderAt(`/expenses/${id}`);
+      expect(await screen.findByRole("heading", { name: "Lunch" })).toBeTruthy();
+      expect(screen.getByText("Never")).toBeTruthy();
+      expect(screen.getByText("3f2a…0c91")).toBeTruthy();
+      expect(screen.getByText(id).className).toContain("visually-hidden");
+      fireEvent.click(screen.getByRole("button", { name: "Copy id" }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(id));
+      expect((await screen.findByRole("status")).textContent).toBe("Id copied");
+    } finally {
+      Reflect.deleteProperty(navigator, "clipboard");
+    }
   });
 
   it("renders a legacy expense whose nullable fields are all null", async () => {

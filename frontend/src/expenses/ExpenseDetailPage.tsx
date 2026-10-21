@@ -4,11 +4,14 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
-import { categoryLabel, NO_DESCRIPTION, type ExpenseDto } from "../api/expense";
-import { formatDay, formatLocalDateTime } from "../format/dates";
+import { NO_DESCRIPTION, type ExpenseDto } from "../api/expense";
+import { formatLocalDateTime, formatLongDay } from "../format/dates";
 import { formatMoney } from "../format/money";
 import { usePreferences } from "../ui/preferences";
 import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
+import { CategoryBadge, CategoryChip } from "../ui/Chip";
+import { ChevronLeftIcon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
 import { PageHeading } from "../ui/focus";
 import { FieldError, errorProps, FormAlert } from "../ui/forms";
@@ -66,7 +69,10 @@ export function ExpenseDetailPage() {
   return (
     <section aria-labelledby="expense-heading">
       <p>
-        <Link to="/">Back to expenses</Link>
+        <Link to="/" className="back-link">
+          <ChevronLeftIcon size={16} />
+          Back to expenses
+        </Link>
       </p>
       {query.isPending && <Skeleton label="Loading expense..." />}
       {notFound && <PageHeading id="expense-heading">Not found</PageHeading>}
@@ -81,22 +87,27 @@ export function ExpenseDetailPage() {
       {e && (
         <>
           <PageHeading id="expense-heading">{e.description ?? NO_DESCRIPTION}</PageHeading>
-          <dl>
-            <dt>Id</dt>
-            <dd>{e.id}</dd>
-            <dt>Amount</dt>
-            <dd>{formatMoney(e.amount, currency)}</dd>
-            <dt>Category</dt>
-            <dd>{categoryLabel(e.category)}</dd>
-            <dt>Date</dt>
-            <dd>{formatDay(e.date)}</dd>
-            <dt>Version</dt>
-            <dd>{e.version}</dd>
-            <dt>Created</dt>
-            <dd>{formatLocalDateTime(e.createdAt)}</dd>
-            <dt>Last modified</dt>
-            <dd>{e.lastModified ? formatLocalDateTime(e.lastModified) : "Never"}</dd>
-          </dl>
+          <div className="detail-hero">
+            <CategoryBadge category={e.category} />
+            <p className="detail-hero__amount">{formatMoney(e.amount, currency)}</p>
+            <p className="detail-hero__meta">
+              <CategoryChip category={e.category} /> <span>{formatLongDay(e.date)}</span>
+            </p>
+          </div>
+          <Card title="Details" className="detail-card">
+            <dl className="detail-list">
+              <dt>Created</dt>
+              <dd>{formatLocalDateTime(e.createdAt)}</dd>
+              <dt>Last modified</dt>
+              <dd>{e.lastModified ? formatLocalDateTime(e.lastModified) : "Never"}</dd>
+              <dt>Version</dt>
+              <dd>{e.version}</dd>
+              <dt>Id</dt>
+              <dd>
+                <ShortId id={e.id} />
+              </dd>
+            </dl>
+          </Card>
           {mode === "view" && (
             <p>
               <button type="button" ref={(b) => void (openers.current.edit = b)} onClick={() => open("edit")}>
@@ -126,6 +137,36 @@ export function ExpenseDetailPage() {
         </>
       )}
     </section>
+  );
+}
+
+/** The id shortened for reading, the full value for assistive tech, and a copy button. */
+function ShortId({ id }: { id: string }) {
+  const toast = useToast();
+  const short = id.length > 12 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id;
+  const copy = async () => {
+    try {
+      if (!navigator.clipboard) throw new Error("no clipboard");
+      await navigator.clipboard.writeText(id);
+      toast.showSuccess("Id copied");
+    } catch {
+      toast.showError("Could not copy the id");
+    }
+  };
+  return (
+    <span className="short-id">
+      {short === id ? (
+        <span>{id}</span>
+      ) : (
+        <>
+          <span aria-hidden="true">{short}</span>
+          <span className="visually-hidden">{id}</span>
+        </>
+      )}
+      <button type="button" aria-label="Copy id" onClick={() => void copy()}>
+        Copy
+      </button>
+    </span>
   );
 }
 

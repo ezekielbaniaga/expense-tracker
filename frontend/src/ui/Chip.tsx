@@ -140,3 +140,14 @@ export function CategoryChip({ category }: { category: string | null }) {
     </span>
   );
 }
+
+/** Large decorative category icon on the category's fill, for the detail hero. */
+export function CategoryBadge({ category }: { category: string | null }) {
+  const look = category === null ? undefined : CATEGORY_LOOK[category];
+  const Icon = look?.Icon ?? DotIcon;
+  return (
+    <span className={`category-badge chip--cat-${look?.key ?? "unknown"}`}>
+      <Icon size={20} />
+    </span>
+  );
+}

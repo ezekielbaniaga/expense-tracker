@@ -38,3 +38,12 @@ export function formatRelativeDay(day: string | null, now: Date = new Date(), lo
   if (day === local(yesterday)) return "Yesterday";
   return formatDay(day, locale);
 }
+
+/** The day written out in full, e.g. "Saturday, October 17, 2026". */
+export function formatLongDay(day: string | null, locale?: string): string {
+  if (day === null) return MISSING;
+  const parts = dayParts(day);
+  if (!parts) return day;
+  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  return new Intl.DateTimeFormat(locale, { dateStyle: "full", timeZone: "UTC" }).format(date);
+}
