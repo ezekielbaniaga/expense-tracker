@@ -15,14 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **App shell: top bar and one responsive nav.** Rewrite `frontend/src/ui/Layout.tsx`: a top bar with the app name
-      "Expense Tracker" as a link (no longer an `h1`), and ONE `<nav aria-label="Main">` (Expenses, Archived, Profile,
-      Admin for ADMIN) that CSS shows as a bottom tab bar under 48rem and inline in the bar above. "New expense" becomes an
-      "Add expense" link styled as a floating button on phones and a primary button on wide. `PageHeading` defaults to
-      `h1`. Keep the skip link first, `main#main`, `ErrorBoundary key={pathname}`, "Signed in as" and Sign out (moved next
-      item). Test: `Layout.test.tsx` (one Main nav, Admin only for ADMIN, exactly one `h1`, skip link first); update
-      `e2e/two-tabs.spec.ts:32` (`level: 1`). Careful: jsdom ignores CSS, so duplicates break `getByRole` and axe.
-      Proposal: App shell and navigation.
 - [ ] **Account menu.** Add `frontend/src/ui/AccountMenu.tsx`: avatar button (`aria-label="Account menu for {username}"`,
       `aria-expanded`) disclosing a labelled region with avatar, username and role, links Profile, Your devices
       (`/me#devices`), Admin (ADMIN only), appearance (`SegmentedControl` System/Light/Dark, accent swatch radios) and
@@ -324,3 +316,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Chips and segmented control: ChipGroup, SegmentedControl, CategoryChip (0dc00f3)
 - [x] Card, Skeleton and EmptyState added and used for loading, empty and error states (536107b)
 - [x] Added initials, hueFor, Avatar and PreferencesProvider with tests (6bc85a7)
+- [x] App shell: top bar, one responsive Main nav, Add expense link, h1 PageHeading (dc132b6)
