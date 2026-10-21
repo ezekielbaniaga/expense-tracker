@@ -1,8 +1,8 @@
 export type Theme = "system" | "light" | "dark";
 export type Accent = "lavender" | "rose" | "peach" | "lemon" | "mint" | "sky";
 
-const THEMES: readonly Theme[] = ["system", "light", "dark"];
-const ACCENTS: readonly Accent[] = ["lavender", "rose", "peach", "lemon", "mint", "sky"];
+export const THEMES: readonly Theme[] = ["system", "light", "dark"];
+export const ACCENTS: readonly Accent[] = ["lavender", "rose", "peach", "lemon", "mint", "sky"];
 
 export const THEME_KEY = "ui.theme";
 export const ACCENT_KEY = "ui.accent";

@@ -398,3 +398,51 @@ select[aria-invalid="true"] {
   margin: 0 0 var(--sp-2);
   color: var(--muted);
 }
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border-radius: 50%;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.avatar--accent {
+  background: var(--accent-fill);
+  color: var(--accent-ink);
+}
+
+.avatar--hue-0 {
+  background: var(--lavender-fill);
+  color: var(--lavender-ink);
+}
+
+.avatar--hue-1 {
+  background: var(--rose-fill);
+  color: var(--rose-ink);
+}
+
+.avatar--hue-2 {
+  background: var(--peach-fill);
+  color: var(--peach-ink);
+}
+
+.avatar--hue-3 {
+  background: var(--lemon-fill);
+  color: var(--lemon-ink);
+}
+
+.avatar--hue-4 {
+  background: var(--mint-fill);
+  color: var(--mint-ink);
+}
+
+.avatar--hue-5 {
+  background: var(--sky-fill);
+  color: var(--sky-ink);
+}

@@ -16,6 +16,7 @@ import { ExpenseDetailPage } from "./expenses/ExpenseDetailPage";
 import { ProfilePage } from "./profile/ProfilePage";
 import { queryClient as appQueryClient } from "./queryClient";
 import { Layout } from "./ui/Layout";
+import { PreferencesProvider } from "./ui/preferences";
 import { ToastProvider } from "./ui/Toast";
 
 interface ProviderProps {
@@ -24,12 +25,14 @@ interface ProviderProps {
   children: ReactNode;
 }
 
-/** Query cache and auth; tests pass their own client and cache. */
+/** Query cache, auth and display preferences; tests pass their own client and cache. */
 export function AppProviders({ client, queryClient, children }: ProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider client={client}>
-        <ToastProvider>{children}</ToastProvider>
+        <PreferencesProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </PreferencesProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
