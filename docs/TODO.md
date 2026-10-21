@@ -15,9 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Frontend: sortable admin users.** `SortableHeader` on `/admin/users` (Username, Role, Status, Created) with
-      `sort` in the URL (resets page); `INVALID_SORT` resets like `INVALID_PAGE` (`AdminUsersPage.tsx:23-25,83-96`).
-      Test: `admin.test.tsx` (header click → `sort=username,asc`, `INVALID_SORT` reset). Proposal: Sorting, Admin.
 - [ ] **Backend: display name.** Migration `V17__add_display_name_to_users.sql`: `ALTER TABLE users ADD COLUMN
       display_name VARCHAR(100);`. `User.displayName`; `displayName` on `UserResponse` and `AdminUserResponse`
       (`UserMapper`). `PATCH /users/me` in `user/UserController` with `{displayName}` (no version check): trimmed, 1–100
@@ -203,3 +200,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Frontend: phone rows as cards and day grouping under the date sort (90197e8)
 - [x] Frontend: summary card above the expense list with category breakdown bar and legend (801b239)
 - [x] Backend: sort on the admin user list, INVALID_SORT on unknown values (0693c71)
+- [x] Frontend: sortable admin users with SortableHeader and INVALID_SORT reset (d8a102d)
