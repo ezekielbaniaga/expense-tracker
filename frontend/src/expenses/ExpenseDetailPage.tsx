@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import { categoryLabel, formatAmount, formatArchivedAt, MISSING, NO_DESCRIPTION, type ExpenseDto } from "../api/expense";
 import { Button } from "../ui/Button";
+import { Dialog } from "../ui/Dialog";
 import { PageHeading } from "../ui/focus";
 import { FieldError, errorProps, FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -116,7 +117,7 @@ export function ExpenseDetailPage() {
             <DescriptionForm expense={e} onReload={reload} onDone={() => setMode("view")} />
           )}
           {mode === "delete" && (
-            <DeletePanel expense={e} onReload={reload} onCancel={() => setMode("view")} />
+            <DeleteDialog expense={e} onReload={reload} onCancel={() => setMode("view")} />
           )}
         </>
       )}
@@ -346,7 +347,7 @@ function DescriptionForm({ expense, onReload, onDone }: FormProps) {
   );
 }
 
-function DeletePanel({
+function DeleteDialog({
   expense,
   onReload,
   onCancel,
@@ -381,22 +382,24 @@ function DeletePanel({
   });
 
   return (
-    <div>
-      <p>Delete this expense? It moves to the archived list.</p>
+    <Dialog title="Delete this expense?" onClose={onCancel}>
+      <p>It moves to Archived and is removed for good later.</p>
       <WriteNotice failure={failure} onReload={onReload} />
-      <button
-        type="button"
-        disabled={remove.isPending}
-        onClick={() => {
-          failure.clear();
-          remove.mutate();
-        }}
-      >
-        Confirm delete
-      </button>{" "}
-      <button type="button" autoFocus onClick={onCancel}>
-        Cancel
-      </button>
-    </div>
+      <div className="dialog__actions">
+        <Button data-autofocus onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          variant="danger"
+          pending={remove.isPending}
+          onClick={() => {
+            failure.clear();
+            remove.mutate();
+          }}
+        >
+          Delete
+        </Button>
+      </div>
+    </Dialog>
   );
 }

@@ -497,3 +497,29 @@ select[aria-invalid="true"] {
     align-items: flex-end;
   }
 }
+
+.dialog {
+  width: min(24rem, calc(100vw - var(--sp-6)));
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-2);
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
+}
+
+.dialog__title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-lg);
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}

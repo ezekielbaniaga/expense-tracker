@@ -612,7 +612,7 @@ describe("edit, patch description and delete", () => {
     renderAt("/expenses/e1");
     await screen.findByRole("heading", { name: "Lunch" });
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
     expect(await screen.findByText("Nothing here yet.")).toBeTruthy();
     expect((await screen.findByRole("status")).textContent).toBe("Expense deleted. It's in Archived for now.");
     expect(query).toBe("?version=3");
@@ -628,7 +628,7 @@ describe("edit, patch description and delete", () => {
     renderAt("/expenses/e1");
     await screen.findByRole("heading", { name: "Lunch" });
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/changed elsewhere/);
     expect(screen.getByRole("button", { name: "Reload" })).toBeTruthy();
   });
