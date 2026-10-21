@@ -1,9 +1,9 @@
 import { vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { AppProviders, AppRoutes } from "../App";
 import { createApiClient, type ApiClient } from "../api/client";
 import { fakeJwt } from "../test/fakeJwt";
@@ -391,6 +391,58 @@ describe("expense list", () => {
       }
       await waitFor(() => expect(queries.at(-1)!.get("q")).toBe("lunch"));
       expect(queries.filter((q) => q.get("q") === "lun")).toHaveLength(0);
+    });
+
+    it("keeps a trailing space in the search box after the debounce", async () => {
+      const queries = record();
+      renderAt("/?period=all");
+      await screen.findByText("Lunch");
+      const box = screen.getByPlaceholderText("Search descriptions") as HTMLInputElement;
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        fireEvent.change(box, { target: { value: "coffee " } });
+        vi.advanceTimersByTime(300);
+      } finally {
+        vi.useRealTimers();
+      }
+      await waitFor(() => expect(queries.at(-1)!.get("q")).toBe("coffee"));
+      expect(box.value).toBe("coffee ");
+    });
+
+    it("Clear filters empties a search that has reached the URL", async () => {
+      const queries = record();
+      renderAt("/?period=all");
+      await screen.findByText("Lunch");
+      const box = screen.getByPlaceholderText("Search descriptions") as HTMLInputElement;
+      fireEvent.change(box, { target: { value: "coffee " } });
+      await waitFor(() => expect(queries.at(-1)!.get("q")).toBe("coffee"));
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      await waitFor(() => expect(box.value).toBe(""));
+    });
+
+    it("shows a q that changed outside the box (Back)", async () => {
+      const queries = record();
+      let navigate: ReturnType<typeof useNavigate> | undefined;
+      function Grab() {
+        navigate = useNavigate();
+        return null;
+      }
+      render(
+        <AppProviders client={client} queryClient={queryClient}>
+          <MemoryRouter initialEntries={["/?period=all&q=tea"]}>
+            <Grab />
+            <AppRoutes />
+          </MemoryRouter>
+        </AppProviders>,
+      );
+      await screen.findByText("Lunch");
+      const box = screen.getByPlaceholderText("Search descriptions") as HTMLInputElement;
+      expect(box.value).toBe("tea");
+      act(() => navigate!("/?period=all&q=milk"));
+      await waitFor(() => expect(box.value).toBe("milk"));
+      await waitFor(() => expect(queries.at(-1)!.get("q")).toBe("milk"));
+      act(() => navigate!(-1));
+      await waitFor(() => expect(box.value).toBe("tea"));
     });
 
     it("category chips, date range and amounts reach the request and count on the Filters button", async () => {

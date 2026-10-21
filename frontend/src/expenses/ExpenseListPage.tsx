@@ -192,8 +192,9 @@ export function ExpenseListPage() {
     const timer = setTimeout(() => updateRef.current({ q: text }), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchText, urlQ]);
-  // The URL changed elsewhere (Clear filters, back button): show it in the box
-  useEffect(() => setSearchText(urlQ), [urlQ]);
+  // The URL changed elsewhere (Clear filters, back button): show it in the box.
+  // Not when it is just our own trimmed text coming back, or "coffee " would lose its space
+  useEffect(() => setSearchText((text) => (text.trim() === urlQ ? text : urlQ)), [urlQ]);
 
   const choosePeriod = (value: Period) => {
     if (value === "custom") {
