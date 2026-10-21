@@ -8,6 +8,240 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## UI design
+
+From docs/ui-design-proposal.md. Work in order. Frontend paths start with `frontend/`. Each item keeps
+`npm test -- --run` and `npm run build` (and `./mvnw test` for backend items) green, and updates the
+`frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
+Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
+
+- [ ] **Design tokens and contrast test.** Add `frontend/src/styles/tokens.css` (proposal Appendix A): neutrals, the six
+      hues (fill/ink/strong), `[data-accent=...]` with Lavender as default, `--primary-*`, `--focus-ring`, `--selected-*`,
+      category tokens, a `--line-strong` for input borders, `--font` (JetBrains Mono everywhere, then the fallback stack),
+      type scale, spacing, radius, shadow, motion; dark values in both the media query and `:root[data-theme="dark"]`.
+      Import it first in `main.tsx`. Test: `src/styles/tokens.test.ts` parses the file and asserts the two dark blocks
+      match and every documented text/background pair is ≥ 4.5:1 (focus ring and `--line-strong` ≥ 3:1) in light and dark.
+      Careful: `--line` on `--surface` is 1.27:1, so it is for dividers only. Proposal: Color system.
+- [ ] **Theme and accent bootstrap.** Add `frontend/src/ui/theme.ts`: `readTheme()`/`readAccent()` from `localStorage`
+      `ui.theme`/`ui.accent` inside try/catch (defaults `system`/`lavender`), `applyTheme` sets or removes `data-theme`
+      on `<html>`, `applyAccent` sets `data-accent`. Call both in `main.tsx` before `createRoot(...).render`. In
+      `index.html` add two `theme-color` metas with `media` and `viewport-fit=cover`. Test: `src/ui/theme.test.ts`
+      (round trip, invalid values, throwing storage, `system` removes the attribute). Careful: no inline script or style
+      in `index.html` (CSP); jsdom has no `matchMedia`, so don't use it. Proposal: Light, dark and system mode.
+- [ ] **Bundle JetBrains Mono.** Copy the Latin 400/500/700 normal woff2 files and the OFL license from the npm package
+      `@fontsource/jetbrains-mono` (fetch with `npm pack @fontsource/jetbrains-mono@<exact version>` into the scratchpad;
+      do NOT add it as a dependency) into `frontend/src/assets/fonts/`, with `@font-face` (`font-display: swap`) in a new
+      `src/styles/base.css`. Set `build: { assetsInlineLimit: 0 }` in `vite.config.ts`; preload Regular in `index.html`.
+      Test: after `npm run build`, `dist/index.html` preloads a hashed `/assets/*.woff2` and `dist/assets/*.css` has no
+      `data:`. Careful: never take fonts from the LogicLabs repo or `~/.fonts`. If the download fails, commit only the
+      fallback stack and `assetsInlineLimit`, and add a Needs you entry for the files. Proposal: Typography.
+- [ ] **Restyle native elements with tokens.** Split `frontend/src/styles.css` into `src/styles/base.css` (reset, body,
+      type scale, `.caps`, links, focus ring, skip link, reduced motion, `forced-colors`) and `components.css`/`layout.css`,
+      using tokens only; delete `styles.css` and fix the import in `main.tsx`. Inputs use `--fs-input` (16px on
+      `(pointer: coarse)`) and `--line-strong`. Keep every class name and behaviour. Test: a Vitest that fails if any
+      `src/styles/*.css` other than `tokens.css` has a hex or `rgb(` color; existing suite green. Careful: styles.css has
+      four hard-coded colors (`#fff` at :32 too). Proposal: Visual language.
+- [ ] **Icons and Button.** Add `frontend/src/ui/icons.tsx` (inline SVG components, `currentColor`, `aria-hidden` by
+      default, the proposal's icon set; Lucide ISC attribution comment if shapes follow it) and `src/ui/Button.tsx`
+      (`Button` variants primary/secondary/ghost/danger, sizes md/sm, `pending` → `aria-busy` + spinner keeping the label;
+      `IconButton` requires `label`). Use them for the submit buttons of login, register, expense create/edit, password
+      change and admin forms, same names. Test: `Button.test.tsx`; existing tests that find buttons by name pass.
+      Careful: never import `.svg` files (CSP blocks `data:`). Proposal: Iconography, Components.
+- [ ] **Field components.** Add `frontend/src/ui/fields.tsx` with `TextField`, `SelectField`, `DateField`, `AmountField`
+      (caps label above, error below through the existing `errorProps`/`FieldError`, error icon + border, `AmountField`
+      large with `inputMode="decimal"`). Use them in `ExpenseFields`, `LoginPage`, `RegisterPage` and the profile
+      password form without changing labels, ids or rules. Test: `fields.test.tsx` (label association, `aria-invalid`,
+      `aria-describedby`); existing form and a11y tests unchanged. Careful: labels "Description", "Amount", "Category",
+      "Date", "Username", "Password" must stay, tests and e2e use them. Proposal: Components.
+- [ ] **Chips and segmented control.** Add `frontend/src/ui/Chip.tsx`: `ChipGroup` (fieldset + legend of native radios
+      or checkboxes with styled labels), `SegmentedControl` (radio group as a track), `CategoryChip` (icon + label on the
+      category fill, neutral for null/unknown via `categoryLabel`). Use a read-only `CategoryChip` in the list table's
+      category cell. Test: `Chip.test.tsx` (roles and names, change values, selected state also shows a check icon);
+      list cell text checks in `expenses.test.tsx` still pass. Careful: the selected fill alone is under 3:1 on surface,
+      so add a border or icon. Proposal: Components, Category colors.
+- [ ] **Card, Skeleton and EmptyState.** Add them in `frontend/src/ui/`. Replace the "Loading ..." paragraphs on list,
+      archived, detail, profile and admin with skeletons plus the same text visually hidden in `role="status"`. Empty
+      list: "Nothing here yet." / "Add your first expense and it shows up here." + Add expense link; empty archived:
+      "Nothing archived. Deleted expenses wait here for a while.". `ErrorBoundary` fallback becomes an `EmptyState`
+      keeping "Something went wrong" and "Back to expenses". Test: update `expenses.test.tsx:128` and the archived empty
+      test; `Layout.test.tsx` still passes. Proposal: Components, Appendix C.
+- [ ] **Initials, avatar and preferences.** Add `frontend/src/ui/initials.ts` (`initials()` as in the proposal, `hueFor(id)`
+      stable hash into the six hues), `src/ui/Avatar.tsx`, and `src/ui/preferences.tsx` (`PreferencesProvider` +
+      `usePreferences()` for `ui.theme`, `ui.accent`, `ui.currency`, `ui.density`, `ui.pageSize`, all storage in try/catch;
+      theme/accent changes call `theme.ts`). Wrap the app in `PreferencesProvider` inside `AppProviders`. Test:
+      `initials.test.ts` (doc examples, "Mary Jane Watson" → MW, camelCase, astral chars, empty → "?"), `hueFor` stable and
+      in range, `preferences.test.tsx` with throwing storage. Careful: avatar colors by palette index only, no user value in
+      CSS. Proposal: Account avatar and menu, Preferences.
+- [ ] **App shell: top bar and one responsive nav.** Rewrite `frontend/src/ui/Layout.tsx`: a top bar with the app name
+      "Expense Tracker" as a link (no longer an `h1`), and ONE `<nav aria-label="Main">` (Expenses, Archived, Profile,
+      Admin for ADMIN) that CSS shows as a bottom tab bar under 48rem and inline in the bar above. "New expense" becomes an
+      "Add expense" link styled as a floating button on phones and a primary button on wide. `PageHeading` defaults to
+      `h1`. Keep the skip link first, `main#main`, `ErrorBoundary key={pathname}`, "Signed in as" and Sign out (moved next
+      item). Test: `Layout.test.tsx` (one Main nav, Admin only for ADMIN, exactly one `h1`, skip link first); update
+      `e2e/two-tabs.spec.ts:32` (`level: 1`). Careful: jsdom ignores CSS, so duplicates break `getByRole` and axe.
+      Proposal: App shell and navigation.
+- [ ] **Account menu.** Add `frontend/src/ui/AccountMenu.tsx`: avatar button (`aria-label="Account menu for {username}"`,
+      `aria-expanded`) disclosing a labelled region with avatar, username and role, links Profile, Your devices
+      (`/me#devices`), Admin (ADMIN only), appearance (`SegmentedControl` System/Light/Dark, accent swatch radios) and
+      Sign out (today's logout behaviour). Escape and outside click close and return focus. Remove "Signed in as" and the
+      nav's Sign out. Give the profile devices section `id="devices"` and scroll/focus to it on that hash. No keyboard
+      shortcuts. Test: `AccountMenu.test.tsx`; update `Layout.test.tsx:52`, `auth.test.tsx:219`,
+      `expenses.test.tsx:131-139`, `e2e/helpers.ts` (`signedIn` → the menu button) and `e2e/auth.spec.ts:10`. Careful:
+      don't call `/users/me` from the shell (MSW errors on unmocked requests); leave "member since" to Profile.
+      Proposal: Account avatar and menu.
+- [ ] **Success toasts.** Extend `frontend/src/ui/Toast.tsx` with `showSuccess(message)` (`role="status"`, hides after
+      4 s, paused on hover/focus; errors stay `role="alert"` until dismissed), placed by CSS above the tab bar on phones.
+      Use for expense added ("Added {description} · {amount}"), saved ("Saved"), description saved, deleted ("Expense
+      deleted. It's in Archived for now."), session revoked, other sessions signed out. Test: `Toast.test.tsx` with fake
+      timers (`shouldAdvanceTime`), plus one assertion per flow in `expenses.test.tsx`/`profile.test.tsx`. Careful: keep
+      the region `aria-label="Notifications"`. Proposal: Components, Appendix C.
+- [ ] **Dialog for expense delete.** Add `frontend/src/ui/Dialog.tsx` (native `<dialog>`, `showModal()` when present else
+      set `open`; labelled by its title; `cancel` closes; focus Cancel first and return to the opener). Polyfill
+      `showModal`/`close` in `src/test/setup.ts` (jsdom 30 lacks them). Replace `DeletePanel` in `ExpenseDetailPage.tsx`
+      with a dialog "Delete this expense?" / "It moves to Archived and is removed for good later." / Cancel / Delete,
+      keeping `WriteNotice` inside it, `DELETE ?version=`, cache removal and invalidations. Only this confirm becomes a
+      dialog; profile and admin confirms stay inline. Test: `Dialog.test.tsx`; update `a11y.test.tsx:170,336-340` and
+      `expenses.test.tsx:611,626` ("Confirm delete" → "Delete"). Proposal: Expense detail and edit.
+- [ ] **Money and date formatting.** Add `frontend/src/format/money.ts` (`formatMoney(amount, currency?, locale?)`: browser
+      locale by default, grouping, 2 decimals, symbol only when `ui.currency` is set, `MISSING` for null) and
+      `src/format/dates.ts` (`parseUtc` appends `Z`, `formatLocalDateTime`, `formatDay`, `formatRelativeDay`). Use them for
+      display on list, archived, detail, profile devices and admin; drop the "(UTC)" labels (`ProfilePage.tsx:287`,
+      `AdminUsersPage.tsx:157`, `AdminUserPage.tsx:62,64`); `formatAmount` stays for form values. Add a currency select to
+      Profile ("Only changes how amounts look. Amounts are saved as numbers."). Test: `money.test.ts`, `dates.test.ts`
+      (midnight, DST, null). Pin `TZ=UTC` and the `en-US` locale for Vitest and Playwright (`locale`/`timezoneId` in
+      `playwright.config.ts`); update tests asserting old text. Careful: `e2e/conflict.spec.ts:18,27` expects "20.00".
+      Proposal: Preferences.
+- [ ] **Login and Register restyle.** Centred card on `--bg` with CSS radial-gradient blobs, the name "Expense Tracker" and
+      "Track what you spend, nothing more."; show/hide password toggle (`aria-pressed`, "Show password"); on Register a
+      live rules checklist (12+ characters, at most 72 bytes, not the username) from `registerSchema`. No change to API
+      calls, `AuthProvider` or error mapping. Test: `auth.test.tsx`, `register.test.tsx` (toggle switches type, checklist
+      ticks, errors still map); a11y green. Careful: `getByLabelText("Password")` must stay unique (use
+      `{ selector: "input" }` if needed). Proposal: Sign in and Create account.
+- [ ] **Add/edit form: amount first, category chips.** Restyle `frontend/src/expenses/ExpenseFields.tsx`: `AmountField`
+      first, then description, category as a `ChipGroup` of radios with icons (fieldset/legend "Category", from
+      `GET /api/expense/categories`, none checked for a legacy null), sticky submit. Same zod rules and POST/PUT bodies.
+      Test: update `a11y.test.tsx:208` (radio "Food"), the `fill()` helper `expenses.test.tsx:292`, `:480` (no radio
+      checked), `e2e/helpers.ts:48` (`getByRole("radio", { name: "Food" }).check()`); assert the body is unchanged.
+      Careful: `ExpenseFields` is shared with the edit form on the detail page. Proposal: Add expense.
+- [ ] **Add form: date chips and back to the list.** Date: Today / Yesterday chips plus the native date input labelled
+      "Date" (`max` today, computed with `todayIso`, local calendar). After a successful create navigate to `/` with the
+      success toast and briefly highlight the new row; an "Add another" checkbox keeps the form open and resets it. No
+      autofocus on the amount (heading focus stays). Test: update `expenses.test.tsx:302` (expects `/` and the toast; drop
+      the detail GET mock), `e2e/helpers.ts createExpense` (find the new row link on the list), a11y `getByLabelText("Date")`.
+      Careful: `conflict.spec.ts` and `isolation.spec.ts` use `createExpense`. Proposal: Add expense.
+- [ ] **Expense detail restyle.** Hero (category icon, description as the `PageHeading`, amount in `--fs-xl`, category chip,
+      long date); muted "Details" card (Created, Last modified "Never", Version, Id shortened with a copy button and the
+      full id as accessible text); a back link for detail and form pages. Edit and inline description edit keep PUT/PATCH
+      with version and the 409 banners. Test: detail tests in `expenses.test.tsx` (every field, "Never", "—"), a copy test
+      with a stubbed `navigator.clipboard` (guard it, jsdom lacks it). Proposal: Expense detail and edit.
+- [ ] **Profile cards and device names.** Profile becomes Account (avatar, username, role, member since), Appearance
+      (theme, accent, currency), Security (password change with a warning that every device signs out) and Your devices
+      (`id="devices"`). Add `frontend/src/format/userAgent.ts` `deviceName(ua)` ("Firefox on Linux", "Safari on iPhone",
+      fallback raw string or "Unknown device"), "Last active 5 min ago", "This device" badge. Revoke and "Sign out other
+      devices" keep their inline confirms and focus return. Test: `userAgent.test.ts` (~8 real UAs), `profile.test.tsx`.
+      Proposal: Profile.
+- [ ] **SortableHeader and archived sorting.** Add `frontend/src/ui/SortableHeader.tsx` (`aria-sort` only on the active
+      column, a `<button>` named by the column, polite live region "Sorted by amount, highest first", first click natural
+      direction, second flips). On `ArchivedPage` sort by description, amount and archived date in the browser (default
+      newest archived first), muted rows with an archive icon, and the note "Deleted expenses stay here for 30 days, then
+      are removed." (`ExpenseCleanup.RETENTION_MAX_DAYS`). Test: `SortableHeader.test.tsx`; archived order after clicks,
+      nulls last. Careful: only reorder, never sum. Proposal: Sorting, Archived.
+- [ ] **Admin restyle and Pagination.** Users list: avatar (`hueFor(user.id)`) + username, role chip, status chip with text,
+      created via `formatDay`; user detail header card; an "Admin" pill in the top bar on `/admin/*`. Extract
+      `frontend/src/ui/Pagination.tsx` (Prev/Next, "Page x of y", size `[10, 20, 50, 100]`) from `AdminUsersPage`.
+      Test: `admin.test.tsx` still passes (filters, paging, `INVALID_PAGE` reset, confirms, 403); add
+      `Pagination.test.tsx`. Careful: don't change admin permission behaviour. Proposal: Admin.
+- [ ] **Backend: expense list 1.3 with paging, sort and filtered total.** `@GetMapping(version = "1.3")` in
+      `expense/ExpenseController` with `@RequestParam` `page` (0), `size` (20), `String sort` (`date,desc`); no `Pageable`
+      argument. `ExpenseService` checks page/size like `UserService.listUsers` (400 `INVALID_PAGE`), maps sort fields
+      `date`→`expenseDate`, `amount`, `description`, `category`, `createdAt` (else 400 `INVALID_SORT`), `nullsLast()`,
+      always then `createdAt desc, id desc`; a `Specification` for owner + not archived; `SUM(amount)` via a new
+      `ExpenseRepositoryCustom`/`Impl`. `ExpenseRepository` extends `JpaSpecificationExecutor`. New record
+      `ExpenseListResponseV1_3(expenses, page, size, total, total_pages, total_amount)` with V1_2 items. Add "1.3" to
+      `config/WebMVCConfig`. No new index. Test: new `ExpenseListV1_3Tests` (each sort both ways, tie-break, a JdbcTemplate
+      legacy row with null date/amount last both ways, totals over all pages, page bounds, both 400s, other users' and
+      archived rows absent); update `ExpenseApiVersionTests.java:36` and `:137` (reject "1.4", "2.0"). Careful: PostgreSQL
+      puts NULLs first on DESC; use Spring's `@Transactional(readOnly = true)` (the service imports jakarta's); 1.0–1.2
+      unchanged. Proposal: Backend changes 1.
+- [ ] **Backend: list 1.3 filters.** Optional params on 1.3: `q` (≤ 100 chars else 400 `VALIDATION_ERROR` via
+      `BadRequestException`; case-insensitive contains, LIKE wildcards literal; move `UserService.escapeLike` to
+      `common/` and use it in both); `category` bound as `List<String>`, repeatable, parsed case-insensitively like
+      `ExpenseMapper.parseCategory` (make it reusable), unknown → 400 `INVALID_CATEGORY`; `from`/`to` `LocalDate` with
+      `@DateTimeFormat(iso = DATE)`, `from > to` → 400 `INVALID_DATE_RANGE`; `minAmount`/`maxAmount` `BigDecimal`,
+      min > max → 400 `INVALID_AMOUNT_RANGE`. Malformed values stay 400 `VALIDATION_ERROR` from the type mismatch handler.
+      Nulls never match their filter; totals follow filters. Test: extend `ExpenseListV1_3Tests` (each filter alone and
+      combined, `%`/`_` literal, `category=food`, repeated category, every 400, `from=2026-13-01` → `VALIDATION_ERROR`);
+      `AdminUserTests` still green. Proposal: Backend changes 1.
+- [ ] **Backend: expense summary.** `GET /api/expense/summary` (`version = "1.0+"`) with optional `from`/`to` (absent =
+      all time, echoed as `null`; same parsing and `INVALID_DATE_RANGE` as 1.3) returning `{from, to, count, total_amount,
+      by_category: [{category, count, total_amount}]}` over the caller's active expenses, grouped by category, total
+      descending, null category as `null`, null amounts skipped in sums but counted. No `by_month`. New record
+      `ExpenseSummaryResponse`; JPQL or Criteria in `ExpenseRepository`. Test: `ExpenseSummaryTests` (totals, grouping,
+      null category, range, archived and other users excluded, `INVALID_DATE_RANGE`, `/summary` not routed to
+      `/{uniqueId}`). Proposal: Backend changes 2.
+- [ ] **Frontend: list on version 1.3 with URL params and paging.** Add `frontend/src/expenses/listParams.ts` (URL ↔
+      `{q, category[], from, to, minAmount, maxAmount, sort, page, size}` with defaults `sort=date,desc`, `page=0`, size from
+      `ui.pageSize`; `toApiQuery()`); 1.3 DTO and mapper in `api/expense.ts`; `ExpenseListPage` sends version "1.3", key
+      `["expenses", params]`, `placeholderData: (previous) => previous`, `Pagination`; 400 `INVALID_*` resets that param
+      with a notice; any change resets page. Test: `listParams.test.ts`; `expenses.test.tsx` (version "1.3" at :82, query
+      string, paging, resets); move every list mock in `expenses.test.tsx` and `a11y.test.tsx` to the 1.3 shape.
+      Proposal: Expenses (home), Appendix B.
+- [ ] **Frontend: sortable list.** `SortableHeader` on the list table (Description, Category, Date, Amount) writing
+      `sort` to the URL, plus a "Sort by" select (Newest / Oldest / Highest amount / Lowest amount / Description A–Z / Z–A
+      / Category) writing the same param, shown by CSS only under 48rem. Test: header click sets `aria-sort`, URL and
+      request `sort=amount,desc`; second click flips; live region text; the select sends the same params. Careful: the
+      select's name must not clash with the header buttons. Proposal: Sorting.
+- [ ] **Frontend: search, period chips and filters.** Search "Search descriptions" (300 ms debounce, `q`); period chips
+      This month (default) / Last month / Last 3 months / This year / All time / Custom writing `from`/`to` in the local
+      calendar like `todayIso`; a Filters disclosure (one markup; collapsed on phones by default) with category checkbox
+      chips, date range and min/max amount; active-count on the Filters button; "Clear filters"; "No expenses match these
+      filters." when `total` is 0 with filters. Test: URL and request params per control, debounce with fake timers,
+      period dates for a fixed now, no-match, clear. Careful: never `toISOString` for dates. Proposal: Expenses (home).
+- [ ] **Frontend: phone rows and day grouping.** Restyle the same list table by CSS into cards under 48rem (whole row is
+      the link, link text stays the description, category icon, amount right). When sorted by date, group rows into a
+      `<tbody>` per day with a header row (`<th scope="rowgroup" colspan>`: Today / Yesterday / "Oct 19 · Sun");
+      other sorts are flat. Numbered pages on every size (no Load more). Test: group headers only for the date sort, links
+      still found by description. Proposal: Expenses (home).
+- [ ] **Frontend: summary card.** Hero card above the list with the server `total_amount` and `total` of the current
+      filters, and a category breakdown from `GET /api/expense/summary` (key `["expenses", "summary", {from, to}]`): a
+      stacked bar of category fills (`role="img"`, `aria-label` with amounts and percentages) and a text legend. Test:
+      numbers from mocks, legend, `aria-label`, refetch after delete; add a summary handler to every test file that
+      renders `/` (`expenses.test.tsx`, `a11y.test.tsx`, others found by grep), since MSW errors on unhandled requests.
+      Careful: never sum amounts in the browser; percentages only size the bar. Proposal: Expenses (home), Backend 2.
+- [ ] **Backend: admin user list sort.** `@RequestParam(required = false) String sort` on `user/AdminUserController.list`
+      and a `sort` argument to `UserService.listUsers` (only caller `AdminUserController.java:58`): `createdAt` (default
+      asc), `username` (by `lower(username)`), `role`, `enabled`, each asc/desc, always then `id` asc; unknown → 400
+      `INVALID_SORT`. Update README admin `GET /users` ("ordered oldest first", README.md ~1095-1104). Test:
+      `AdminUserTests` (each field and direction, default unchanged, `INVALID_SORT`). Careful: don't touch
+      `requireEnabledAdmin` or `@PreAuthorize`. Proposal: Backend changes 3.
+- [ ] **Frontend: sortable admin users.** `SortableHeader` on `/admin/users` (Username, Role, Status, Created) with
+      `sort` in the URL (resets page); `INVALID_SORT` resets like `INVALID_PAGE` (`AdminUsersPage.tsx:23-25,83-96`).
+      Test: `admin.test.tsx` (header click → `sort=username,asc`, `INVALID_SORT` reset). Proposal: Sorting, Admin.
+- [ ] **Backend: display name.** Migration `V17__add_display_name_to_users.sql`: `ALTER TABLE users ADD COLUMN
+      display_name VARCHAR(100);`. `User.displayName`; `displayName` on `UserResponse` and `AdminUserResponse`
+      (`UserMapper`). `PATCH /users/me` in `user/UserController` with `{displayName}` (no version check): trimmed, 1–100
+      chars, no control characters, empty string clears it; else 400 `INVALID_DISPLAY_NAME`; returns `UserResponse`.
+      README self-service section. Test: a USER (not only ADMIN) gets 200, trim, clear, invalid values, `GET /users/me`
+      returns it; `RegisterTests` still pass (`POST /auth/register` returns `UserResponse`). Careful: no change to
+      `JWTService`, login, refresh or `SecurityConfig` (`/users/me` is already matched before `/users/**`).
+      Proposal: Backend changes 5.
+- [ ] **Frontend: display name.** `useMe()` hook (`["me"]`, `displayName`); Profile Account card "Add your name" / Edit
+      inline form (PATCH `/users/me`, `INVALID_DISPLAY_NAME` on the field); initials from `displayName ?? username` in
+      Profile, the admin list (if the DTO has it), and the account menu once `["me"]` is in the cache (the shell itself
+      must not fetch it). Test: `profile.test.tsx` (edit, clear, error, initials change). Careful: render as text only.
+      Proposal: Initials.
+- [ ] **E2E: list spec and axe with contrast.** Add `frontend/e2e/list.spec.ts` (create ~25 expenses via the API, then
+      sort by amount, filter by category, page and search in the UI) and the `@axe-core/playwright` dev dependency (exact
+      version) with `e2e/a11y.spec.ts`: main screens in light and dark (`page.emulateMedia({ colorScheme })`) at 360 and
+      1280 px with `color-contrast` on; screenshots as artifacts, not baselines. Test: `npm run e2e` (needs Docker),
+      `npm run build`. Careful: needs network for `npm install`; if unavailable, add a Needs you entry instead.
+      Proposal: Testing.
+- [ ] **Docs: README and proposal done.** README "Web UI" (design system, theme/accent/currency preferences in
+      `localStorage`, screens, list 1.3), section 17 API versions (1.3 params, response, error codes; summary endpoint;
+      `PATCH /users/me`), Roadmap; `frontend/README.md` if tracked (fonts and OFL, styles layout, pinned TZ/locale in tests);
+      `CLAUDE.md` if commands changed. Set `docs/ui-design-proposal.md` to "Status: implemented (date). ..." like
+      `docs/web-ui-proposal.md`. Test: none; check names against the code. Proposal: whole document.
+
 ## Needs you
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
