@@ -730,3 +730,63 @@ tr.row--new {
 .archived-note {
   color: var(--muted);
 }
+
+.user-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  background: var(--surface-2);
+}
+
+.status-chip--accent {
+  color: var(--accent-ink);
+  background: var(--accent-fill);
+}
+
+.status-chip--ok {
+  color: var(--mint-ink);
+  background: var(--mint-fill);
+}
+
+.user-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4, 1rem);
+}
+
+.user-header h1 {
+  margin: 0;
+}
+
+.user-header__chips {
+  margin: var(--sp-1) 0 0;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3, 0.75rem);
+}
+
+.topbar__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-2);
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  color: var(--accent-ink);
+  background: var(--accent-fill);
+}

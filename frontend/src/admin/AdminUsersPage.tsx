@@ -2,15 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/errors";
-import { formatLocalDateTime } from "../format/dates";
+import { formatDay } from "../format/dates";
 import { DEFAULT_USER_PAGE_SIZE, type UserListDto } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
+import { Pagination } from "../ui/Pagination";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { Skeleton } from "../ui/Skeleton";
+import { RoleChip, StatusChip } from "./UserChips";
 
 /**
  * The server re-checks the caller against the database, so an admin demoted or
@@ -26,8 +29,6 @@ export function isForbidden(error: unknown): boolean {
 function isInvalidPage(error: unknown): boolean {
   return error instanceof ApiError && error.status === 400 && error.code === "INVALID_PAGE";
 }
-
-const PAGE_SIZES = [10, 20, 50, 100];
 
 /**
  * Filters and paging live in the URL so a reload or a shared link keeps them.
@@ -164,49 +165,37 @@ export function AdminUsersPage() {
                 {data.users.map((u) => (
                   <tr key={u.id}>
                     <td>
-                      <Link to={`/admin/users/${encodeURIComponent(u.id)}`}>{u.username}</Link>
+                      <span className="user-cell">
+                        <Avatar name={u.username} id={u.id} />
+                        <Link to={`/admin/users/${encodeURIComponent(u.id)}`}>{u.username}</Link>
+                      </span>
                     </td>
-                    <td>{u.role}</td>
-                    <td>{u.enabled ? "Enabled" : "Disabled"}</td>
-                    <td>{formatLocalDateTime(u.createdAt)}</td>
+                    <td>
+                      <RoleChip role={u.role} />
+                    </td>
+                    <td>
+                      <StatusChip enabled={u.enabled} />
+                    </td>
+                    <td>{formatDay(u.createdAt.slice(0, 10))}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             </TableScroll>
             <p>
-              Page {data.page + 1} of {Math.max(data.totalPages, 1)}, {data.total} user{data.total === 1 ? "" : "s"}
+              {data.total} user{data.total === 1 ? "" : "s"}
             </p>
           </>
         ))}
-      <nav aria-label="Pages">
-        <button
-          type="button"
-          disabled={!data || data.page === 0}
-          onClick={() => update({ page: String(filters.page - 1) })}
-        >
-          Previous
-        </button>{" "}
-        <button
-          type="button"
-          disabled={!data || data.page + 1 >= data.totalPages}
-          onClick={() => update({ page: String(filters.page + 1) })}
-        >
-          Next
-        </button>{" "}
-        <label htmlFor="page-size">Page size</label>
-        <select
-          id="page-size"
-          value={PAGE_SIZES.includes(filters.size) ? filters.size : DEFAULT_USER_PAGE_SIZE}
-          onChange={(event) => update({ size: event.target.value })}
-        >
-          {PAGE_SIZES.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
-      </nav>
+      <Pagination
+        page={filters.page}
+        totalPages={data?.totalPages ?? 0}
+        size={filters.size}
+        defaultSize={DEFAULT_USER_PAGE_SIZE}
+        disabled={!data}
+        onPage={(page) => update({ page: String(page) })}
+        onSize={(size) => update({ size: String(size) })}
+      />
     </section>
   );
 }

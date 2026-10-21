@@ -7,12 +7,15 @@ import { formatLocalDateTime } from "../format/dates";
 import { type AdminUserDto, type UpdateUserRequest } from "../api/user";
 import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
+import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 import { PageHeading, useRefocusOnClose } from "../ui/focus";
 import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { isForbidden, NO_ADMIN_ACCESS } from "./AdminUsersPage";
 import { Skeleton } from "../ui/Skeleton";
+import { RoleChip, StatusChip } from "./UserChips";
 
 /** 400 is a malformed id; it looks the same as an unknown one. */
 function isNotFound(error: unknown): boolean {
@@ -54,7 +57,15 @@ export function AdminUserPage() {
       )}
       {user && (
         <>
-          <PageHeading id="user-heading">{user.username}</PageHeading>
+          <Card className="user-header">
+            <Avatar name={user.username} id={user.id} className="avatar--lg" />
+            <div>
+              <PageHeading id="user-heading">{user.username}</PageHeading>
+              <p className="user-header__chips">
+                <RoleChip role={user.role} /> <StatusChip enabled={user.enabled} />
+              </p>
+            </div>
+          </Card>
           <dl>
             <dt>Role</dt>
             <dd>{user.role}</dd>

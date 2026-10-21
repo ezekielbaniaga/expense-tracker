@@ -120,7 +120,10 @@ describe("users list", () => {
     renderAt("/admin/users");
     const table = await screen.findByRole("table");
     expect(within(table).getByRole("link", { name: "alice" }).getAttribute("href")).toBe("/admin/users/u-1");
-    expect(screen.getByText("Page 1 of 2, 2 users")).toBeTruthy();
+    expect(screen.getByText("Page 1 of 2")).toBeTruthy();
+    expect(screen.getByText("2 users")).toBeTruthy();
+    expect(screen.getByText("Admin area")).toBeTruthy();
+    expect(within(table).getByText("Enabled")).toBeTruthy();
     expect(requests[0]).toEqual({ page: "0", size: "20" });
     expect(screen.getByRole("link", { name: "Admin" }).getAttribute("href")).toBe("/admin/users");
 
