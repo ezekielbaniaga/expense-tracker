@@ -11,11 +11,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 ## Findings 2026-10-21
 
       Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
-- [ ] **Unpaired UTF-16 surrogates are stored as "?" while the response echoes the original.** A JSON
-      `"\ud800"` in an expense description or display name gets 200 with `"a\uD800b"` in the body, but the row
-      holds `a?b` (verified), so the next GET differs from what the write returned. Files:
-      `user/DisplayNameValidator.java`, the expense request DTOs. Fix: refuse strings with unpaired surrogates
-      as 400 (`INVALID_DISPLAY_NAME` / `VALIDATION_ERROR`). Can share a helper with the NUL check above.
 - [ ] **A search over 100 characters blanks the list.** The backend caps `q` at 100 (`400 VALIDATION_ERROR`) but
       the search input in `ExpenseListPage.tsx` has no `maxLength`, and `VALIDATION_ERROR` is not in
       `INVALID_CODE_PARAMS`, so the rows disappear behind "Expenses could not be loaded" plus a toast
@@ -220,3 +215,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] The summary endpoint takes the list's filters (q, category, amounts) and the UI sends them, so the card's breakdown agrees with its total (9dbda12)
 - [x] The search box keeps a trailing space after the debounce instead of copying the trimmed URL value back (152b5d9)
 - [x] Display names now refuse format (zero-width, bidi, BOM) and line/paragraph separator characters and names with nothing visible, in the backend and the Profile form (775fdca)
+- [x] Unpaired UTF-16 surrogates in expense descriptions and display names are now a 400 instead of being stored as "?" (3b43f5e)
