@@ -15,15 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Backend: list 1.3 filters.** Optional params on 1.3: `q` (≤ 100 chars else 400 `VALIDATION_ERROR` via
-      `BadRequestException`; case-insensitive contains, LIKE wildcards literal; move `UserService.escapeLike` to
-      `common/` and use it in both); `category` bound as `List<String>`, repeatable, parsed case-insensitively like
-      `ExpenseMapper.parseCategory` (make it reusable), unknown → 400 `INVALID_CATEGORY`; `from`/`to` `LocalDate` with
-      `@DateTimeFormat(iso = DATE)`, `from > to` → 400 `INVALID_DATE_RANGE`; `minAmount`/`maxAmount` `BigDecimal`,
-      min > max → 400 `INVALID_AMOUNT_RANGE`. Malformed values stay 400 `VALIDATION_ERROR` from the type mismatch handler.
-      Nulls never match their filter; totals follow filters. Test: extend `ExpenseListV1_3Tests` (each filter alone and
-      combined, `%`/`_` literal, `category=food`, repeated category, every 400, `from=2026-13-01` → `VALIDATION_ERROR`);
-      `AdminUserTests` still green. Proposal: Backend changes 1.
 - [ ] **Backend: expense summary.** `GET /api/expense/summary` (`version = "1.0+"`) with optional `from`/`to` (absent =
       all time, echoed as `null`; same parsing and `INVALID_DATE_RANGE` as 1.3) returning `{from, to, count, total_amount,
       by_category: [{category, count, total_amount}]}` over the caller's active expenses, grouped by category, total
@@ -246,3 +237,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] SortableHeader and archived list sorting in the browser, retention note, muted rows (9d0b2ff)
 - [x] Admin restyle: user avatars and chips, detail header card, Admin pill, ui/Pagination extracted (1c889b1)
 - [x] Backend expense list 1.3: paging, sort (NULLs last) and filtered total (486f7e4)
+- [x] Backend expense list 1.3 filters: q, category, from/to, minAmount/maxAmount (41d0305)
