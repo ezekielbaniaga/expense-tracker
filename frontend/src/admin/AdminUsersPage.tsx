@@ -10,6 +10,7 @@ import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { PageHeading } from "../ui/focus";
 import { Pagination } from "../ui/Pagination";
+import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { Skeleton } from "../ui/Skeleton";
@@ -30,6 +31,29 @@ function isInvalidPage(error: unknown): boolean {
   return error instanceof ApiError && error.status === 400 && error.code === "INVALID_PAGE";
 }
 
+function isInvalidSort(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 400 && error.code === "INVALID_SORT";
+}
+
+type SortField = "username" | "role" | "enabled" | "createdAt";
+
+/** Server order when `sort` is absent: oldest account first. */
+const DEFAULT_SORT: { field: SortField; dir: SortDirection } = { field: "createdAt", dir: "asc" };
+
+const COLUMNS: { field: SortField; label: string; phrases: { asc: string; desc: string } }[] = [
+  { field: "username", label: "Username", phrases: { asc: "A to Z", desc: "Z to A" } },
+  { field: "role", label: "Role", phrases: { asc: "A to Z", desc: "Z to A" } },
+  { field: "enabled", label: "Status", phrases: { asc: "disabled first", desc: "enabled first" } },
+  { field: "createdAt", label: "Created", phrases: { asc: "oldest first", desc: "newest first" } },
+];
+
+/** The `sort` value as "field,dir"; anything unknown is kept so the server can refuse it. */
+function parseSort(value: string | null): { field: string; dir: SortDirection } {
+  if (value === null) return DEFAULT_SORT;
+  const [field, dir] = value.split(",");
+  return { field, dir: dir === "desc" ? "desc" : "asc" };
+}
+
 /**
  * Filters and paging live in the URL so a reload or a shared link keeps them.
  * A page or size the server refuses comes back as INVALID_PAGE.
@@ -43,15 +67,17 @@ function readFilters(params: URLSearchParams) {
   return {
     username: params.get("username") ?? "",
     enabled: enabled === "true" || enabled === "false" ? enabled : "",
+    sort: params.get("sort") ?? "",
     page: int("page", 0),
     size: int("size", DEFAULT_USER_PAGE_SIZE),
   };
 }
 
-function usersPath({ username, enabled, page, size }: ReturnType<typeof readFilters>): string {
+function usersPath({ username, enabled, sort, page, size }: ReturnType<typeof readFilters>): string {
   const query = new URLSearchParams();
   if (username.trim() !== "") query.set("username", username.trim());
   if (enabled !== "") query.set("enabled", enabled);
+  if (sort !== "") query.set("sort", sort);
   query.set("page", String(page));
   query.set("size", String(size));
   return `/users?${query}`;
@@ -87,8 +113,26 @@ export function AdminUsersPage() {
     });
   };
 
+  const sort = parseSort(filters.sort === "" ? null : filters.sort);
+  const sortBy = (field: SortField) =>
+    update({ sort: `${field},${sort.field === field ? (sort.dir === "asc" ? "desc" : "asc") : "asc"}` });
+
   const failure = query.error;
   useEffect(() => {
+    if (isInvalidSort(failure)) {
+      // A hand-edited URL; fall back to the default order, keeping filters and paging
+      setNotice("That sort order does not exist, so the default order is shown.");
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete("sort");
+          next.delete("page");
+          return next;
+        },
+        { replace: true },
+      );
+      return;
+    }
     if (isInvalidPage(failure)) {
       // A hand-edited URL; start again at the first page with the default size
       setNotice("That page does not exist, so the first page is shown.");
@@ -138,7 +182,7 @@ export function AdminUsersPage() {
       </form>
       {notice && <p role="status">{notice}</p>}
       {query.isPending && <Skeleton label="Loading users..." />}
-      {query.isError && !isInvalidPage(failure) && (
+      {query.isError && !isInvalidPage(failure) && !isInvalidSort(failure) && (
         <p>
           Users could not be loaded.{" "}
           <button type="button" onClick={() => void query.refetch()}>
@@ -155,10 +199,16 @@ export function AdminUsersPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Username</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Created</th>
+                  {COLUMNS.map(({ field, label, phrases }) => (
+                    <SortableHeader
+                      key={field}
+                      label={label}
+                      active={sort.field === field}
+                      direction={sort.dir}
+                      phrases={phrases}
+                      onSort={() => sortBy(field)}
+                    />
+                  ))}
                 </tr>
               </thead>
               <tbody>

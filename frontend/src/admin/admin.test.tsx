@@ -161,6 +161,45 @@ describe("users list", () => {
     expect(requests.at(-1)).toEqual({ username: "al", page: "0", size: "20" });
   });
 
+  it("sorts from the headers, resetting the page, and resets on INVALID_SORT", async () => {
+    const requests: Record<string, string>[] = [];
+    server.use(
+      http.get(`${BASE}/users`, ({ request }) => {
+        const q = params(request.url);
+        requests.push(q);
+        if (q.sort === "bogus,asc") return error(400, "INVALID_SORT", ["sort is not valid."]);
+        return HttpResponse.json(page([ALICE]));
+      }),
+    );
+    renderAt("/admin/users?page=2");
+    await screen.findByRole("link", { name: "alice" });
+    const created = screen.getByRole("columnheader", { name: /Created/ });
+    expect(created.getAttribute("aria-sort")).toBe("ascending");
+
+    fireEvent.click(screen.getByRole("button", { name: "Username" }));
+    await waitFor(() => expect(requests.at(-1)).toEqual({ sort: "username,asc", page: "0", size: "20" }));
+    expect(screen.getByRole("columnheader", { name: /Username/ }).getAttribute("aria-sort")).toBe("ascending");
+
+    fireEvent.click(screen.getByRole("button", { name: "Username" }));
+    await waitFor(() => expect(requests.at(-1)).toEqual({ sort: "username,desc", page: "0", size: "20" }));
+  });
+
+  it("goes back to the default order on INVALID_SORT", async () => {
+    const requests: Record<string, string>[] = [];
+    server.use(
+      http.get(`${BASE}/users`, ({ request }) => {
+        const q = params(request.url);
+        requests.push(q);
+        if (q.sort === "bogus,asc") return error(400, "INVALID_SORT", ["sort is not valid."]);
+        return HttpResponse.json(page([ALICE]));
+      }),
+    );
+    renderAt("/admin/users?sort=bogus,asc&username=al");
+    expect(await screen.findByRole("link", { name: "alice" })).toBeTruthy();
+    expect(screen.getByText("That sort order does not exist, so the default order is shown.")).toBeTruthy();
+    expect(requests.at(-1)).toEqual({ username: "al", page: "0", size: "20" });
+  });
+
   it("says so when the server no longer sees an admin", async () => {
     // The token still says ADMIN, but the account was demoted since
     server.use(http.get(`${BASE}/users`, () => error(403, "ACCESS_DENIED", ["Access Denied"])));
