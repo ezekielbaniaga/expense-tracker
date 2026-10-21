@@ -251,6 +251,10 @@ class UserMeTests {
             json(Map.of("displayName", "\u2028")),
             json(Map.of("displayName", "\u2029")),
             json(Map.of("displayName", "Ivy\u2028Admin")),
+            // Escaped in the JSON text: a raw lone surrogate would be encoded to "?" before it is sent
+            "{\"displayName\": \"a\\ud800b\"}",
+            "{\"displayName\": \"\\udc00\"}",
+            "{\"displayName\": \"Ivy\\ud83d\"}",
             "{\"displayName\": null}",
             "{}"
         }) {

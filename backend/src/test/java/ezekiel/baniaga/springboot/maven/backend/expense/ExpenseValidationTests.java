@@ -128,7 +128,8 @@ class ExpenseValidationTests {
             .andReturn().getResponse().getContentAsString();
         String id = JsonPath.read(body, "$.id");
 
-        for (String bad : new String[] {"a\\u0000b", "a\\u0001b", "a\\u001fb", "a\\u007fb"}) {
+        for (String bad : new String[] {"a\\u0000b", "a\\u0001b", "a\\u001fb", "a\\u007fb",
+            "a\\ud800b", "\\udc00", "x\\ud83d"}) {
             mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"description\":\"" + bad + "\",\"amount\":5,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
@@ -150,6 +151,21 @@ class ExpenseValidationTests {
         mockMvc.perform(get("/api/expense").header(HttpHeaders.AUTHORIZATION, token))
             .andExpect(jsonPath("$.expenses", hasSize(1)))
             .andExpect(jsonPath("$.expenses[0].description").value("Lunch"));
+    }
+
+    @Test
+    void validSurrogatePairInDescriptionRoundTrips() throws Exception {
+        String body = mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"Pizza \\ud83d\\ude00 \\ud842\\udfb7\",\"amount\":5,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.description").value("Pizza \uD83D\uDE00 \uD842\uDFB7"))
+            .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+
+        mockMvc.perform(get("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.description").value("Pizza \uD83D\uDE00 \uD842\uDFB7"));
     }
 
     @Test

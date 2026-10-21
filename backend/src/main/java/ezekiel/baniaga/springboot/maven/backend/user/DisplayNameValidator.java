@@ -1,13 +1,14 @@
 package ezekiel.baniaga.springboot.maven.backend.user;
 
 import ezekiel.baniaga.springboot.maven.backend.common.BadRequestException;
+import ezekiel.baniaga.springboot.maven.backend.common.Surrogates;
 import org.springframework.stereotype.Component;
 
 /**
  * Rules for the optional display name. It is free text (any script, spaces
  * inside), but control characters such as newlines, invisible format
  * characters (zero-width, bidi overrides, BOM), line/paragraph separators and
- * names with nothing visible in them are refused, so the name can't split log
+ * unpaired surrogates and names with nothing visible in them are refused, so the name can't split log
  * lines, break the UI layout, reorder surrounding text or look blank.
  */
 @Component
@@ -25,7 +26,8 @@ public class DisplayNameValidator {
             throw invalid();
         }
         // Checked before strip(), which would silently drop U+2028/U+2029 and turn them into "clear the name"
-        if (displayName.codePoints().anyMatch(DisplayNameValidator::isInvisibleFormatting)) {
+        if (Surrogates.hasUnpaired(displayName)
+            || displayName.codePoints().anyMatch(DisplayNameValidator::isInvisibleFormatting)) {
             throw invalid();
         }
         String normalized = displayName.strip();

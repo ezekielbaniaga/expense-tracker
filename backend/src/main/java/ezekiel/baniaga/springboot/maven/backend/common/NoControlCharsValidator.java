@@ -11,6 +11,7 @@ public class NoControlCharsValidator implements ConstraintValidator<NoControlCha
             return true;
         }
         return value.chars().noneMatch(c ->
-            (c < 0x20 && c != '\t' && c != '\n' && c != '\r') || c == 0x7F);
+            (c < 0x20 && c != '\t' && c != '\n' && c != '\r') || c == 0x7F)
+            && !Surrogates.hasUnpaired(value);
     }
 }

@@ -1104,7 +1104,7 @@ Content-Type: application/json
 * `200` with the updated profile (same shape as `GET /users/me`).
 * The name is stripped of leading and trailing whitespace and must then be 1-100 characters without
   control characters (such as newlines), invisible format characters (zero-width, bidi overrides, BOM) or
-  line/paragraph separators, and at least one visible character (a name of only no-break spaces is
+  line/paragraph separators or unpaired UTF-16 surrogates, and at least one visible character (a name of only no-break spaces is
   refused); an empty or blank string clears it back to `null`.
   Anything else, a missing or `null` `displayName` included, is `400 INVALID_DISPLAY_NAME`.
 * No `version` check: only the owner edits it, so the last write wins. It is not in the access token;
