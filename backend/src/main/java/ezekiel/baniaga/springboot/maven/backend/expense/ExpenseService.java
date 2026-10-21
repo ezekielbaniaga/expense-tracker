@@ -1,5 +1,6 @@
 package ezekiel.baniaga.springboot.maven.backend.expense;
 
+import ezekiel.baniaga.springboot.maven.backend.common.BadRequestException;
 import ezekiel.baniaga.springboot.maven.backend.common.BusinessRuleException;
 import ezekiel.baniaga.springboot.maven.backend.common.ResourceNotFoundException;
 import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
@@ -7,15 +8,22 @@ import ezekiel.baniaga.springboot.maven.backend.expense.dto.*;
 import ezekiel.baniaga.springboot.maven.backend.expense.entity.Category;
 import ezekiel.baniaga.springboot.maven.backend.expense.entity.Expense;
 import ezekiel.baniaga.springboot.maven.backend.expense.mapper.ExpenseMapper;
-import jakarta.transaction.Transactional;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Order;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -27,6 +35,16 @@ public class ExpenseService {
     private final ExpenseMapper expenseMapper;
     private final DefaultUUIDGenerator uuidGenerator;
     private final Clock clock;
+
+    static final int MAX_PAGE_SIZE = 100;
+
+    // API sort field -> entity attribute
+    private static final Map<String, String> SORT_FIELDS = Map.of(
+        "date", "expenseDate",
+        "amount", "amount",
+        "description", "description",
+        "category", "category",
+        "createdAt", "createdAt");
 
     public ExpenseResponse getExpenseByUniqueId(UUID uniqueId, UUID ownerId) {
         Expense expense = findExpenseOrThrow(uniqueId, ownerId);
@@ -115,6 +133,48 @@ public class ExpenseService {
 
         return new ExpenseListResponseV1_2(
                 expensesResponse, expensesResponse.size(), total_amount);
+    }
+
+    @Transactional(readOnly = true)
+    public ExpenseListResponseV1_3 getExpensesV1_3(UUID ownerId, int page, int size, String sort) {
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+            throw new BadRequestException("INVALID_PAGE",
+                "page must be 0 or more and size between 1 and " + MAX_PAGE_SIZE + ".");
+        }
+        String[] parts = sort.split(",", -1);
+        String attribute = SORT_FIELDS.get(parts[0].trim());
+        String dir = parts.length == 1 ? "asc" : parts[1].trim().toLowerCase();
+        if (attribute == null || parts.length > 2 || !(dir.equals("asc") || dir.equals("desc"))) {
+            throw new BadRequestException("INVALID_SORT",
+                "sort must be field,dir with field one of " + String.join(", ", SORT_FIELDS.keySet().stream().sorted().toList())
+                    + " and dir asc or desc.");
+        }
+        boolean ascending = dir.equals("asc");
+
+        Specification<Expense> filters = (root, query, cb) -> cb.and(
+            cb.equal(root.get("ownerId"), ownerId),
+            cb.or(cb.isNull(root.get("archived")), cb.isFalse(root.get("archived"))));
+
+        // Sorting is done here, not through Pageable: NULLs must come last both ways (PostgreSQL puts
+        // them first on DESC), and the count query must not carry an ORDER BY
+        Specification<Expense> ordered = (root, query, cb) -> {
+            if (Expense.class.equals(query.getResultType())) {
+                Expression<?> field = root.get(attribute);
+                List<Order> orders = new ArrayList<>();
+                orders.add(cb.asc(cb.selectCase().when(cb.isNull(field), 1).otherwise(0)));
+                orders.add(ascending ? cb.asc(field) : cb.desc(field));
+                orders.add(cb.desc(root.get("createdAt")));
+                orders.add(cb.desc(root.get("id")));
+                query.orderBy(orders);
+            }
+            return filters.toPredicate(root, query, cb);
+        };
+
+        Page<Expense> result = repository.findAll(ordered, PageRequest.of(page, size));
+        return new ExpenseListResponseV1_3(
+            result.getContent().stream().map(expenseMapper::toListItemV1_2).toList(),
+            page, size, result.getTotalElements(), result.getTotalPages(),
+            repository.sumAmount(filters));
     }
 
     public ArchivedExpenseListResponse getArchivedExpenses(UUID ownerId) {

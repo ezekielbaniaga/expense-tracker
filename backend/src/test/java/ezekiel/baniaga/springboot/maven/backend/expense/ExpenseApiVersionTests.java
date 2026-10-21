@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 class ExpenseApiVersionTests {
 
-    private static final List<String> VERSIONS = List.of("1.0", "1.1", "1.2");
+    private static final List<String> VERSIONS = List.of("1.0", "1.1", "1.2", "1.3");
 
     @Autowired MockMvc mockMvc;
     @Autowired UserRepository userRepository;
@@ -134,7 +134,7 @@ class ExpenseApiVersionTests {
 
     @Test
     void unservedVersionsAreRejected() throws Exception {
-        for (String version : List.of("1.3", "2.0", "2.2")) {
+        for (String version : List.of("1.4", "2.0", "2.2")) {
             mockMvc.perform(get("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
                     .header("X-API-Version", version))
                 .andExpect(status().is4xxClientError());

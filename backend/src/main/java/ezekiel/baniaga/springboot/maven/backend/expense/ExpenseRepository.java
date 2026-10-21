@@ -3,6 +3,7 @@ package ezekiel.baniaga.springboot.maven.backend.expense;
 import ezekiel.baniaga.springboot.maven.backend.expense.entity.Expense;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ExpenseRepository extends JpaRepository<Expense, Long> {
+public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpecificationExecutor<Expense>, ExpenseRepositoryCustom {
 
     // Every lookup is scoped to the owner, so users only ever see their own expenses
     @Query("SELECT e FROM Expense e WHERE e.ownerId = :ownerId AND (e.archived IS NULL OR e.archived = FALSE)")

@@ -34,6 +34,15 @@ public class ExpenseController {
         return service.getAllExpensesV1_2(user.getUniqueId());
     }
 
+    @GetMapping(version = "1.3")
+    public ExpenseListResponseV1_3 getExpenseV1_3(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "date,desc") String sort,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return service.getExpensesV1_3(user.getUniqueId(), page, size, sort);
+    }
+
     @GetMapping(value = "/archived")
     public ArchivedExpenseListResponse getArchivedExpenses(@AuthenticationPrincipal CustomUserDetails user) {
        return service.getArchivedExpenses(user.getUniqueId());
