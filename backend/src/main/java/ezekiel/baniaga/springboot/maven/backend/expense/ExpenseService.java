@@ -230,12 +230,13 @@ public class ExpenseService {
     @Transactional(readOnly = true)
     public ExpenseSummaryResponse getSummary(UUID ownerId, ListFilters f) {
         Specification<Expense> spec = filterSpec(ownerId, f);
-        // Largest total first; equal totals ordered by category name, the uncategorized group last
+        // Largest total first; equal totals ordered alphabetically by category name (like the list's sort=category,
+        // not by enum position), the uncategorized group last
         List<ExpenseSummaryResponse.CategoryTotal> groups = repository.totalsByCategory(spec).stream()
             .map(t -> new ExpenseSummaryResponse.CategoryTotal(t.category(), t.count(), t.totalAmount()))
             .sorted(Comparator.comparing(ExpenseSummaryResponse.CategoryTotal::totalAmount).reversed()
-                .thenComparing(ExpenseSummaryResponse.CategoryTotal::category,
-                    Comparator.nullsLast(Comparator.naturalOrder())))
+                .thenComparing(t -> t.category() == null ? null : t.category().name(),
+                    Comparator.nullsLast(Comparator.<String>naturalOrder())))
             .toList();
         long count = groups.stream().mapToLong(ExpenseSummaryResponse.CategoryTotal::count).sum();
         BigDecimal total = groups.stream().map(ExpenseSummaryResponse.CategoryTotal::totalAmount)

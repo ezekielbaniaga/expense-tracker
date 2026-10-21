@@ -106,6 +106,22 @@ class ExpenseSummaryTests {
     }
 
     @Test
+    void equalTotalsAreOrderedByCategoryNameWithUncategorizedLast() throws Exception {
+        insert("a", "10.00", "FOOD", "2026-10-01", 1);
+        insert("b", "10.00", "BILLS", "2026-10-02", 2);
+        summary("").andExpect(status().isOk())
+            .andExpect(jsonPath("$.by_category[0].category").value("BILLS"))
+            .andExpect(jsonPath("$.by_category[1].category").value("FOOD"));
+
+        insert("c", "10.00", null, "2026-10-03", 3);
+        summary("").andExpect(status().isOk())
+            .andExpect(jsonPath("$.by_category.length()").value(3))
+            .andExpect(jsonPath("$.by_category[0].category").value("BILLS"))
+            .andExpect(jsonPath("$.by_category[1].category").value("FOOD"))
+            .andExpect(jsonPath("$.by_category[2].category").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
     void rangeIsInclusiveAndEchoed() throws Exception {
         seed();
         summary("?from=2026-10-01&to=2026-10-15").andExpect(status().isOk())
