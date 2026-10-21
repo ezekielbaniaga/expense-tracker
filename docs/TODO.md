@@ -15,11 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Frontend: sortable list.** `SortableHeader` on the list table (Description, Category, Date, Amount) writing
-      `sort` to the URL, plus a "Sort by" select (Newest / Oldest / Highest amount / Lowest amount / Description A–Z / Z–A
-      / Category) writing the same param, shown by CSS only under 48rem. Test: header click sets `aria-sort`, URL and
-      request `sort=amount,desc`; second click flips; live region text; the select sends the same params. Careful: the
-      select's name must not clash with the header buttons. Proposal: Sorting.
 - [ ] **Frontend: search, period chips and filters.** Search "Search descriptions" (300 ms debounce, `q`); period chips
       This month (default) / Last month / Last 3 months / This year / All time / Custom writing `from`/`to` in the local
       calendar like `todayIso`; a Filters disclosure (one markup; collapsed on phones by default) with category checkbox
@@ -226,3 +221,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Backend expense list 1.3 filters: q, category, from/to, minAmount/maxAmount (41d0305)
 - [x] Backend expense summary: GET /api/expense/summary with from/to and per-category totals (36432d3)
 - [x] Frontend: list on version 1.3 with URL params and paging (a529f32)
+- [x] Frontend sortable list: SortableHeader columns and a phone-only Sort by select write `sort` to the URL (dd3ecfc)
