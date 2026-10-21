@@ -55,3 +55,26 @@ export async function createExpense(page: Page, description: string): Promise<st
   await expect(page.getByRole("heading", { name: description })).toBeVisible();
   return id;
 }
+
+const CATEGORIES = ["FOOD", "TRANSPORT", "BILLS", "ENTERTAINMENT"] as const;
+export const COUNT = 25;
+
+/** Creates COUNT expenses (dated today, so inside "This month") through the API; amount is 10 * n. */
+export async function seedExpenses(request: APIRequestContext, user: Credentials, tag: string): Promise<void> {
+  const login = await request.post("/auth/login", { data: user, headers: { "X-API-Version": "1.0" } });
+  expect(login.ok()).toBeTruthy();
+  const { accessToken } = await login.json();
+  const today = new Date().toISOString().slice(0, 10);
+  for (let n = 1; n <= COUNT; n++) {
+    const response = await request.post("/api/expense", {
+      headers: { Authorization: `Bearer ${accessToken}`, "X-API-Version": "1.0" },
+      data: {
+        description: `${tag} item ${String(n).padStart(2, "0")}`,
+        amount: n * 10,
+        category: CATEGORIES[(n - 1) % CATEGORIES.length],
+        date: today,
+      },
+    });
+    expect(response.status()).toBe(200);
+  }
+}
