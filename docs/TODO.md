@@ -10,12 +10,6 @@ commit hash. Items that need a human decision or action outside the code go in *
 
 ## Findings 2026-10-21
 
-- [ ] **The summary card's category breakdown ignores the list filters.** `frontend/src/expenses/ExpenseListPage.tsx`
-      shows the total and count from the filtered list (`q`, `category`, amounts) but the breakdown from
-      `GET /api/expense/summary`, which only takes `from`/`to`. With `category=FOOD` the card says 5.00 and
-      1 expense, then "Bills 100.00 · 95%, Food 5.00 · 5%" under it. Verified with a throwaway Vitest test.
-      Fix: either give the summary endpoint the same filters (share the list's `Specification` in
-      `ExpenseService`) and send them, or hide the breakdown while any non-date filter is active.
       Careful: the summary query key must then include those filters.
 - [ ] **The search box eats a trailing space.** `ExpenseListPage.tsx`: typing "coffee " and pausing 300 ms writes
       `q=coffee` to the URL, and the `[urlQ]` effect then sets the box to "coffee", so continuing to type
@@ -235,3 +229,4 @@ commit hash. Items that need a human decision or action outside the code go in *
 - [x] Frontend e2e: list.spec.ts (sort, category, paging, search) and a11y.spec.ts (axe with contrast, light/dark, 360/1280 px; @axe-core/playwright 4.13.0) (9b8282d)
 - [x] README documents the UI design system, preferences, list 1.3, summary and display name; UI design proposal marked implemented (f8cd8bf)
 - [x] A NUL or other control character in an expense description is now a 400 VALIDATION_ERROR instead of a 500 (15194e3)
+- [x] The summary endpoint takes the list's filters (q, category, amounts) and the UI sends them, so the card's breakdown agrees with its total (9dbda12)
