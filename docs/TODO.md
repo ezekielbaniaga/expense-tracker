@@ -15,14 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Backend: display name.** Migration `V17__add_display_name_to_users.sql`: `ALTER TABLE users ADD COLUMN
-      display_name VARCHAR(100);`. `User.displayName`; `displayName` on `UserResponse` and `AdminUserResponse`
-      (`UserMapper`). `PATCH /users/me` in `user/UserController` with `{displayName}` (no version check): trimmed, 1–100
-      chars, no control characters, empty string clears it; else 400 `INVALID_DISPLAY_NAME`; returns `UserResponse`.
-      README self-service section. Test: a USER (not only ADMIN) gets 200, trim, clear, invalid values, `GET /users/me`
-      returns it; `RegisterTests` still pass (`POST /auth/register` returns `UserResponse`). Careful: no change to
-      `JWTService`, login, refresh or `SecurityConfig` (`/users/me` is already matched before `/users/**`).
-      Proposal: Backend changes 5.
 - [ ] **Frontend: display name.** `useMe()` hook (`["me"]`, `displayName`); Profile Account card "Add your name" / Edit
       inline form (PATCH `/users/me`, `INVALID_DISPLAY_NAME` on the field); initials from `displayName ?? username` in
       Profile, the admin list (if the DTO has it), and the account menu once `["me"]` is in the cache (the shell itself
@@ -201,3 +193,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Frontend: summary card above the expense list with category breakdown bar and legend (801b239)
 - [x] Backend: sort on the admin user list, INVALID_SORT on unknown values (0693c71)
 - [x] Frontend: sortable admin users with SortableHeader and INVALID_SORT reset (d8a102d)
+- [x] Backend: optional display name (V17, PATCH /users/me, INVALID_DISPLAY_NAME, on user and admin responses) (a746106)
