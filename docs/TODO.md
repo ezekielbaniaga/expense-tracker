@@ -14,13 +14,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `npm test -- --run` and `npm run build` (and `./mvnw test` for backend items) green, and updates the
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
-
-- [ ] **Backend: expense summary.** `GET /api/expense/summary` (`version = "1.0+"`) with optional `from`/`to` (absent =
-      all time, echoed as `null`; same parsing and `INVALID_DATE_RANGE` as 1.3) returning `{from, to, count, total_amount,
-      by_category: [{category, count, total_amount}]}` over the caller's active expenses, grouped by category, total
-      descending, null category as `null`, null amounts skipped in sums but counted. No `by_month`. New record
-      `ExpenseSummaryResponse`; JPQL or Criteria in `ExpenseRepository`. Test: `ExpenseSummaryTests` (totals, grouping,
-      null category, range, archived and other users excluded, `INVALID_DATE_RANGE`, `/summary` not routed to
       `/{uniqueId}`). Proposal: Backend changes 2.
 - [ ] **Frontend: list on version 1.3 with URL params and paging.** Add `frontend/src/expenses/listParams.ts` (URL ↔
       `{q, category[], from, to, minAmount, maxAmount, sort, page, size}` with defaults `sort=date,desc`, `page=0`, size from
@@ -238,3 +231,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Admin restyle: user avatars and chips, detail header card, Admin pill, ui/Pagination extracted (1c889b1)
 - [x] Backend expense list 1.3: paging, sort (NULLs last) and filtered total (486f7e4)
 - [x] Backend expense list 1.3 filters: q, category, from/to, minAmount/maxAmount (41d0305)
+- [x] Backend expense summary: GET /api/expense/summary with from/to and per-category totals (36432d3)
