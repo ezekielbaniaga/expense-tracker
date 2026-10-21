@@ -911,3 +911,45 @@ tr.row--new {
     display: none;
   }
 }
+
+/* Expense list summary card */
+.summary-card {
+  margin-bottom: var(--sp-4);
+}
+
+.summary-card__total {
+  margin: 0;
+  font-size: var(--fs-xl, 1.75rem);
+}
+
+.summary-bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  margin: var(--sp-3) 0;
+  overflow: hidden;
+  border-radius: var(--r-sm, 6px);
+}
+
+.summary-bar__segment {
+  flex-basis: 0;
+  min-width: 4px;
+}
+
+.summary-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+
+.summary-legend__swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: var(--sp-1);
+  border-radius: 50%;
+}

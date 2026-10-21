@@ -123,6 +123,11 @@ const CATEGORY_LOOK: Record<string, { key: string; Icon: (p: IconProps) => React
   ENTERTAINMENT: { key: "entertainment", Icon: TicketIcon },
 };
 
+/** The `chip--cat-*` suffix for a category value; "unknown" for null or a value this build lacks. */
+export function categoryKey(category: string | null): string {
+  return (category === null ? undefined : CATEGORY_LOOK[category])?.key ?? "unknown";
+}
+
 /** The category's icon for a chip option; the neutral dot for an unknown value. */
 export function categoryIcon(category: string): ReactNode {
   const Icon = CATEGORY_LOOK[category]?.Icon ?? DotIcon;

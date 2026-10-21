@@ -13,6 +13,9 @@ import { RequireAuth } from "./RequireAuth";
 const BASE = "http://localhost";
 // Signed-in pages load the expense list; these tests are not about it
 const server = setupServer(
+  http.get(`http://localhost/api/expense/summary`, () =>
+    HttpResponse.json({ from: null, to: null, count: 0, total_amount: 0, by_category: [] }),
+  ),
   http.get("http://localhost/api/expense", () =>
     HttpResponse.json({ expenses: [], count: 0, total_amount: 0 }),
   ),

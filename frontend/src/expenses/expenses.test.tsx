@@ -12,6 +12,9 @@ import { categoryLabel, todayIso, yesterdayIso } from "../api/expense";
 
 const BASE = "http://localhost";
 const server = setupServer(
+  http.get(`${BASE}/api/expense/summary`, () =>
+    HttpResponse.json({ from: null, to: null, count: 0, total_amount: 0, by_category: [] }),
+  ),
   http.post(`${BASE}/auth/refresh`, () =>
     HttpResponse.json({
       accessToken: fakeJwt({ sub: "alice", role: "USER" }),
@@ -121,6 +124,65 @@ describe("expense list", () => {
         },
       ]),
     ).toBeTruthy();
+  });
+
+  it("shows the summary card: server numbers, a labelled bar and a legend", async () => {
+    let requested: URL | null = null;
+    let version: string | null = null;
+    server.use(
+      http.get(`${BASE}/api/expense`, () =>
+        HttpResponse.json({
+          ...EMPTY_PAGE,
+          expenses: [{ id: "e1", description: "Lunch", amount: 12.5, category: "FOOD", date: todayIso(), version: 0 }],
+          total: 23,
+          total_pages: 1,
+          total_amount: 1284.5,
+        }),
+      ),
+      http.get(`${BASE}/api/expense/summary`, ({ request }) => {
+        requested = new URL(request.url);
+        version = request.headers.get("X-API-Version");
+        return HttpResponse.json({
+          from: periodRange("month").from,
+          to: todayIso(),
+          count: 23,
+          total_amount: 1000,
+          by_category: [
+            { category: "FOOD", count: 10, total_amount: 750 },
+            { category: "BILLS", count: 13, total_amount: 250 },
+          ],
+        });
+      }),
+    );
+    renderAt("/");
+    const bar = await screen.findByRole("img", { name: /Spending by category/ });
+    expect(bar.getAttribute("aria-label")).toBe("Spending by category: Food 750.00 (75%), Bills 250.00 (25%)");
+    expect(screen.getByText("1,284.50")).toBeTruthy();
+    expect(screen.getByText("23")).toBeTruthy();
+    expect(screen.getByText(/Food 750\.00/).textContent).toContain("75%");
+    expect(screen.getByText(/Bills 250\.00/).textContent).toContain("25%");
+    expect(requested!.searchParams.get("from")).toBe(periodRange("month").from);
+    expect(requested!.searchParams.get("to")).toBe(todayIso());
+    expect(version).toBe("1.0");
+    expect(queryClient.getQueryData(["expenses", "summary", { from: periodRange("month").from, to: todayIso() }])).toBeTruthy();
+  });
+
+  it("refetches the summary when an expense list is invalidated", async () => {
+    let calls = 0;
+    server.use(
+      http.get(`${BASE}/api/expense`, () =>
+        HttpResponse.json({ ...EMPTY_PAGE, expenses: [LEGACY_ITEM], total: 1, total_pages: 1, total_amount: 5 }),
+      ),
+      http.get(`${BASE}/api/expense/summary`, () => {
+        calls++;
+        return HttpResponse.json({ from: null, to: null, count: 1, total_amount: 5, by_category: [] });
+      }),
+    );
+    renderAt("/");
+    await screen.findByText("5.00");
+    await waitFor(() => expect(calls).toBe(1));
+    await queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    await waitFor(() => expect(calls).toBe(2));
   });
 
   it("groups rows by day only for the date sort; links stay found by description", async () => {

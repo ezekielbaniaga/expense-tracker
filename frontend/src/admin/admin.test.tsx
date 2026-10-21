@@ -180,6 +180,9 @@ describe("admin access on the client", () => {
         return HttpResponse.json(page([]));
       }),
       http.get(`${BASE}/api/expense`, () => HttpResponse.json({ count: 0, total_amount: 0, expenses: [] })),
+      http.get(`${BASE}/api/expense/summary`, () =>
+        HttpResponse.json({ from: null, to: null, count: 0, total_amount: 0, by_category: [] }),
+      ),
     );
     renderAt("/admin/users");
     expect(await screen.findByRole("heading", { name: "Expenses" })).toBeTruthy();

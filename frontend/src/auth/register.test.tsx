@@ -10,6 +10,9 @@ import { fakeJwt } from "../test/fakeJwt";
 const BASE = "http://localhost";
 // Signed-in pages load the expense list; these tests are not about it
 const server = setupServer(
+  http.get(`${BASE}/api/expense/summary`, () =>
+    HttpResponse.json({ from: null, to: null, count: 0, total_amount: 0, by_category: [] }),
+  ),
   http.post(`${BASE}/auth/refresh`, () =>
     HttpResponse.json({ code: "AUTHENTICATION_REQUIRED", messages: [], timestamp: "x" }, { status: 401 }),
   ),

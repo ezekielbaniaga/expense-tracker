@@ -13,6 +13,9 @@ const BASE = "http://localhost";
 const axe = configureAxe({ rules: { "color-contrast": { enabled: false } } });
 
 const server = setupServer(
+  http.get(`${BASE}/api/expense/summary`, () =>
+    HttpResponse.json({ from: null, to: null, count: 0, total_amount: 0, by_category: [] }),
+  ),
   http.post(`${BASE}/auth/logout`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${BASE}/api/expense/categories`, () =>
     HttpResponse.json({ supported_categories: ["FOOD", "TRANSPORT"] }),

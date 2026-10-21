@@ -5,13 +5,18 @@ import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../api/errors";
 import {
   NO_DESCRIPTION,
+  categoryLabel,
   mapExpensePage,
+  mapExpenseSummary,
   type ExpenseListResponseV13Dto,
+  type ExpenseSummary,
+  type ExpenseSummaryDto,
 } from "../api/expense";
 import { formatDay, formatGroupDay } from "../format/dates";
 import { formatMoney } from "../format/money";
 import { usePreferences } from "../ui/preferences";
-import { CategoryChip } from "../ui/Chip";
+import { CategoryChip, categoryKey } from "../ui/Chip";
+import { Card } from "../ui/Card";
 import { PageHeading } from "../ui/focus";
 import { Pagination } from "../ui/Pagination";
 import { TableScroll } from "../ui/forms";
@@ -71,6 +76,44 @@ function groupByDay<T extends { date: string | null }>(rows: T[]): { day: string
   return groups;
 }
 
+/**
+ * Category fills sized by the server's per-category amounts. The browser only divides for the
+ * percentage text; it never adds amounts, and the segments are sized by flex-grow on the amount.
+ */
+function CategoryBreakdown({ summary, currency }: { summary: ExpenseSummary; currency: string }) {
+  const parts = summary.byCategory.filter((c) => c.totalAmount > 0);
+  if (parts.length === 0 || summary.totalAmount <= 0) return null;
+  const withPercent = parts.map((c) => ({
+    ...c,
+    label: categoryLabel(c.category),
+    percent: Math.round((c.totalAmount / summary.totalAmount) * 100),
+  }));
+  const description = withPercent
+    .map((c) => `${c.label} ${formatMoney(c.totalAmount, currency)} (${c.percent}%)`)
+    .join(", ");
+  return (
+    <>
+      <div className="summary-bar" role="img" aria-label={`Spending by category: ${description}`}>
+        {withPercent.map((c) => (
+          <span
+            key={c.category}
+            className={`summary-bar__segment chip--cat-${categoryKey(c.category)}`}
+            style={{ flexGrow: c.totalAmount }}
+          />
+        ))}
+      </div>
+      <ul className="summary-legend">
+        {withPercent.map((c) => (
+          <li key={c.category}>
+            <span className={`summary-legend__swatch chip--cat-${categoryKey(c.category)}`} aria-hidden="true" />
+            {c.label} {formatMoney(c.totalAmount, currency)} {"\u00b7"} {c.percent}%
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError && error.messages[0]) return error.messages[0];
   return "Something went wrong. Please try again.";
@@ -110,6 +153,21 @@ export function ExpenseListPage() {
         }),
       ),
     // Keep the current page on screen while the next one loads
+    placeholderData: (previous) => previous,
+  });
+
+  // By category for the same dates; shares the "expenses" prefix, so every expense mutation refetches it
+  const summary = useQuery({
+    queryKey: ["expenses", "summary", { from: params.from, to: params.to }],
+    queryFn: async () => {
+      const search = new URLSearchParams();
+      if (params.from !== "") search.set("from", params.from);
+      if (params.to !== "") search.set("to", params.to);
+      const qs = search.toString();
+      return mapExpenseSummary(
+        await client.request<ExpenseSummaryDto>(`/api/expense/summary${qs ? `?${qs}` : ""}`, { version: "1.0" }),
+      );
+    },
     placeholderData: (previous) => previous,
   });
 
@@ -275,10 +333,15 @@ export function ExpenseListPage() {
           </EmptyState>
         ) : (
           <>
-            <p>
-              <span>{query.data.total}</span> expenses, total{" "}
-              <strong>{formatMoney(query.data.totalAmount, currency)}</strong>
-            </p>
+            <Card title={PERIOD_CHIPS.find((c) => c.value === period)?.label ?? "Selected dates"} className="summary-card">
+              <p className="summary-card__total">
+                <strong>{formatMoney(query.data.totalAmount, currency)}</strong>
+              </p>
+              <p>
+                <span>{query.data.total}</span> expenses
+              </p>
+              {summary.data && <CategoryBreakdown summary={summary.data} currency={currency} />}
+            </Card>
             <div className="sort-select">
               <label htmlFor="sort-by">Sort by</label>
               <select id="sort-by" value={params.sort} onChange={(event) => update({ sort: event.target.value })}>

@@ -76,6 +76,30 @@ export interface ExpensePage {
   totalAmount: number;
 }
 
+/** `GET /api/expense/summary`; `from`/`to` echo the request (null = unbounded). */
+export interface ExpenseSummaryDto {
+  from: string | null;
+  to: string | null;
+  count: number;
+  total_amount: number;
+  by_category: { category: string; count: number; total_amount: number }[];
+}
+
+export interface ExpenseSummary {
+  count: number;
+  /** The server's total. Never sum amounts in the browser. */
+  totalAmount: number;
+  byCategory: { category: string; count: number; totalAmount: number }[];
+}
+
+export function mapExpenseSummary(dto: ExpenseSummaryDto): ExpenseSummary {
+  return {
+    count: dto.count,
+    totalAmount: dto.total_amount,
+    byCategory: dto.by_category.map((c) => ({ category: c.category, count: c.count, totalAmount: c.total_amount })),
+  };
+}
+
 export interface Categories {
   supportedCategories: Category[];
 }
