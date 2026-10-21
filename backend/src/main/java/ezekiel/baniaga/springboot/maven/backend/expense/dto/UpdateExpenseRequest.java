@@ -13,6 +13,7 @@ public record UpdateExpenseRequest (
 
     @NotBlank
     @Size(max=250)
+    @ezekiel.baniaga.springboot.maven.backend.common.NoControlChars
     String description,
 
     @NotNull

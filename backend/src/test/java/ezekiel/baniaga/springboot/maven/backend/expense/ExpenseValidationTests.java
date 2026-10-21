@@ -120,6 +120,48 @@ class ExpenseValidationTests {
     }
 
     @Test
+    void controlCharactersInDescriptionAreRejectedOnCreateUpdateAndPatch() throws Exception {
+        String body = mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"Lunch\",\"amount\":12.50,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+
+        for (String bad : new String[] {"a\\u0000b", "a\\u0001b", "a\\u001fb", "a\\u007fb"}) {
+            mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"description\":\"" + bad + "\",\"amount\":5,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+            mockMvc.perform(put("/api/expense/" + id).header(HttpHeaders.AUTHORIZATION, token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"version\":0,\"description\":\"" + bad + "\",\"amount\":5,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+            mockMvc.perform(patch("/api/expense/" + id + "/description").header(HttpHeaders.AUTHORIZATION, token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"version\":0,\"description\":\"" + bad + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        }
+
+        // Nothing was stored: still just the original expense, unchanged
+        mockMvc.perform(get("/api/expense").header(HttpHeaders.AUTHORIZATION, token))
+            .andExpect(jsonPath("$.expenses", hasSize(1)))
+            .andExpect(jsonPath("$.expenses[0].description").value("Lunch"));
+    }
+
+    @Test
+    void tabAndNewlineInDescriptionAreAccepted() throws Exception {
+        mockMvc.perform(post("/api/expense").header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"a\\tb\\nc\\r\\nd\",\"amount\":5,\"category\":\"FOOD\",\"date\":\"2026-10-01\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.description").value("a\tb\nc\r\nd"));
+    }
+
+    @Test
     void amountMustFitTheColumn() throws Exception {
         // NUMERIC(10,2): at most 8 digits before the point and 2 after
         createWithAmount("123456789.00").andExpect(status().isBadRequest())

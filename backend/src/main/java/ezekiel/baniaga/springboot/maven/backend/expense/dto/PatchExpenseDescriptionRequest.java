@@ -10,6 +10,7 @@ public record PatchExpenseDescriptionRequest (
 
     @NotBlank
     @Size(max=250)
+    @ezekiel.baniaga.springboot.maven.backend.common.NoControlChars
     String description
 
 ){}
