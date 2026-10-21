@@ -164,6 +164,59 @@ describe("expense list", () => {
     );
   });
 
+  it("sorts by header click (URL, aria-sort, request, live region) and flips on the second click", async () => {
+    const sorts: (string | null)[] = [];
+    server.use(
+      http.get(`${BASE}/api/expense`, ({ request }) => {
+        sorts.push(new URL(request.url).searchParams.get("sort"));
+        return HttpResponse.json({
+          ...EMPTY_PAGE,
+          expenses: [{ id: "e1", description: "Lunch", amount: 5, category: "FOOD", date: "2026-10-01", version: 0 }],
+          total: 1,
+          total_pages: 1,
+        });
+      }),
+    );
+    renderAt("/");
+    await screen.findByText("Lunch");
+    expect(sorts.at(-1)).toBe("date,desc");
+    const th = (name: string) => screen.getByRole("button", { name }).closest("th")!;
+    expect(th("Date").getAttribute("aria-sort")).toBe("descending");
+    expect(th("Amount").getAttribute("aria-sort")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Amount" }));
+    await waitFor(() => expect(sorts.at(-1)).toBe("amount,desc"));
+    await waitFor(() => expect(th("Amount").getAttribute("aria-sort")).toBe("descending"));
+    expect(th("Date").getAttribute("aria-sort")).toBeNull();
+    expect(screen.getByText("Sorted by amount, highest first")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Amount" }));
+    await waitFor(() => expect(sorts.at(-1)).toBe("amount,asc"));
+    await waitFor(() => expect(th("Amount").getAttribute("aria-sort")).toBe("ascending"));
+    expect(screen.getByText("Sorted by amount, lowest first")).toBeTruthy();
+  });
+
+  it("the Sort by select writes the same sort param", async () => {
+    const sorts: (string | null)[] = [];
+    server.use(
+      http.get(`${BASE}/api/expense`, ({ request }) => {
+        sorts.push(new URL(request.url).searchParams.get("sort"));
+        return HttpResponse.json({
+          ...EMPTY_PAGE,
+          expenses: [{ id: "e1", description: "Lunch", amount: 5, category: "FOOD", date: "2026-10-01", version: 0 }],
+          total: 1,
+          total_pages: 1,
+        });
+      }),
+    );
+    renderAt("/");
+    await screen.findByText("Lunch");
+    fireEvent.change(screen.getByRole("combobox", { name: "Sort by" }), { target: { value: "description,desc" } });
+    await waitFor(() => expect(sorts.at(-1)).toBe("description,desc"));
+    expect(screen.getByRole("button", { name: "Description" }).closest("th")!.getAttribute("aria-sort")).toBe(
+      "descending",
+    );
+    expect((screen.getByRole("combobox", { name: "Sort by" }) as HTMLSelectElement).value).toBe("description,desc");
+  });
+
   it("pages through the results and a size change goes back to page 0", async () => {
     const pages: string[] = [];
     server.use(
@@ -515,7 +568,7 @@ describe("create expense", () => {
     fill({ description: "Lunch", amount: "12.50", category: "FOOD", date: "2026-10-17" });
     fireEvent.click(screen.getByRole("button", { name: "Add expense" }));
     expect(await screen.findByRole("heading", { name: "Expenses" })).toBeTruthy();
-    expect((await screen.findByRole("status")).textContent).toBe("Added Lunch · 12.50");
+    expect(await screen.findByText("Added Lunch · 12.50")).toBeTruthy();
     expect(body).toEqual({ description: "Lunch", amount: 12.5, category: "FOOD", date: "2026-10-17" });
     // The seeded list was empty, so the row proves the list was invalidated and refetched
     expect((await screen.findByRole("row", { name: /Lunch/ })).className).toBe("row--new");

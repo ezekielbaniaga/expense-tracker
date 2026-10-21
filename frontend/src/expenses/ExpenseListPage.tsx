@@ -18,7 +18,42 @@ import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
+import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
 import { INVALID_CODE_PARAMS, readListParams, toApiQuery } from "./listParams";
+
+type SortKey = "description" | "category" | "date" | "amount";
+
+const NATURAL: Record<SortKey, SortDirection> = {
+  description: "asc",
+  category: "asc",
+  date: "desc",
+  amount: "desc",
+};
+
+const PHRASES: Record<SortKey, { asc: string; desc: string }> = {
+  description: { asc: "A to Z", desc: "Z to A" },
+  category: { asc: "A to Z", desc: "Z to A" },
+  date: { asc: "oldest first", desc: "newest first" },
+  amount: { asc: "lowest first", desc: "highest first" },
+};
+
+const HEADERS: { key: SortKey; label: string }[] = [
+  { key: "description", label: "Description" },
+  { key: "category", label: "Category" },
+  { key: "date", label: "Date" },
+  { key: "amount", label: "Amount" },
+];
+
+/** The phone "Sort by" choices; the values are the same `sort` param the headers write. */
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: "date,desc", label: "Newest" },
+  { value: "date,asc", label: "Oldest" },
+  { value: "amount,desc", label: "Highest amount" },
+  { value: "amount,asc", label: "Lowest amount" },
+  { value: "description,asc", label: "Description A\u2013Z" },
+  { value: "description,desc", label: "Description Z\u2013A" },
+  { value: "category,asc", label: "Category" },
+];
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError && error.messages[0]) return error.messages[0];
@@ -66,6 +101,10 @@ export function ExpenseListPage() {
       return next;
     });
   };
+
+  const [sortKey, sortDir] = params.sort.split(",") as [string, SortDirection];
+  const sortBy = (key: SortKey) =>
+    update({ sort: `${key},${sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : NATURAL[key]}` });
 
   const failure = query.error;
   const invalidParams =
@@ -125,14 +164,33 @@ export function ExpenseListPage() {
               <span>{query.data.total}</span> expenses, total{" "}
               <strong>{formatMoney(query.data.totalAmount, currency)}</strong>
             </p>
+            <div className="sort-select">
+              <label htmlFor="sort-by">Sort by</label>
+              <select id="sort-by" value={params.sort} onChange={(event) => update({ sort: event.target.value })}>
+                {!SORT_OPTIONS.some((o) => o.value === params.sort) && (
+                  <option value={params.sort}>Other</option>
+                )}
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <TableScroll label="Expenses table">
-            <table>
+            <table className="expense-table">
               <thead>
                 <tr>
-                  <th>Description</th>
-                  <th>Category</th>
-                  <th>Date</th>
-                  <th>Amount</th>
+                  {HEADERS.map(({ key, label }) => (
+                    <SortableHeader
+                      key={key}
+                      label={label}
+                      active={sortKey === key}
+                      direction={sortDir}
+                      phrases={PHRASES[key]}
+                      onSort={() => sortBy(key)}
+                    />
+                  ))}
                 </tr>
               </thead>
               <tbody>

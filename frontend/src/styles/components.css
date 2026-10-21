@@ -790,3 +790,23 @@ tr.row--new {
   color: var(--accent-ink);
   background: var(--accent-fill);
 }
+
+/* Expense list sorting: column headers from 48rem, the "Sort by" select below it. One markup. */
+.sort-select {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-block: var(--sp-2);
+}
+
+@media (max-width: 47.999rem) {
+  .expense-table thead {
+    display: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  .sort-select {
+    display: none;
+  }
+}
