@@ -21,3 +21,116 @@
   font-display: swap;
   src: url("../assets/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2");
 }
+
+/* Reset, body, type scale. Tokens only (tokens.css holds the colors). */
+:root {
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: var(--fs-xl);
+}
+
+h2 {
+  font-size: var(--fs-lg);
+}
+
+h3 {
+  font-size: var(--fs-md);
+}
+
+small {
+  font-size: var(--fs-sm);
+}
+
+.caps {
+  font-size: var(--fs-caps);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+a {
+  color: var(--selected-text);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* A visible focus ring for keyboard users, on everything that can take focus */
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Headings get focus from code after a navigation; they need no ring then */
+h1:focus,
+h2:focus,
+main:focus {
+  outline: none;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--sp-2);
+  top: -4rem;
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--surface);
+  color: var(--ink);
+  z-index: 10;
+}
+
+.skip-link:focus {
+  top: var(--sp-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Pastel fills vanish in forced-colors mode, so keep borders and use system colors for state */
+@media (forced-colors: active) {
+  button,
+  input,
+  select,
+  th,
+  td {
+    border-color: CanvasText;
+  }
+
+  nav a[aria-current="page"] {
+    outline: 2px solid Highlight;
+  }
+}

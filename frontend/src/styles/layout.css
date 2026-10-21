@@ -1,0 +1,88 @@
+/* Page structure. Mobile first: the base rules fit ~360px, wider screens only get more room. */
+body {
+  padding: 0 var(--sp-4) var(--sp-5);
+  max-width: 60rem;
+  margin-inline: auto;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+}
+
+nav a {
+  display: inline-block;
+  padding: 0.6rem var(--sp-2);
+}
+
+nav a[aria-current="page"] {
+  font-weight: 700;
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  border-radius: var(--r-sm);
+}
+
+/* Tables scroll inside their box instead of widening the page */
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  padding: var(--sp-2);
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  font-size: var(--fs-caps);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+td {
+  overflow-wrap: anywhere;
+}
+
+td a {
+  display: inline-block;
+  padding: var(--sp-2) 0;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--sp-1) var(--sp-4);
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+li {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 30rem) {
+  dl {
+    grid-template-columns: 1fr;
+  }
+
+  dt {
+    font-weight: 700;
+  }
+}

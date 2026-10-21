@@ -1,0 +1,64 @@
+/* Native form controls and messages. Tokens only. */
+button,
+select,
+input:not([type="checkbox"]) {
+  min-height: 2.75rem;
+  font: inherit;
+  font-size: var(--fs-input);
+  color: var(--ink);
+}
+
+button {
+  padding: 0 0.9rem;
+  margin: var(--sp-1) 0;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+input:not([type="checkbox"]),
+select {
+  width: 100%;
+  max-width: 24rem;
+  margin: var(--sp-1) 0 var(--sp-2);
+  padding: 0 var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+input[type="checkbox"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  vertical-align: middle;
+  accent-color: var(--accent-strong);
+}
+
+label {
+  display: block;
+  margin-top: var(--sp-2);
+}
+
+label:has(input[type="checkbox"]) {
+  display: inline-block;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"] {
+  border: 2px solid var(--danger);
+}
+
+.field-error,
+[role="alert"] {
+  color: var(--danger);
+}
