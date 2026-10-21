@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Theme and accent bootstrap.** Add `frontend/src/ui/theme.ts`: `readTheme()`/`readAccent()` from `localStorage`
-      `ui.theme`/`ui.accent` inside try/catch (defaults `system`/`lavender`), `applyTheme` sets or removes `data-theme`
-      on `<html>`, `applyAccent` sets `data-accent`. Call both in `main.tsx` before `createRoot(...).render`. In
-      `index.html` add two `theme-color` metas with `media` and `viewport-fit=cover`. Test: `src/ui/theme.test.ts`
-      (round trip, invalid values, throwing storage, `system` removes the attribute). Careful: no inline script or style
-      in `index.html` (CSP); jsdom has no `matchMedia`, so don't use it. Proposal: Light, dark and system mode.
 - [ ] **Bundle JetBrains Mono.** Copy the Latin 400/500/700 normal woff2 files and the OFL license from the npm package
       `@fontsource/jetbrains-mono` (fetch with `npm pack @fontsource/jetbrains-mono@<exact version>` into the scratchpad;
       do NOT add it as a dependency) into `frontend/src/assets/fonts/`, with `@font-face` (`font-display: swap`) in a new
@@ -366,3 +360,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] The web UI shows "—" for legacy expenses with null description, amount, category, date or createdAt instead of crashing the list, archived and detail pages, and the edit form starts those fields empty (d88fc78)
 - [x] A render error in a page no longer blanks the app: `Layout` wraps the `Outlet` in an `ErrorBoundary` keyed by the path, showing "Something went wrong" with a link back to the list, and navigating recovers (4ccd1ba)
 - [x] Added design tokens and contrast test (ebb5783)
+- [x] Theme and accent bootstrap in main.tsx with theme-color metas (596719c)
