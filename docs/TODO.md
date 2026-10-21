@@ -15,13 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Design tokens and contrast test.** Add `frontend/src/styles/tokens.css` (proposal Appendix A): neutrals, the six
-      hues (fill/ink/strong), `[data-accent=...]` with Lavender as default, `--primary-*`, `--focus-ring`, `--selected-*`,
-      category tokens, a `--line-strong` for input borders, `--font` (JetBrains Mono everywhere, then the fallback stack),
-      type scale, spacing, radius, shadow, motion; dark values in both the media query and `:root[data-theme="dark"]`.
-      Import it first in `main.tsx`. Test: `src/styles/tokens.test.ts` parses the file and asserts the two dark blocks
-      match and every documented text/background pair is ≥ 4.5:1 (focus ring and `--line-strong` ≥ 3:1) in light and dark.
-      Careful: `--line` on `--surface` is 1.27:1, so it is for dividers only. Proposal: Color system.
 - [ ] **Theme and accent bootstrap.** Add `frontend/src/ui/theme.ts`: `readTheme()`/`readAccent()` from `localStorage`
       `ui.theme`/`ui.accent` inside try/catch (defaults `system`/`lavender`), `applyTheme` sets or removes `data-theme`
       on `<html>`, `applyAccent` sets `data-accent`. Call both in `main.tsx` before `createRoot(...).render`. In
@@ -372,3 +365,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] The web UI shows "Never" for an expense with a null `lastModified` instead of blanking the page after Add expense; the create mocks now send `null` (1a660d2)
 - [x] The web UI shows "—" for legacy expenses with null description, amount, category, date or createdAt instead of crashing the list, archived and detail pages, and the edit form starts those fields empty (d88fc78)
 - [x] A render error in a page no longer blanks the app: `Layout` wraps the `Outlet` in an `ErrorBoundary` keyed by the path, showing "Something went wrong" with a link back to the list, and navigating recovers (4ccd1ba)
+- [x] Added design tokens and contrast test (ebb5783)
