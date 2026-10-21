@@ -15,11 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Frontend: phone rows and day grouping.** Restyle the same list table by CSS into cards under 48rem (whole row is
-      the link, link text stays the description, category icon, amount right). When sorted by date, group rows into a
-      `<tbody>` per day with a header row (`<th scope="rowgroup" colspan>`: Today / Yesterday / "Oct 19 · Sun");
-      other sorts are flat. Numbered pages on every size (no Load more). Test: group headers only for the date sort, links
-      still found by description. Proposal: Expenses (home).
 - [ ] **Frontend: summary card.** Hero card above the list with the server `total_amount` and `total` of the current
       filters, and a category breakdown from `GET /api/expense/summary` (key `["expenses", "summary", {from, to}]`): a
       stacked bar of category fills (`role="img"`, `aria-label` with amounts and percentages) and a text legend. Test:
@@ -217,3 +212,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Frontend: list on version 1.3 with URL params and paging (a529f32)
 - [x] Frontend sortable list: SortableHeader columns and a phone-only Sort by select write `sort` to the URL (dd3ecfc)
 - [x] Frontend: search, period chips and filters on the expense list (09128ea)
+- [x] Frontend: phone rows as cards and day grouping under the date sort (90197e8)
