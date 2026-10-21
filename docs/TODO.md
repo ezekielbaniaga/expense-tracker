@@ -15,13 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Dialog for expense delete.** Add `frontend/src/ui/Dialog.tsx` (native `<dialog>`, `showModal()` when present else
-      set `open`; labelled by its title; `cancel` closes; focus Cancel first and return to the opener). Polyfill
-      `showModal`/`close` in `src/test/setup.ts` (jsdom 30 lacks them). Replace `DeletePanel` in `ExpenseDetailPage.tsx`
-      with a dialog "Delete this expense?" / "It moves to Archived and is removed for good later." / Cancel / Delete,
-      keeping `WriteNotice` inside it, `DELETE ?version=`, cache removal and invalidations. Only this confirm becomes a
-      dialog; profile and admin confirms stay inline. Test: `Dialog.test.tsx`; update `a11y.test.tsx:170,336-340` and
-      `expenses.test.tsx:611,626` ("Confirm delete" → "Delete"). Proposal: Expense detail and edit.
 - [ ] **Money and date formatting.** Add `frontend/src/format/money.ts` (`formatMoney(amount, currency?, locale?)`: browser
       locale by default, grouping, 2 decimals, symbol only when `ui.currency` is set, `MISSING` for null) and
       `src/format/dates.ts` (`parseUtc` appends `Z`, `formatLocalDateTime`, `formatDay`, `formatRelativeDay`). Use them for
@@ -304,3 +297,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] App shell: top bar, one responsive Main nav, Add expense link, h1 PageHeading (dc132b6)
 - [x] Account menu in the top bar replacing "Signed in as" and the nav Sign out (24dd7bf)
 - [x] Success toasts: showSuccess in Toast.tsx (4 s, paused on hover/focus) for add, save, description, delete and session sign-outs (00eb77d)
+- [x] Dialog for expense delete (4851bc3)
