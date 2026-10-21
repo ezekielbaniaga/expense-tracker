@@ -15,15 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Account menu.** Add `frontend/src/ui/AccountMenu.tsx`: avatar button (`aria-label="Account menu for {username}"`,
-      `aria-expanded`) disclosing a labelled region with avatar, username and role, links Profile, Your devices
-      (`/me#devices`), Admin (ADMIN only), appearance (`SegmentedControl` System/Light/Dark, accent swatch radios) and
-      Sign out (today's logout behaviour). Escape and outside click close and return focus. Remove "Signed in as" and the
-      nav's Sign out. Give the profile devices section `id="devices"` and scroll/focus to it on that hash. No keyboard
-      shortcuts. Test: `AccountMenu.test.tsx`; update `Layout.test.tsx:52`, `auth.test.tsx:219`,
-      `expenses.test.tsx:131-139`, `e2e/helpers.ts` (`signedIn` → the menu button) and `e2e/auth.spec.ts:10`. Careful:
-      don't call `/users/me` from the shell (MSW errors on unmocked requests); leave "member since" to Profile.
-      Proposal: Account avatar and menu.
 - [ ] **Success toasts.** Extend `frontend/src/ui/Toast.tsx` with `showSuccess(message)` (`role="status"`, hides after
       4 s, paused on hover/focus; errors stay `role="alert"` until dismissed), placed by CSS above the tab bar on phones.
       Use for expense added ("Added {description} · {amount}"), saved ("Saved"), description saved, deleted ("Expense
@@ -317,3 +308,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Card, Skeleton and EmptyState added and used for loading, empty and error states (536107b)
 - [x] Added initials, hueFor, Avatar and PreferencesProvider with tests (6bc85a7)
 - [x] App shell: top bar, one responsive Main nav, Add expense link, h1 PageHeading (dc132b6)
+- [x] Account menu in the top bar replacing "Signed in as" and the nav Sign out (24dd7bf)
