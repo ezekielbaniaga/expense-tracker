@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
       `/{uniqueId}`). Proposal: Backend changes 2.
-- [ ] **Frontend: search, period chips and filters.** Search "Search descriptions" (300 ms debounce, `q`); period chips
-      This month (default) / Last month / Last 3 months / This year / All time / Custom writing `from`/`to` in the local
-      calendar like `todayIso`; a Filters disclosure (one markup; collapsed on phones by default) with category checkbox
-      chips, date range and min/max amount; active-count on the Filters button; "Clear filters"; "No expenses match these
-      filters." when `total` is 0 with filters. Test: URL and request params per control, debounce with fake timers,
-      period dates for a fixed now, no-match, clear. Careful: never `toISOString` for dates. Proposal: Expenses (home).
 - [ ] **Frontend: phone rows and day grouping.** Restyle the same list table by CSS into cards under 48rem (whole row is
       the link, link text stays the description, category icon, amount right). When sorted by date, group rows into a
       `<tbody>` per day with a header row (`<th scope="rowgroup" colspan>`: Today / Yesterday / "Oct 19 · Sun");
@@ -222,3 +216,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Backend expense summary: GET /api/expense/summary with from/to and per-category totals (36432d3)
 - [x] Frontend: list on version 1.3 with URL params and paging (a529f32)
 - [x] Frontend sortable list: SortableHeader columns and a phone-only Sort by select write `sort` to the URL (dd3ecfc)
+- [x] Frontend: search, period chips and filters on the expense list (09128ea)
