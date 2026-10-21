@@ -1024,7 +1024,7 @@ Content-Type: application/json
 ```
 
 * No access token needed. Always creates a `USER` (never an `ADMIN`), enabled.
-* `201 Created` with `{ id, username, role, createdAt }`. `id` is the user's `unique_id` (UUID), never the
+* `201 Created` with `{ id, username, displayName, role, createdAt }`. `id` is the user's `unique_id` (UUID), never the
   database id. No tokens are returned; the client calls `/auth/login` next.
 * `409 USERNAME_TAKEN` if the name exists in any letter case. Usernames are unique ignoring case
   (index added in V11), so `alice` is taken once `Alice` exists. Login matches the username in any case.
@@ -1065,8 +1065,24 @@ if it is shorter than 12 characters (an existing admin is left alone, so older s
 GET /users/me
 ```
 
-`200` with `{ id, username, role, createdAt }`. `404 USER_NOT_FOUND` if the account was removed after the
-token was issued.
+`200` with `{ id, username, displayName, role, createdAt }` (`displayName` is `null` until set). `404
+USER_NOT_FOUND` if the account was removed after the token was issued.
+
+```http
+PATCH /users/me
+Content-Type: application/json
+
+{ "displayName": "Ezekiel Baniaga" }
+```
+
+* `200` with the updated profile (same shape as `GET /users/me`).
+* The name is stripped of leading and trailing whitespace and must then be 1-100 characters without
+  control characters (such as newlines); an empty or blank string clears it back to `null`.
+  Anything else, a missing or `null` `displayName` included, is `400 INVALID_DISPLAY_NAME`.
+* No `version` check: only the owner edits it, so the last write wins. It is not in the access token;
+  clients read it from `GET /users/me`. Admin responses (`GET /users`, `/users/{id}`) include it too.
+  Setting it bumps the user's `version` and `lastModified`, so an admin PATCH sent with the older
+  version gets `409` and must re-read the user first.
 
 ```http
 POST /users/me/password
@@ -1105,7 +1121,7 @@ GET /users?username=ali&enabled=true&sort=username,asc&page=0&size=20
 * `page` is zero-based (default 0), `size` defaults to 20 (maximum 100). Anything outside that range is
   `400 INVALID_PAGE`.
 * `200` with `{ users: [...], page, size, total, totalPages }`. Each user is
-  `{ id, username, role, enabled, version, createdAt, lastModified }`. The password hash is never returned.
+  `{ id, username, displayName, role, enabled, version, createdAt, lastModified }`. The password hash is never returned.
 
 ```http
 GET /users/{id}

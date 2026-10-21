@@ -39,4 +39,8 @@ public class User {
     private LocalDateTime createdAt;
 
     private LocalDateTime lastModified;
+
+    // Optional, null when unset. Not in the access token: clients read it from GET /users/me
+    @Column(length = 100)
+    private String displayName;
 }

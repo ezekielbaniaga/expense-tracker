@@ -12,6 +12,7 @@ import java.util.UUID;
 public record AdminUserResponse(
     UUID id,
     String username,
+    String displayName,
     Role role,
     boolean enabled,
     Long version,

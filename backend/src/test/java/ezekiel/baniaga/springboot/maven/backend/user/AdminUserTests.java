@@ -154,7 +154,14 @@ class AdminUserTests {
             .andExpect(jsonPath("$.role").value("USER"))
             .andExpect(jsonPath("$.enabled").value(true))
             .andExpect(jsonPath("$.version").value(0))
+            .andExpect(jsonPath("$.displayName").isEmpty())
             .andExpect(jsonPath("$.password").doesNotExist());
+
+        target.setDisplayName("Target Name");
+        userRepository.saveAndFlush(target);
+        mockMvc.perform(get("/users/" + target.getUniqueId()).header(HttpHeaders.AUTHORIZATION, adminBearer))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.displayName").value("Target Name"));
 
         mockMvc.perform(get("/users/" + UUID.randomUUID()).header(HttpHeaders.AUTHORIZATION, adminBearer))
             .andExpect(status().isNotFound())

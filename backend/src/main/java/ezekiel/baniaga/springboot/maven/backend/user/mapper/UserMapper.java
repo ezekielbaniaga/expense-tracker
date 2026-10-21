@@ -12,6 +12,7 @@ public class UserMapper {
         return new UserResponse(
             user.getUniqueId(),
             user.getUsername(),
+            user.getDisplayName(),
             user.getRole(),
             user.getCreatedAt());
     }
@@ -20,6 +21,7 @@ public class UserMapper {
         return new AdminUserResponse(
             user.getUniqueId(),
             user.getUsername(),
+            user.getDisplayName(),
             user.getRole(),
             user.isEnabled(),
             user.getVersion(),

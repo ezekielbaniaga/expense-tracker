@@ -50,6 +50,7 @@ class RegisterTests {
         String body = register(username, PASSWORD)
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").exists())
+            .andExpect(jsonPath("$.displayName").isEmpty())
             .andExpect(jsonPath("$.username").value(username))
             .andExpect(jsonPath("$.role").value("USER"))
             .andExpect(jsonPath("$.createdAt").exists())

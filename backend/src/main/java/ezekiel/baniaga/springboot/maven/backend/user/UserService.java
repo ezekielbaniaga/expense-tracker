@@ -42,6 +42,7 @@ public class UserService {
     private final DefaultUUIDGenerator uuidGenerator;
     private final PasswordValidator passwordValidator;
     private final UsernameValidator usernameValidator;
+    private final DisplayNameValidator displayNameValidator;
     private final UserSessionService userSessionService;
     private final PasswordChangeRateLimiter passwordChangeRateLimiter;
     private final Clock clock;
@@ -54,6 +55,20 @@ public class UserService {
     public User getByUniqueId(UUID uniqueId) {
         return userRepository.findByUniqueId(uniqueId)
             .orElseThrow(() -> new ResourceNotFoundException("USER_NOT_FOUND", "User not found."));
+    }
+
+    /**
+     * Sets or clears (empty string) the caller's display name. No version
+     * check: only the owner edits it, so last write wins. 400
+     * INVALID_DISPLAY_NAME if it breaks the rules in DisplayNameValidator.
+     */
+    @Transactional
+    public User updateDisplayName(UUID uniqueId, String rawDisplayName) {
+        String displayName = displayNameValidator.normalizeAndValidate(rawDisplayName);
+        User user = getByUniqueId(uniqueId);
+        user.setDisplayName(displayName);
+        user.setLastModified(LocalDateTime.now(clock));
+        return userRepository.saveAndFlush(user);
     }
 
     /**

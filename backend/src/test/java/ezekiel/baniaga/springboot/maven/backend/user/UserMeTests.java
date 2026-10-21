@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -153,6 +154,101 @@ class UserMeTests {
         refresh(fresh.refreshToken()).andExpect(status().isOk());
     }
 
+    @Test
+    void meShowsNullDisplayNameUntilSet() throws Exception {
+        String username = uniqueName("Nell");
+        register(username);
+        Tokens tokens = login(username, PASSWORD);
+
+        mockMvc.perform(get("/users/me").header(HttpHeaders.AUTHORIZATION, tokens.bearer()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.displayName").isEmpty());
+    }
+
+    // A plain USER, not only an admin: /users/me matches before the ADMIN-only /users/**
+    @Test
+    void userSetsTrimmedDisplayNameAndMeReturnsIt() throws Exception {
+        String username = uniqueName("Fay");
+        register(username);
+        Tokens tokens = login(username, PASSWORD);
+
+        patchMe(tokens, "{\"displayName\": \"  Fay Baniaga \\t\"}")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.username").value(username))
+            .andExpect(jsonPath("$.role").value("USER"))
+            .andExpect(jsonPath("$.displayName").value("Fay Baniaga"))
+            .andExpect(jsonPath("$.password").doesNotExist());
+
+        mockMvc.perform(get("/users/me").header(HttpHeaders.AUTHORIZATION, tokens.bearer()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.displayName").value("Fay Baniaga"));
+
+        assertThat(userRepository.findByUsername(username).orElseThrow().getDisplayName())
+            .isEqualTo("Fay Baniaga");
+    }
+
+    @Test
+    void emptyOrBlankDisplayNameClearsIt() throws Exception {
+        String username = uniqueName("Gil");
+        register(username);
+        Tokens tokens = login(username, PASSWORD);
+
+        patchMe(tokens, "{\"displayName\": \"Gil\"}").andExpect(status().isOk());
+        patchMe(tokens, "{\"displayName\": \"\"}")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.displayName").isEmpty());
+        assertThat(userRepository.findByUsername(username).orElseThrow().getDisplayName()).isNull();
+
+        patchMe(tokens, "{\"displayName\": \"Gil\"}").andExpect(status().isOk());
+        patchMe(tokens, "{\"displayName\": \"   \"}").andExpect(status().isOk());
+        assertThat(userRepository.findByUsername(username).orElseThrow().getDisplayName()).isNull();
+    }
+
+    @Test
+    void displayNameAtTheLimitIsAccepted() throws Exception {
+        String username = uniqueName("Hal");
+        register(username);
+        Tokens tokens = login(username, PASSWORD);
+        // 100 characters, some outside the BMP: the limit counts characters, not UTF-16 units
+        String name = "\uD83D\uDE00".repeat(50) + "a".repeat(50);
+
+        patchMe(tokens, json(Map.of("displayName", name)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.displayName").value(name));
+    }
+
+    @Test
+    void invalidDisplayNameIs400AndChangesNothing() throws Exception {
+        String username = uniqueName("Ivy");
+        register(username);
+        Tokens tokens = login(username, PASSWORD);
+        patchMe(tokens, "{\"displayName\": \"Ivy\"}").andExpect(status().isOk());
+
+        for (String body : new String[] {
+            json(Map.of("displayName", "a".repeat(101))),
+            json(Map.of("displayName", "Ivy\nAdmin")),
+            json(Map.of("displayName", "Ivy\u0000")),
+            json(Map.of("displayName", "Ivy\u007F")),
+            "{\"displayName\": null}",
+            "{}"
+        }) {
+            patchMe(tokens, body)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_DISPLAY_NAME"))
+                .andExpect(jsonPath("$.messages[0]").exists());
+        }
+
+        assertThat(userRepository.findByUsername(username).orElseThrow().getDisplayName()).isEqualTo("Ivy");
+    }
+
+    @Test
+    void patchMeWithoutTokenIs401() throws Exception {
+        mockMvc.perform(patch("/users/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"displayName\": \"x\"}"))
+            .andExpect(status().isUnauthorized());
+    }
+
     private record Tokens(String accessToken, String refreshToken) {
         String bearer() {
             return "Bearer " + accessToken;
@@ -190,6 +286,13 @@ class UserMeTests {
             .header(HttpHeaders.AUTHORIZATION, tokens.bearer())
             .contentType(MediaType.APPLICATION_JSON)
             .content(json(Map.of("currentPassword", current, "newPassword", next))));
+    }
+
+    private ResultActions patchMe(Tokens tokens, String body) throws Exception {
+        return mockMvc.perform(patch("/users/me")
+            .header(HttpHeaders.AUTHORIZATION, tokens.bearer())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body));
     }
 
     private String json(Map<String, String> body) {

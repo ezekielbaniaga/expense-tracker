@@ -5,6 +5,7 @@ import ezekiel.baniaga.springboot.maven.backend.session.UserSessionService;
 import ezekiel.baniaga.springboot.maven.backend.session.dto.RevokedSessionsResponse;
 import ezekiel.baniaga.springboot.maven.backend.session.dto.SessionResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.ChangePasswordRequest;
+import ezekiel.baniaga.springboot.maven.backend.user.dto.UpdateProfileRequest;
 import ezekiel.baniaga.springboot.maven.backend.user.dto.UserResponse;
 import ezekiel.baniaga.springboot.maven.backend.user.mapper.UserMapper;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +40,19 @@ public class UserController {
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal CustomUserDetails user) {
         return userMapper.toResponse(userService.getByUniqueId(user.getUniqueId()));
+    }
+
+    /**
+     * Sets your display name (stripped, 1-100 characters, no control
+     * characters); an empty string clears it. 200 with the updated profile,
+     * 400 INVALID_DISPLAY_NAME otherwise. No version check.
+     */
+    @PatchMapping("/me")
+    public UserResponse updateMe(
+        @AuthenticationPrincipal CustomUserDetails user,
+        @RequestBody UpdateProfileRequest request) {
+
+        return userMapper.toResponse(userService.updateDisplayName(user.getUniqueId(), request.displayName()));
     }
 
     /**
