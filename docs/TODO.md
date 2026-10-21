@@ -15,12 +15,6 @@ From docs/ui-design-proposal.md. Work in order. Frontend paths start with `front
 `frontend/e2e/*` selectors it breaks in the same commit (running `run_e2e.sh` is optional; say if it was not run).
 Phone vs wide is CSS only: one markup for every size, never two copies of a nav, list or control in the DOM.
 
-- [ ] **Profile cards and device names.** Profile becomes Account (avatar, username, role, member since), Appearance
-      (theme, accent, currency), Security (password change with a warning that every device signs out) and Your devices
-      (`id="devices"`). Add `frontend/src/format/userAgent.ts` `deviceName(ua)` ("Firefox on Linux", "Safari on iPhone",
-      fallback raw string or "Unknown device"), "Last active 5 min ago", "This device" badge. Revoke and "Sign out other
-      devices" keep their inline confirms and focus return. Test: `userAgent.test.ts` (~8 real UAs), `profile.test.tsx`.
-      Proposal: Profile.
 - [ ] **SortableHeader and archived sorting.** Add `frontend/src/ui/SortableHeader.tsx` (`aria-sort` only on the active
       column, a `<button>` named by the column, polite live region "Sorted by amount, highest first", first click natural
       direction, second flips). On `ArchivedPage` sort by description, amount and archived date in the browser (default
@@ -271,3 +265,4 @@ Phone vs wide is CSS only: one markup for every size, never two copies of a nav,
 - [x] Add/edit form: amount first, category chips (ee770f1)
 - [x] Add form: Today/Yesterday date chips, back to the list with a highlighted row, Add another (f0fe9ba)
 - [x] Expense detail restyle: hero, Details card, shortened id with copy, back links (27ff8ea)
+- [x] Profile cards (Account, Appearance, Security, Your devices) and device names (b3e391e)
