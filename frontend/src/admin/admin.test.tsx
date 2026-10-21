@@ -195,8 +195,9 @@ describe("users list", () => {
       expect(await screen.findByRole("link", { name: "user1x0" })).toBeTruthy();
       state.total = 20;
       await act(() => queryClient.invalidateQueries({ queryKey: ["users"] }));
-      expect(await screen.findByRole("link", { name: "user0x0" })).toBeTruthy();
-      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      // Page 0 is cached with the old total, so wait for the fresh "Page 1 of 1" rather than the rows
+      expect(await screen.findByText("Page 1 of 1")).toBeTruthy();
+      expect(screen.getByRole("link", { name: "user0x0" })).toBeTruthy();
       expect(requests.at(-1)!.page).toBe("0");
     });
 

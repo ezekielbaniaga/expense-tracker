@@ -585,8 +585,9 @@ describe("expense list", () => {
       expect(screen.getByText("Page 2 of 2")).toBeTruthy();
       state.total = 20;
       await act(() => queryClient.invalidateQueries({ queryKey: ["expenses"] }));
-      expect(await screen.findByText("Item 0-0")).toBeTruthy();
-      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      // Page 0 is cached with the old total, so wait for the fresh "Page 1 of 1" rather than the rows
+      expect(await screen.findByText("Page 1 of 1")).toBeTruthy();
+      expect(screen.getByText("Item 0-0")).toBeTruthy();
       expect(pages.at(-1)).toBe("0");
     });
 
