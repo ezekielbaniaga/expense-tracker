@@ -1,6 +1,7 @@
 package ezekiel.baniaga.springboot.maven.backend.user;
 
 import ezekiel.baniaga.springboot.maven.backend.common.BadRequestException;
+import ezekiel.baniaga.springboot.maven.backend.common.LikeEscaper;
 import ezekiel.baniaga.springboot.maven.backend.common.BusinessRuleException;
 import ezekiel.baniaga.springboot.maven.backend.common.ResourceNotFoundException;
 import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
@@ -171,7 +172,7 @@ public class UserService {
         Specification<User> filters = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (username != null && !username.isBlank()) {
-                String pattern = "%" + escapeLike(username.toLowerCase()) + "%";
+                String pattern = "%" + LikeEscaper.escape(username.toLowerCase()) + "%";
                 predicates.add(cb.like(cb.lower(root.get("username")), pattern, '\\'));
             }
             if (enabled != null) {
@@ -241,9 +242,5 @@ public class UserService {
             userSessionService.revokeAllForUser(saved.getId());
         }
         return saved;
-    }
-
-    private static String escapeLike(String value) {
-        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

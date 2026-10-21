@@ -185,4 +185,74 @@ class ExpenseListV1_3Tests {
         expectOrder("", "mine");
         list("").andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.total_amount").value(10.0));
     }
+
+    @Test
+    void textFilterIsCaseInsensitiveContainsWithLiteralWildcards() throws Exception {
+        insert("Coffee beans", "5.00", "FOOD", "2026-01-01", 1);
+        insert("100% juice", "6.00", "FOOD", "2026-01-02", 2);
+        insert("a_b", "7.00", "FOOD", "2026-01-03", 3);
+        insert("axb", "8.00", "FOOD", "2026-01-04", 4);
+        insert("back\\slash", "9.00", "FOOD", "2026-01-05", 5);
+        expectOrder("?q=COFFEE", "Coffee beans");
+        expectOrder("?q=%", "100% juice");
+        expectOrder("?q=_", "a_b");
+        expectOrder("?q=a_b", "a_b");
+        expectOrder("?q=\\", "back\\slash");
+        list("?q=COFFEE").andExpect(jsonPath("$.total_amount").value(5.0));
+        list("?q=" + "x".repeat(100)).andExpect(status().isOk());
+        list("?q=" + "x".repeat(101)).andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void categoryFilterIsRepeatableAndCaseInsensitive() throws Exception {
+        seedFour();
+        expectOrder("?category=food&sort=amount,asc", "a", "d");
+        expectOrder("?category=FOOD&category=bills&sort=amount,asc", "a", "c", "d");
+        expectOrder("?category=FOOD,BILLS&sort=amount,asc", "a", "c", "d");
+        list("?category=food").andExpect(jsonPath("$.total_amount").value(50.0));
+        list("?category=nope").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_CATEGORY"));
+        list("?category=food&category=nope").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_CATEGORY"));
+    }
+
+    @Test
+    void dateRangeIsInclusiveAndSkipsRowsWithoutDate() throws Exception {
+        seedFour();
+        insert("nodate", "1.00", "FOOD", null, 5);
+        expectOrder("?from=2026-02-01&sort=date,asc", "b", "a", "c");
+        expectOrder("?to=2026-02-01&sort=date,asc", "d", "b");
+        expectOrder("?from=2026-02-01&to=2026-03-01&sort=date,asc", "b", "a");
+        expectOrder("?from=2026-02-01&to=2026-02-01", "b");
+        list("?from=2026-03-01&to=2026-02-01").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_DATE_RANGE"));
+        for (String q : new String[] {"?from=2026-13-01", "?to=nope", "?from=01/02/2026"}) {
+            list(q).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        }
+    }
+
+    @Test
+    void amountRangeIsInclusiveAndSkipsRowsWithoutAmount() throws Exception {
+        seedFour();
+        insert("noamount", null, "FOOD", "2026-05-01", 5);
+        expectOrder("?minAmount=20&sort=amount,asc", "b", "c", "d");
+        expectOrder("?maxAmount=20&sort=amount,asc", "a", "b");
+        expectOrder("?minAmount=10.00&maxAmount=30&sort=amount,asc", "a", "b", "c");
+        list("?minAmount=20&maxAmount=20").andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.total_amount").value(20.0));
+        list("?minAmount=30&maxAmount=20").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_AMOUNT_RANGE"));
+        list("?minAmount=abc").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void filtersCombineAndTotalsFollowThem() throws Exception {
+        seedFour();
+        insert("food again", "5.00", "FOOD", "2026-03-15", 5);
+        expectOrder("?category=food&from=2026-03-01&minAmount=6&q=A&sort=amount,asc", "a");
+        list("?category=food&from=2026-03-01").andExpect(jsonPath("$.total").value(2))
+            .andExpect(jsonPath("$.total_amount").value(15.0));
+        list("?category=food&size=1").andExpect(jsonPath("$.total").value(3))
+            .andExpect(jsonPath("$.total_pages").value(3)).andExpect(jsonPath("$.total_amount").value(55.0));
+        expectOrder("?q=zzz");
+    }
 }

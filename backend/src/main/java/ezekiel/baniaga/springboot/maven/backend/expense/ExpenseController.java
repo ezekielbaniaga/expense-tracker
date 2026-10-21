@@ -3,10 +3,14 @@ package ezekiel.baniaga.springboot.maven.backend.expense;
 import ezekiel.baniaga.springboot.maven.backend.auth.security.CustomUserDetails;
 import ezekiel.baniaga.springboot.maven.backend.expense.dto.*;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -39,8 +43,15 @@ public class ExpenseController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "date,desc") String sort,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) List<String> category,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
             @AuthenticationPrincipal CustomUserDetails user) {
-        return service.getExpensesV1_3(user.getUniqueId(), page, size, sort);
+        return service.getExpensesV1_3(user.getUniqueId(), page, size, sort,
+            new ExpenseService.ListFilters(q, category, from, to, minAmount, maxAmount));
     }
 
     @GetMapping(value = "/archived")

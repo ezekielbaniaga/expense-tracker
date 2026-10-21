@@ -2,6 +2,7 @@ package ezekiel.baniaga.springboot.maven.backend.expense;
 
 import ezekiel.baniaga.springboot.maven.backend.common.BadRequestException;
 import ezekiel.baniaga.springboot.maven.backend.common.BusinessRuleException;
+import ezekiel.baniaga.springboot.maven.backend.common.LikeEscaper;
 import ezekiel.baniaga.springboot.maven.backend.common.ResourceNotFoundException;
 import ezekiel.baniaga.springboot.maven.backend.config.DefaultUUIDGenerator;
 import ezekiel.baniaga.springboot.maven.backend.expense.dto.*;
@@ -10,6 +11,7 @@ import ezekiel.baniaga.springboot.maven.backend.expense.entity.Expense;
 import ezekiel.baniaga.springboot.maven.backend.expense.mapper.ExpenseMapper;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Order;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.ArrayList;
@@ -37,6 +40,11 @@ public class ExpenseService {
     private final Clock clock;
 
     static final int MAX_PAGE_SIZE = 100;
+    static final int MAX_QUERY_LENGTH = 100;
+
+    public record ListFilters(String q, List<String> category, LocalDate from, LocalDate to,
+                              BigDecimal minAmount, BigDecimal maxAmount) {
+    }
 
     // API sort field -> entity attribute
     private static final Map<String, String> SORT_FIELDS = Map.of(
@@ -136,7 +144,7 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public ExpenseListResponseV1_3 getExpensesV1_3(UUID ownerId, int page, int size, String sort) {
+    public ExpenseListResponseV1_3 getExpensesV1_3(UUID ownerId, int page, int size, String sort, ListFilters f) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new BadRequestException("INVALID_PAGE",
                 "page must be 0 or more and size between 1 and " + MAX_PAGE_SIZE + ".");
@@ -151,9 +159,45 @@ public class ExpenseService {
         }
         boolean ascending = dir.equals("asc");
 
-        Specification<Expense> filters = (root, query, cb) -> cb.and(
-            cb.equal(root.get("ownerId"), ownerId),
-            cb.or(cb.isNull(root.get("archived")), cb.isFalse(root.get("archived"))));
+        String q = f.q() == null || f.q().isBlank() ? null : f.q();
+        if (q != null && q.length() > MAX_QUERY_LENGTH) {
+            throw new BadRequestException("VALIDATION_ERROR", "q must be at most " + MAX_QUERY_LENGTH + " characters.");
+        }
+        List<Category> categories = f.category() == null ? List.of()
+            : f.category().stream().map(ExpenseMapper::parseCategory).toList();
+        if (f.from() != null && f.to() != null && f.from().isAfter(f.to())) {
+            throw new BadRequestException("INVALID_DATE_RANGE", "from must not be after to.");
+        }
+        if (f.minAmount() != null && f.maxAmount() != null && f.minAmount().compareTo(f.maxAmount()) > 0) {
+            throw new BadRequestException("INVALID_AMOUNT_RANGE", "minAmount must not be more than maxAmount.");
+        }
+
+        // Comparisons and IN never match NULL, so legacy rows without a date or amount drop out of those filters
+        Specification<Expense> filters = (root, query, cb) -> {
+            List<Predicate> p = new ArrayList<>();
+            p.add(cb.equal(root.get("ownerId"), ownerId));
+            p.add(cb.or(cb.isNull(root.get("archived")), cb.isFalse(root.get("archived"))));
+            if (q != null) {
+                p.add(cb.like(cb.lower(root.get("description")),
+                    "%" + LikeEscaper.escape(q.toLowerCase()) + "%", '\\'));
+            }
+            if (!categories.isEmpty()) {
+                p.add(root.get("category").in(categories));
+            }
+            if (f.from() != null) {
+                p.add(cb.greaterThanOrEqualTo(root.<LocalDate>get("expenseDate"), f.from()));
+            }
+            if (f.to() != null) {
+                p.add(cb.lessThanOrEqualTo(root.<LocalDate>get("expenseDate"), f.to()));
+            }
+            if (f.minAmount() != null) {
+                p.add(cb.greaterThanOrEqualTo(root.<BigDecimal>get("amount"), f.minAmount()));
+            }
+            if (f.maxAmount() != null) {
+                p.add(cb.lessThanOrEqualTo(root.<BigDecimal>get("amount"), f.maxAmount()));
+            }
+            return cb.and(p.toArray(new Predicate[0]));
+        };
 
         // Sorting is done here, not through Pageable: NULLs must come last both ways (PostgreSQL puts
         // them first on DESC), and the count query must not carry an ORDER BY

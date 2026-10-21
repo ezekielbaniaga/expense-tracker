@@ -64,7 +64,7 @@ public class ExpenseMapper {
             expense.getArchivedAt());
     }
 
-    private static Category parseCategory(String value) {
+    public static Category parseCategory(String value) {
         if (value == null) return null;
 
         try {
