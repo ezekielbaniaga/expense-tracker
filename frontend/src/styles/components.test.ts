@@ -34,6 +34,14 @@ describe("components.css", () => {
     expect(css).toMatch(/\.chip-group legend,\s*\.segmented legend \{\s*padding: 0;/);
   });
 
+  // Selected segment: inset ring instead of a border (no double outline); equal-width items; forced-colors border kept
+  it("draws the selected segment as a ring on equal-width items", () => {
+    expect(css).toMatch(/\.segmented__track \{[^}]*display: inline-grid;\s*grid-auto-flow: column;\s*grid-auto-columns: 1fr;[^}]*padding: 3px;/);
+    expect(css).toMatch(/\.segmented__item--selected \{[^}]*box-shadow: inset 0 0 0 2px var\(--accent-strong\);/);
+    expect(css).not.toMatch(/\.segmented__item \{[^}]*border: 2px/);
+    expect(css).toMatch(/forced-colors: active\) \{[\s\S]*?\.segmented__item--selected \{\s*border: 2px solid Highlight;/);
+  });
+
   // The Filters panel is collapsed at every width, not only on phones
   it("hides the closed filters panel at every width", () => {
     expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);

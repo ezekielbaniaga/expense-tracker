@@ -343,10 +343,13 @@ form:not(:has(> .filter-bar)) :is(input:not([type="checkbox"]), select) {
 }
 
 .segmented__track {
-  display: inline-flex;
+  /* equal-width columns so "Enabled" and "Disabled" make a balanced switch */
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 2px;
   margin-top: var(--sp-1);
-  padding: 2px;
+  padding: 3px;
   background: var(--surface-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-full);
@@ -361,21 +364,25 @@ form:not(:has(> .filter-bar)) :is(input:not([type="checkbox"]), select) {
   margin: 0;
   padding: 0 var(--sp-4);
   font-size: var(--fs-base);
-  border: 2px solid transparent;
   border-radius: var(--r-full);
   cursor: pointer;
 }
 
+/* fill plus an inset ring, no border, so it does not read as a second outline inside the track border */
 .segmented__item--selected {
   color: var(--selected-text);
   background: var(--selected-bg);
-  border-color: var(--accent-strong);
+  box-shadow: inset 0 0 0 2px var(--accent-strong);
 }
 
 @media (forced-colors: active) {
-  .chip--selected,
-  .segmented__item--selected {
+  .chip--selected {
     border-color: Highlight;
+  }
+
+  /* box-shadow is dropped in forced colors, so the selected item needs a real border */
+  .segmented__item--selected {
+    border: 2px solid Highlight;
   }
 }
 
