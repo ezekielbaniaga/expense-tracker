@@ -26,12 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Content shifts sideways when the vertical scrollbar appears or goes (desktop).** Measured: 45 users give a
-      15px scrollbar, a 2-user search none, and the nav moves 7.5px (379.5 to 387). The same happens between any
-      long and short page (Archived, Profile). Fix: `html { scrollbar-gutter: stable; }` in `base.css`. Tested
-      with an injected style: the nav stays at 379.5px on both lists. Baseline 2024; overlay scrollbars (phones,
-      macOS default) ignore it, so 375px must not change. Avoid `overflow-y: scroll`, which shows an empty track
-      on short pages. `both-edges` would keep the column exactly centered but wastes 15px on the left.
 - [ ] **Global control margins misalign every row of controls.** `components.css` gives `input, select` a
       `margin: 4px 0 8px` and `button` a `margin: 4px 0`. In a row their boxes then end at different heights
       (`align-items: end` and `center`). Measured on every width:
@@ -349,3 +343,4 @@ do it first and re-measure the rest after it.
 - [x] Profile page: header row, RoleChip, .note warning, PasswordField, device divider list; Theme/Accent only in the account menu (a9369ef)
 - [x] Debounced the Min/Max amount filters (300 ms) and made typed filters replace the history entry (dd6c83c)
 - [x] Root font size set to 100% so rem is 16px; h1 sized per spec; desktop top bar items share one height (922a09f)
+- [x] Reserved the scrollbar gutter on the root so content no longer shifts sideways between long and short pages (f3efe15)
