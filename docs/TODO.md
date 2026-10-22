@@ -8,19 +8,6 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## UI review 2026-10-22
-
-Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked API. Paths are relative to
-`frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
-assertion, not only a Vitest test. The first five came from the user.
-
-- [ ] **Amount filters send a request and a history entry per keystroke.** `expenses/ExpenseListPage.tsx`
-      calls `update` on every `onChange` of Min/Max amount (and the date inputs), with `setSearchParams` pushing
-      a history entry each time. Typing "12.5" sent 3 list and 3 summary requests, and Back steps through "1",
-      "12", "12.5". The search box already debounces 300 ms. Fix: debounce the amount inputs the same way and
-      pass `{ replace: true }` for typed filter changes, so Back leaves the list instead of undoing keystrokes.
-      Test: type "12.5", advance 300 ms, one list request and `?minAmount=12.5`.
-
 ## Needs you
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
@@ -218,3 +205,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Restructured the admin user page into header, Details and Access cards with segmented Status and Role (f4a3a03)
 - [x] Slimmed the expense detail page: one Edit, danger-ghost Delete, category chip only, Technical details block (77a18cc)
 - [x] Profile page: header row, RoleChip, .note warning, PasswordField, device divider list; Theme/Accent only in the account menu (a9369ef)
+- [x] Debounced the Min/Max amount filters (300 ms) and made typed filters replace the history entry (dd6c83c)
