@@ -28,9 +28,12 @@ const THEMES = {
   },
 };
 
-// Node kinds: "client" (green border), "db" (cylinder), "fail" (red), default (plain box).
+// Node kinds: "client" (green border), "db" (cylinder), "decision" (hexagon), "fail" (red),
+// default (plain box).
 // Edge kinds: "flow" (request path), "db" (to the database), "back" (response), "fail"
 // (rejection). Every edge except "fail" carries a packet, in list order, once per cycle.
+// Edge bend: "hv" (across, then up or down) or "vh"; without it, an edge from a top or
+// bottom side bends in the gap between rows, any other in the gap between columns.
 const DIAGRAMS = {
   login: {
     title: "Login flow",
@@ -65,6 +68,101 @@ const DIAGRAMS = {
       { from: "resp.t", to: "client.b", kind: "back", label: "access + refresh token" },
       { from: "limiter.r", to: "tooMany.l", kind: "fail" },
       { from: "am.l", to: "unauth.r", kind: "fail" },
+    ],
+  },
+
+  request: {
+    title: "Authenticated API request",
+    desc: "JWTAuthenticationFilter verifies the Bearer token and builds the user from its claims "
+      + "without a database call; a request without a valid token reaches the authorization rules "
+      + "unauthenticated and gets 401.",
+    nodes: {
+      client:  { col: 0, row: 0, label: "Client", kind: "client" },
+      filter:  { col: 1, row: 0, label: "JWTAuthenticationFilter", sub: "Authorization header" },
+      bearer:  { col: 2, row: 0, label: "Bearer token?", kind: "decision" },
+      parse:   { col: 3, row: 0, label: "Valid JWT?", sub: "signature + expiry", kind: "decision" },
+      details: { col: 4, row: 0, label: "CustomUserDetails", sub: "from claims, no DB call" },
+      context: { col: 4, row: 1, label: "SecurityContext" },
+      authz:   { col: 3, row: 1, label: "Authenticated?", sub: "authorization rules", kind: "decision" },
+      ctrl:    { col: 2, row: 1, label: "Controller", sub: "@AuthenticationPrincipal" },
+      ok:      { col: 1, row: 1, label: "200 OK", kind: "client" },
+      unauth:  { col: 3, row: 2, label: "401 Unauthorized", sub: "AuthenticationEntryPoint", kind: "fail" },
+    },
+    edges: [
+      { from: "client.r", to: "filter.l" },
+      { from: "filter.r", to: "bearer.l" },
+      { from: "bearer.r", to: "parse.l", label: "yes" },
+      { from: "parse.r", to: "details.l", label: "yes" },
+      { from: "details.b", to: "context.t" },
+      { from: "context.l", to: "authz.r" },
+      { from: "authz.l", to: "ctrl.r", label: "yes" },
+      { from: "ctrl.l", to: "ok.r" },
+      { from: "ok.l", to: "client.b", kind: "back", bend: "hv" },
+      { from: "bearer.b", to: "authz.t", kind: "fail", label: "no" },
+      { from: "parse.b", to: "authz.t", kind: "fail", label: "no" },
+      { from: "authz.b", to: "unauth.t", kind: "fail", label: "no" },
+    ],
+  },
+
+  refresh: {
+    title: "Refresh token rotation",
+    desc: "POST /auth/refresh: the incoming token's hash must be the session's current one; the "
+      + "session gets a new refresh token, the old hash is kept as used, and a replayed used token "
+      + "revokes the whole session.",
+    nodes: {
+      client:   { col: 0, row: 0, label: "Client", kind: "client" },
+      auth:     { col: 1, row: 0, label: "AuthController", sub: "POST /auth/refresh" },
+      limiter:  { col: 2, row: 0, label: "AuthEndpointRateLimiter" },
+      tooMany:  { col: 3, row: 0, label: "429 Too Many Requests", sub: "too many from this IP", kind: "fail" },
+      hash:     { col: 2, row: 1, label: "UserSessionService", sub: "SHA-256 of incoming token" },
+      current:  { col: 3, row: 1, label: "Current token?", sub: "user_sessions, row locked", kind: "decision" },
+      reuse:    { col: 4, row: 1, label: "Used before?", sub: "reuse revokes the session", kind: "fail" },
+      checks:   { col: 3, row: 2, label: "Revoked, expired", sub: "or user disabled?", kind: "decision" },
+      unauth:   { col: 4, row: 2, label: "401 Unauthorized", kind: "fail" },
+      rotate:   { col: 2, row: 2, label: "Rotate", sub: "new token, old hash → used" },
+      sessions: { col: 2, row: 3, label: "user_sessions", kind: "db" },
+      jwt:      { col: 1, row: 2, label: "JWTService", sub: "new access JWT" },
+      resp:     { col: 0, row: 2, label: "LoginResponse", sub: "same session expiry", kind: "client" },
+    },
+    edges: [
+      { from: "client.r", to: "auth.l" },
+      { from: "auth.r", to: "limiter.l" },
+      { from: "limiter.b", to: "hash.t", label: "allowed" },
+      { from: "hash.r", to: "current.l" },
+      { from: "current.b", to: "checks.t", label: "yes" },
+      { from: "checks.l", to: "rotate.r", label: "no" },
+      { from: "rotate.b", to: "sessions.t", kind: "db", label: "same row, new hash" },
+      { from: "rotate.l", to: "jwt.r" },
+      { from: "jwt.l", to: "resp.r" },
+      { from: "resp.t", to: "client.b", kind: "back", label: "access + new refresh token" },
+      { from: "limiter.r", to: "tooMany.l", kind: "fail" },
+      { from: "current.r", to: "reuse.l", kind: "fail", label: "no" },
+      { from: "reuse.b", to: "unauth.t", kind: "fail" },
+      { from: "checks.r", to: "unauth.l", kind: "fail", label: "yes" },
+    ],
+  },
+
+  logout: {
+    title: "Logout",
+    desc: "POST /auth/logout revokes the session of the given refresh token, current or already "
+      + "rotated, and always answers 204; the access token stays valid until it expires.",
+    nodes: {
+      client:   { col: 0, row: 0, label: "Client", kind: "client" },
+      auth:     { col: 1, row: 0, label: "AuthController", sub: "POST /auth/logout" },
+      limiter:  { col: 2, row: 0, label: "AuthEndpointRateLimiter" },
+      tooMany:  { col: 3, row: 0, label: "429 Too Many Requests", sub: "too many from this IP", kind: "fail" },
+      revoke:   { col: 2, row: 1, label: "UserSessionService", sub: "find by current or used hash" },
+      sessions: { col: 2, row: 2, label: "user_sessions", kind: "db" },
+      done:     { col: 1, row: 1, label: "204 No Content", sub: "access JWT lives on ≤ 15 min", kind: "client" },
+    },
+    edges: [
+      { from: "client.r", to: "auth.l" },
+      { from: "auth.r", to: "limiter.l" },
+      { from: "limiter.b", to: "revoke.t", label: "allowed" },
+      { from: "revoke.b", to: "sessions.t", kind: "db", label: "set revoked_at" },
+      { from: "revoke.l", to: "done.r" },
+      { from: "done.l", to: "client.b", kind: "back", bend: "hv" },
+      { from: "limiter.r", to: "tooMany.l", kind: "fail" },
     ],
   },
 };
@@ -116,7 +214,7 @@ const pathLength = (pts) =>
 function renderNode(n, t) {
   const x = colX(n.col), y = rowY(n.row), cx = x + W / 2;
   const kind = n.kind ?? "plain";
-  const stroke = { client: t.back, db: t.db, fail: t.fail, plain: t.border }[kind];
+  const stroke = { client: t.back, db: t.db, fail: t.fail, decision: t.border, plain: t.border }[kind];
   const color = kind === "fail" ? t.fail : t.text;
   let shape;
   let top = y;
@@ -126,6 +224,10 @@ function renderNode(n, t) {
       + ` fill="${t.node}" stroke="${stroke}" stroke-width="1.5"/>`
       + `<path d="M${x},${y + e} a${W / 2},${e} 0 0 0 ${W},0" fill="none" stroke="${stroke}" stroke-width="1.5"/>`;
     top += e;
+  } else if (kind === "decision") {
+    const p = 16; // how far the hexagon's points stick out
+    shape = `<path d="M${x + p},${y} H${x + W - p} L${x + W},${y + H / 2} L${x + W - p},${y + H}`
+      + ` H${x + p} L${x},${y + H / 2} Z" fill="${t.node}" stroke="${stroke}" stroke-width="1.5"/>`;
   } else {
     shape = `<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="10" fill="${t.node}" stroke="${stroke}" stroke-width="1.5"/>`;
   }
@@ -146,8 +248,9 @@ function render(diagram, t) {
 
   const routed = edges.map((e) => {
     const a = anchor(nodes, e.from), b = anchor(nodes, e.to);
-    const vertical = /\.[tb]$/.test(e.from);
-    const pts = route(a, b, vertical);
+    const pts = e.bend === "hv" ? [a, [b[0], a[1]], b]
+      : e.bend === "vh" ? [a, [a[0], b[1]], b]
+      : route(a, b, /\.[tb]$/.test(e.from));
     return { ...e, kind: e.kind ?? "flow", pts, d: roundedPath(pts), len: pathLength(pts) };
   });
 
