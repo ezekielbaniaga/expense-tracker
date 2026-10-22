@@ -14,11 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **Profile sections touch each other.** `profile/ProfilePage.tsx` renders four sibling `.card`s and
-      nothing spaces them, so their borders meet. Other pages patch this case by case (`.summary-card`,
-      `.detail-card` `margin-bottom`), and `AdminUserPage` puts a `dl` right under its card. Fix: add a
-      `.stack` utility (`display: grid; gap: var(--sp-4)`), use it as the page body on Profile, expense detail
-      and admin user, and drop the one-off margins.
 - [ ] **The account menu shows "Close" on desktop and has no shadow.** `styles/layout.css` hides
       `.account-menu__close` from 48rem, but `styles/components.css` is imported after it (`main.tsx:7`), and
       `.btn { display: inline-flex }` has the same specificity, so it wins and Close shows. Escape and a click
@@ -273,3 +268,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Category filter chips now centre their label like Period chips (`label:where(:has(...))`) (9b76bc7)
 - [x] Min/Max amount and From/To filters laid out as Dates/Amount fieldsets in two columns (0ebad6f)
 - [x] Collapsed the expense Filters panel at every width, with removable active-filter chips (d2e9e0f)
+- [x] Space Profile, expense detail and admin user page bodies with a `.stack` grid (6a76055)
