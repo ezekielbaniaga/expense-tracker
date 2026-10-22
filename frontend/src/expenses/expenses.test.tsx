@@ -478,6 +478,21 @@ describe("expense list", () => {
       expect(screen.getByRole("button", { name: "Filters \u00b7 3" })).toBeTruthy();
     });
 
+    it("shows active filters as removable chips while the panel is collapsed", async () => {
+      const queries = record();
+      renderAt("/?period=all&category=FOOD&minAmount=10");
+      await screen.findByText("Lunch");
+      const panel = document.getElementById("expense-filters")!;
+      expect(panel.getAttribute("data-open")).toBe("false");
+      const tags = screen.getByRole("list", { name: "Active filters" });
+      expect(within(tags).getByRole("button", { name: "Remove filter Food" })).toBeTruthy();
+      fireEvent.click(within(tags).getByRole("button", { name: "Remove filter \u2265 10" }));
+      await waitFor(() => expect(queries.at(-1)!.has("minAmount")).toBe(false));
+      expect(panel.getAttribute("data-open")).toBe("false");
+      fireEvent.click(screen.getByRole("button", { name: "Filters \u00b7 1" }));
+      expect(screen.queryByRole("list", { name: "Active filters" })).toBeNull();
+    });
+
     it("groups the date and amount inputs into Dates and Amount fieldsets", async () => {
       record();
       renderAt("/?period=all");

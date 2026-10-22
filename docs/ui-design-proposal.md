@@ -511,9 +511,11 @@ Details:
 - **Period chips**: This month (default), Last month, Last 3 months, This year, All time, Custom (opens the date
   filter). They set `from`/`to`. "This month" is computed in the browser's local calendar, the same way `todayIso` is.
 - **Search**: description contains, case-insensitive, debounced 300ms, applied server-side.
-- **Filters**: category multi-select chips, date range, optional min/max amount. On phones in a Filters sheet with an
-  "Apply" button; on wide screens inline. The active filter count shows on the Filters button ("Filters · 2"), and a
-  "Clear filters" link resets them.
+- **Filters**: category multi-select chips, date range, optional min/max amount, in a `.card` panel that is collapsed
+  at every width. The default view is the Period chips, then the search box with a Filters button (filter icon) on the
+  same row. The active filter count shows on the button ("Filters · 2"); while the panel is closed the active filters
+  also show as removable chips under the search ("Food ×", "≥ 10.00 ×"). Custom opens the panel. A "Clear filters"
+  link in the panel footer resets them.
 - **All list state is in the URL** (`?q=&category=FOOD&category=BILLS&from=&to=&sort=date,desc&page=0&size=20`), like
   `AdminUsersPage`, so reload, back/forward and shared links keep it. Invalid values fall back to defaults with a
   notice, as `INVALID_PAGE` does today.

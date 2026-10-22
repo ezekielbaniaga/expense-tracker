@@ -25,6 +25,7 @@ test("sort, filter, page and search the list", async ({ page, request }) => {
   await expect(rows.last()).toContainText("Zed item 25");
 
   // Filtering by category goes back to page 1: items 1, 5, ..., 25 are FOOD (7 rows)
+  await page.getByRole("button", { name: "Filters" }).click();
   await page.locator("label.chip", { hasText: "Food" }).click();
   await expect(page).toHaveURL(/category=FOOD/);
   await expect(page.getByText("Page 1 of 1")).toBeVisible();

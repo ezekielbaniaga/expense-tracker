@@ -27,6 +27,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
 import { CATEGORY_LABELS, type Category } from "../api/expense";
 import { ChipGroup } from "../ui/Chip";
+import { FilterIcon, XIcon } from "../ui/icons";
 import { INVALID_CODE_PARAMS, MAX_SEARCH_LENGTH, PERIOD_CHIPS, detectPeriod, periodRange, readListParams, summaryFilters, toApiQuery, toSummaryQuery, type Period } from "./listParams";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -142,7 +143,7 @@ export function ExpenseListPage() {
     (params.category.length > 0 ? 1 : 0) +
     (period === "custom" ? 1 : 0) +
     (params.minAmount !== "" || params.maxAmount !== "" ? 1 : 0);
-  // One markup: collapsed on phones until the button is pressed; CSS keeps it open from 48rem
+  // Collapsed at every width until the Filters button (or Custom) opens it
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchText, setSearchText] = useState(params.q);
   const query = useQuery({
@@ -198,6 +199,31 @@ export function ExpenseListPage() {
   // The URL changed elsewhere (Clear filters, back button): show it in the box.
   // Not when it is just our own trimmed text coming back, or "coffee " would lose its space
   useEffect(() => setSearchText((text) => (text.trim() === urlQ ? text : urlQ)), [urlQ]);
+
+  /** Removable chips for the active filters, shown while the panel is collapsed. */
+  const activeTags: { key: string; label: string; remove: () => void }[] = [
+    ...params.category.map((c) => ({
+      key: `category-${c}`,
+      label: categoryLabel(c),
+      remove: () =>
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          next.delete("page");
+          next.delete("category");
+          for (const other of params.category) if (other !== c) next.append("category", other);
+          return next;
+        }),
+    })),
+    ...(period === "custom"
+      ? [{ key: "dates", label: `${params.from || "\u2026"} to ${params.to || "\u2026"}`, remove: () => update({ from: null, to: null, period: null }) }]
+      : []),
+    ...(params.minAmount !== ""
+      ? [{ key: "min", label: `\u2265 ${params.minAmount}`, remove: () => update({ minAmount: null }) }]
+      : []),
+    ...(params.maxAmount !== ""
+      ? [{ key: "max", label: `\u2264 ${params.maxAmount}`, remove: () => update({ maxAmount: null }) }]
+      : []),
+  ];
 
   const choosePeriod = (value: Period) => {
     if (value === "custom") {
@@ -277,10 +303,22 @@ export function ExpenseListPage() {
             aria-controls="expense-filters"
             onClick={() => setFiltersOpen((open) => !open)}
           >
+            <FilterIcon aria-hidden="true" />
             {activeFilters > 0 ? `Filters \u00b7 ${activeFilters}` : "Filters"}
           </button>
         </div>
-        <div id="expense-filters" className="list-controls__filters" data-open={filtersOpen}>
+        {!filtersOpen && activeTags.length > 0 && (
+          <ul className="list-controls__tags" aria-label="Active filters">
+            {activeTags.map((tag) => (
+              <li key={tag.key}>
+                <button type="button" className="filter-tag" aria-label={`Remove filter ${tag.label}`} onClick={tag.remove}>
+                  {tag.label} <XIcon aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div id="expense-filters" className="list-controls__filters card" data-open={filtersOpen}>
           <ChipGroup
             legend="Category"
             name="category"
@@ -322,12 +360,14 @@ export function ExpenseListPage() {
                 onChange={(e) => update({ maxAmount: e.target.value })} />
             </div>
           </fieldset>
+          {hasFilters && (
+            <div className="list-controls__footer">
+              <button type="button" className="link-button" onClick={() => setSearchParams({})}>
+                Clear filters
+              </button>
+            </div>
+          )}
         </div>
-        {hasFilters && (
-          <button type="button" onClick={() => setSearchParams({})}>
-            Clear filters
-          </button>
-        )}
       </div>
       {query.data &&
         (query.data.total === 0 && hasFilters ? (

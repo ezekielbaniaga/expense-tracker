@@ -10,4 +10,9 @@ describe("components.css", () => {
     expect(css).toContain('label:where(:has(input[type="checkbox"]))');
     expect(css).not.toMatch(/(^|\n)label:has\(input\[type="checkbox"\]\)/);
   });
+
+  // The Filters panel is collapsed at every width, not only on phones
+  it("hides the closed filters panel at every width", () => {
+    expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);
+  });
 });

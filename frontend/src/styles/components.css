@@ -892,7 +892,7 @@ tr.row--new {
 }
 
 /* Expense list controls: period chips, search and the Filters disclosure. One markup; the panel is
-   collapsed on phones until the button is pressed and always open from 48rem. */
+   collapsed at every width until the button is pressed. */
 .list-controls {
   display: grid;
   gap: var(--sp-2);
@@ -947,10 +947,44 @@ tr.row--new {
   flex: 1 1 12rem;
 }
 
-@media (max-width: 47.999rem) {
-  .list-controls__filters[data-open="false"] {
-    display: none;
-  }
+.list-controls__filters[data-open="false"] {
+  display: none;
+}
+
+.list-controls__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  color: inherit;
+}
+
+.list-controls__footer {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border, currentColor);
+}
+
+/* Active filters while the panel is collapsed: removable chips under the search */
+.list-controls__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
 }
 
 /* Expense list summary card */
