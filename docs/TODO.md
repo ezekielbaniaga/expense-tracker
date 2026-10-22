@@ -26,15 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Forms have a ragged right edge and uneven vertical rhythm.** Inputs are capped at `max-width: 24rem`, but
-      chip rows, the sticky Save row and cards span the full width. On the 375px New expense page the inputs end at
-      x=328 and the cards at x=359. On desktop the Category chips run to x=660 under 312px inputs. Group gaps also
-      vary. Text fields get 8px + 8px from margins, but fieldsets (Category, Quick date) get none, so "QUICK DATE"
-      sits 4px under the chips while "DATE" sits 16px under them. Every `legend` is also 2px right of the labels
-      (default legend padding; only `.list-controls__range legend` resets it). Fix: one form layout, a `.form`
-      grid with `gap: var(--sp-4)` and `max-width: 28rem` (spec: forms 28rem). Inputs go `width: 100%` inside it
-      (full width on phones). Use `legend { padding: 0 }` for `.chip-group` and `.segmented`. Applies to New and
-      Edit expense, Profile password, Login and Register.
 - [ ] **The "Add expense" FAB shows on every phone page and covers content.** The spec puts the FAB "only on the
       list" (line 316). It shows on New expense, so two "Add expense" buttons are on screen, and on Detail, Profile
       and Admin. Measured at 375px: the FAB (y 636–682) sits beside the sticky Save/Cancel row on the edit form,
@@ -330,3 +321,4 @@ do it first and re-measure the rest after it.
 - [x] Root font size set to 100% so rem is 16px; h1 sized per spec; desktop top bar items share one height (922a09f)
 - [x] Reserved the scrollbar gutter on the root so content no longer shifts sideways between long and short pages (f3efe15)
 - [x] Removed global control margins; forms/fields space with gap, controls align in rows (e7a4cec)
+- [x] Forms share one 28rem column with full-width inputs and flush chip/segmented legends (57e55cd)
