@@ -26,10 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Sticky top bar has no edge when content scrolls under it.** The bar's background is `--bg`, with no border
-      or shadow, so rows slide under it without separation (both widths). The spec says it "gets `--shadow-1` after
-      scrolling". Fix: a 1px `--line` bottom border or `--shadow-1`, toggled by an IntersectionObserver sentinel or
-      a CSS scroll-driven animation. Only when scrolled.
 - [ ] **Account menu bottom sheet (phone) has no scrim or handle.** It opens over a page that stays fully visible
       and clickable. The spec says "bottom sheet with a drag handle and a Close button". Close is plain bold
       text. Fix: below 48rem add a backdrop (`color-mix(in srgb, var(--ink) 40%, transparent)`, like
@@ -284,3 +280,4 @@ do it first and re-measure the rest after it.
 - [x] Admin user header chips: one chip height, flex gap, phone wrap with top-aligned avatar (278e1dc)
 - [x] Login/Register: accent blobs isolated and no scrollbar on the empty page (100dvh, no body bottom padding); the password eye toggle was left for later (166e377)
 - [x] Filters panel hierarchy: bolder ink legends, wider 2-col grid, --line divider (e53e59d)
+- [x] Sticky top bar shows --shadow-1 only once scrolled, via an IntersectionObserver sentinel (54117d7)
