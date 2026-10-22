@@ -26,9 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Empty results are bare text.** "No expenses match these filters." and "No users match." are plain left-aligned
-      paragraphs. The unfiltered empty list and Archived use `EmptyState`. Fix: `EmptyState` with a "Clear
-      filters" action (the list) or "Clear search" (admin), at both widths.
 - [ ] **Ghost buttons in text rows do not line up with the text around them.** In Profile → Account, "Add your name"
       (a ghost button with 12px padding) starts 13px right of the Role chip in the next row. Fix: in `dd` and
       inline contexts give ghost buttons `margin-inline-start: calc(-1 * var(--sp-3))`. That keeps the hit area
@@ -277,3 +274,4 @@ do it first and re-measure the rest after it.
 - [x] Filters panel hierarchy: bolder ink legends, wider 2-col grid, --line divider (e53e59d)
 - [x] Sticky top bar shows --shadow-1 only once scrolled, via an IntersectionObserver sentinel (54117d7)
 - [x] Phone account menu sheet now has a tap-to-close scrim, a 4x32px handle and a secondary Close button (5a5189c)
+- [x] Empty filter results use EmptyState with Clear filters / Clear search (a26ecb5)
