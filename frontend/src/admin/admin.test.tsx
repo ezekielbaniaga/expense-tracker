@@ -222,6 +222,16 @@ describe("users list", () => {
       expect(await screen.findByText("No users match.")).toBeTruthy();
       expect(requests.map((r) => r.page)).toEqual(["3"]);
     });
+
+    it("offers Clear search when a filter matches nobody, and it resets the filters", async () => {
+      const requests = serve({ total: 0 });
+      renderAt("/admin/users?username=zzz&enabled=false");
+      expect(await screen.findByText("No users match.")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+      await waitFor(() => expect(requests.at(-1)).toEqual({ page: "0", size: "20" }));
+      expect((screen.getByLabelText("Username") as HTMLInputElement).value).toBe("");
+      expect((screen.getByLabelText("Status") as HTMLSelectElement).value).toBe("");
+    });
   });
 
   it("sorts from the headers, resetting the page, and resets on INVALID_SORT", async () => {

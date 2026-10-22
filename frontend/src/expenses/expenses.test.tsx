@@ -551,8 +551,9 @@ describe("expense list", () => {
       const queries = record(EMPTY_PAGE);
       renderAt("/?q=zzz&category=FOOD&period=all");
       expect(await screen.findByText("No expenses match these filters.")).toBeTruthy();
-      expect(screen.getAllByRole("button", { name: "Clear filters" })).toHaveLength(1);
-      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      const buttons = screen.getAllByRole("button", { name: "Clear filters" });
+      expect(buttons).toHaveLength(2); // the panel's link and the empty state's action
+      fireEvent.click(buttons[1]);
       await waitFor(() => expect(queries.at(-1)!.has("q")).toBe(false));
       expect(queries.at(-1)!.has("category")).toBe(false);
       expect(queries.at(-1)!.has("from")).toBe(true);

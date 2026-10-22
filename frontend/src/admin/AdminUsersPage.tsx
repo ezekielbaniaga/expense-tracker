@@ -10,6 +10,7 @@ import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { SelectField, TextField } from "../ui/fields";
 import { PageHeading } from "../ui/focus";
+import { EmptyState } from "../ui/EmptyState";
 import { Pagination } from "../ui/Pagination";
 import { useClampPage } from "../ui/useClampPage";
 import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
@@ -118,6 +119,12 @@ export function AdminUsersPage() {
     });
   };
 
+  const clearSearch = () => {
+    setUsername("");
+    setEnabled("");
+    update({ username: null, enabled: null });
+  };
+
   const sort = parseSort(filters.sort === "" ? null : filters.sort);
   const sortBy = (field: SortField) =>
     update({ sort: `${field},${sort.field === field ? (sort.dir === "asc" ? "desc" : "asc") : "asc"}` });
@@ -210,7 +217,16 @@ export function AdminUsersPage() {
       )}
       {data &&
         (data.total === 0 ? (
-          <p>No users match.</p>
+          <EmptyState
+            title="No users match."
+            action={
+              filters.username !== "" || filters.enabled !== "" ? (
+                <button type="button" className="btn btn--secondary btn--md" onClick={clearSearch}>
+                  Clear search
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           <>
             <TableScroll label="Users table">

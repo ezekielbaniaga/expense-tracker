@@ -160,6 +160,7 @@ export function ExpenseListPage() {
     period !== "month" ||
     params.minAmount !== "" ||
     params.maxAmount !== "";
+  const clearFilters = () => setSearchParams({});
   // The Filters button counts groups: categories, a custom date range, amounts
   const activeFilters =
     (params.category.length > 0 ? 1 : 0) +
@@ -374,7 +375,7 @@ export function ExpenseListPage() {
           </fieldset>
           {hasFilters && (
             <div className="list-controls__footer">
-              <button type="button" className="link-button" onClick={() => setSearchParams({})}>
+              <button type="button" className="link-button" onClick={clearFilters}>
                 Clear filters
               </button>
             </div>
@@ -383,7 +384,14 @@ export function ExpenseListPage() {
       </div>
       {query.data &&
         (query.data.total === 0 && hasFilters ? (
-          <p>No expenses match these filters.</p>
+          <EmptyState
+            title="No expenses match these filters."
+            action={
+              <button type="button" className="btn btn--secondary btn--md" onClick={clearFilters}>
+                Clear filters
+              </button>
+            }
+          />
         ) : query.data.total === 0 ? (
           <EmptyState
             title="Nothing here yet."
