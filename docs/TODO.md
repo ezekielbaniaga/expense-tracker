@@ -14,14 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The "Admin area" pill pushes the top bar around.** On `/admin/*`, `ui/Layout.tsx:30` adds
-      `.topbar__pill` to the bar, which is `flex-wrap: nowrap` from 48rem (`styles/layout.css`). The nav moves
-      right by the pill's width, and the items shrink until "Expense Tracker" and "Add expense" each wrap onto
-      two lines (at 1280 and 800 px). The pill also repeats the Admin nav link, which is already highlighted.
-      Fix: drop the pill from the bar and show it next to the `h1` on `AdminUsersPage` and `AdminUserPage`,
-      which keeps the design proposal's "obvious you are acting on other users". Also give
-      `.topbar__name`, `.main-nav a` and `.btn` `white-space: nowrap` and `.add-expense` `flex-shrink: 0`, so a
-      future item cannot wrap them either. Update `admin/admin.test.tsx:125`.
 - [ ] **Category filter chips have their label at the top.** `label:has(input[type="checkbox"]) { display:
       inline-block }` (`styles/components.css`, specificity 0,1,2) beats `.chip { display: inline-flex }`
       (0,1,0). Multi-select chips use checkboxes, so they lose `align-items: center`: computed `display` is
@@ -302,3 +294,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Summary ties (equal totals) are now ordered by category name like the list's sort=category, not by enum position, with a tie test (7060912)
 - [x] The admin user list shows the creation date in the viewer's time zone (`formatLocalDay`), with time zone tests (831e0aa)
 - [x] Fixed docs and comments that contradicted the code (RENT category, X-API-Version, UTC+14 dates, display name 409) (99884a9)
+- [x] Admin area pill moved from the top bar to the admin page headings, nowrap on top bar items (0ec2025)
