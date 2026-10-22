@@ -89,6 +89,11 @@ describe("admin user filter bar", () => {
 describe("base.css root size", () => {
   const base = readFileSync("src/styles/base.css", "utf8");
 
+  it("reserves the scrollbar gutter without forcing a scrollbar", () => {
+    expect(base).toMatch(/:root \{[^}]*scrollbar-gutter: stable;/);
+    expect(base).not.toMatch(/overflow-y: scroll/);
+  });
+
   it("keeps the root at 100% and sets the text size on body", () => {
     expect(base).toMatch(/:root \{[^}]*font-size: 100%;/);
     expect(base).toMatch(/\nbody \{[^}]*font-size: var\(--fs-base\);/);

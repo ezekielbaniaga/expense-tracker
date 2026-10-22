@@ -27,6 +27,8 @@
   font-family: var(--font);
   /* 100% keeps rem at the user's browser font size (16px by default), which the token scale assumes */
   font-size: 100%;
+  /* Reserve the classic scrollbar's width always, so content does not shift between long and short pages */
+  scrollbar-gutter: stable;
   line-height: 1.5;
   color: var(--ink);
   background: var(--bg);
