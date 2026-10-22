@@ -226,9 +226,11 @@ main {
     inset: calc(100% + var(--sp-2)) 0 auto auto;
     inline-size: 20rem;
     border-radius: var(--r-md);
+    box-shadow: var(--shadow-2);
   }
 
-  .account-menu__close {
+  /* Two classes: .btn in components.css loads later and ties a single class on specificity */
+  .account-menu .account-menu__close {
     display: none;
   }
 

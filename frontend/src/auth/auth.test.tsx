@@ -77,7 +77,7 @@ function expectAccount(username: string, role?: string) {
   const button = screen.getByRole("button", { name: `Account menu for ${username}` });
   if (!role) return;
   fireEvent.click(button);
-  expect(screen.getByRole("region", { name: username }).textContent).toContain(role);
+  expect(screen.getByRole("region", { name: username }).textContent).toContain(role === "ADMIN" ? "Admin" : "User");
   fireEvent.click(button);
 }
 

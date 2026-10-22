@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { RoleChip } from "../admin/UserChips";
 import { useAuth } from "../auth/AuthProvider";
 import { useCachedMe } from "../profile/useMe";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
 import { SegmentedControl } from "./Chip";
-import { ShieldIcon, UserIcon } from "./icons";
+import { MonitorIcon, ShieldIcon, UserIcon } from "./icons";
 import { usePreferences } from "./preferences";
 import { ACCENTS, THEMES, type Accent, type Theme } from "./theme";
 
@@ -78,7 +79,11 @@ export function AccountMenu() {
             <Avatar name={avatarName ?? username} />
             <div>
               <strong id={headingId}>{username}</strong>
-              {role && <p className="account-menu__role">{role}</p>}
+              {role && (
+                <p className="account-menu__role">
+                  <RoleChip role={role} />
+                </p>
+              )}
             </div>
           </div>
           <ul className="account-menu__links">
@@ -90,7 +95,7 @@ export function AccountMenu() {
             </li>
             <li>
               <Link to="/me#devices" onClick={close}>
-                <UserIcon />
+                <MonitorIcon />
                 <span>Your devices</span>
               </Link>
             </li>

@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AppProviders } from "../App";
 import { createApiClient } from "../api/client";
 import { fakeJwt } from "../test/fakeJwt";
+import { readFileSync } from "node:fs";
 import { AccountMenu } from "./AccountMenu";
 
 let role = "USER";
@@ -87,7 +88,7 @@ describe("AccountMenu", () => {
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
     const region = screen.getByRole("region", { name: "ezekiel.baniaga" });
-    expect(region.textContent).toContain("USER");
+    expect(region.textContent).toContain("User");
     expect(
       screen.getByRole("link", { name: "Profile" }).getAttribute("href"),
     ).toBe("/me");
@@ -148,5 +149,19 @@ describe("AccountMenu", () => {
     expect((signOut as HTMLButtonElement).disabled).toBe(true);
     await vi.waitFor(() => expect(logouts).toBe(1));
     client.dispose();
+  });
+});
+
+describe("AccountMenu styles", () => {
+  // jsdom applies no CSS, so check the stylesheet source for the desktop rules.
+  const css = readFileSync("src/styles/layout.css", "utf8");
+
+  it("hides Close on desktop with a selector that beats .btn", () => {
+    expect(css).toMatch(/\.account-menu \.account-menu__close\s*\{\s*display: none;/);
+  });
+
+  it("floats the desktop panel with a shadow", () => {
+    const desktop = css.slice(css.indexOf("@media (min-width: 48rem)"));
+    expect(desktop).toMatch(/\.account-menu__panel\s*\{[^}]*box-shadow: var\(--shadow-2\)/);
   });
 });
