@@ -8,6 +8,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { errorMessage } from "../expenses/ExpenseListPage";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
+import { SelectField, TextField } from "../ui/fields";
 import { PageHeading } from "../ui/focus";
 import { Pagination } from "../ui/Pagination";
 import { useClampPage } from "../ui/useClampPage";
@@ -177,15 +178,25 @@ export function AdminUsersPage() {
           update({ username: username.trim(), enabled });
         }}
       >
-        <label htmlFor="filter-username">Username</label>
-        <input id="filter-username" value={username} onChange={(event) => setUsername(event.target.value)} />{" "}
-        <label htmlFor="filter-enabled">Status</label>
-        <select id="filter-enabled" value={enabled} onChange={(event) => setEnabled(event.target.value)}>
-          <option value="">All</option>
-          <option value="true">Enabled</option>
-          <option value="false">Disabled</option>
-        </select>{" "}
-        <Button type="submit" variant="primary">Search</Button>
+        <div className="filter-bar">
+          <TextField
+            id="filter-username"
+            label="Username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+          />
+          <SelectField
+            id="filter-enabled"
+            label="Status"
+            value={enabled}
+            onChange={(event) => setEnabled(event.target.value)}
+          >
+            <option value="">All</option>
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </SelectField>
+          <Button type="submit" variant="primary">Search</Button>
+        </div>
       </form>
       {notice && <p role="status">{notice}</p>}
       {query.isPending && <Skeleton label="Loading users..." />}

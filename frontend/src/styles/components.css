@@ -72,6 +72,15 @@ select[aria-invalid="true"] {
   color: var(--muted);
 }
 
+/* One row of fields with the action button aligned to the input bottoms; wraps on phones */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
 .field-error {
   display: flex;
   align-items: center;

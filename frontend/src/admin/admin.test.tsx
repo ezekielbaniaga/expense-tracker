@@ -106,6 +106,16 @@ function params(url: string): Record<string, string> {
 }
 
 describe("users list", () => {
+  it("keeps the filter fields and Search in one filter-bar row with field labels", async () => {
+    server.use(http.get(`${BASE}/users`, () => HttpResponse.json(page([ALICE], 0, 1, 1))));
+    renderAt("/admin/users");
+    await screen.findByRole("table");
+    const bar = screen.getByRole("form", { name: "Filter users" }).querySelector(".filter-bar");
+    expect(bar).not.toBeNull();
+    expect(bar!.querySelectorAll("label.field-label")).toHaveLength(2);
+    expect(within(bar as HTMLElement).getByRole("button", { name: "Search" })).toBeTruthy();
+  });
+
   it("lists users, filters by username and status, and pages", async () => {
     const requests: Record<string, string>[] = [];
     server.use(

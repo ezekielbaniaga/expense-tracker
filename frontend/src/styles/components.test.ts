@@ -56,3 +56,9 @@ describe("summary bar colours", () => {
     },
   );
 });
+
+describe("admin user filter bar", () => {
+  it("lays the fields and Search out in one row aligned to the input bottoms", () => {
+    expect(css).toMatch(/(^|\n)\.filter-bar \{\s*display: flex;\s*flex-wrap: wrap;\s*align-items: end;\s*gap:/);
+  });
+});
