@@ -37,10 +37,6 @@ do it first and re-measure the rest after it.
 
       Runs under `npm run e2e` (Compose stack), not in unattended runs.
 
-- [ ] **Show password as an icon toggle inside the field.** On Login/Register the text "Show password" button makes
-      the Password field 112px narrower than Username. Replace it with an icon button (eye, `aria-pressed`,
-      accessible label "Show password") placed inside the field, so both fields are the same width.
-
 ## Needs you
 
 - [ ] **Decide whether Admin stays in the phone tab bar.** The spec (line 322) keeps the bottom tab bar to three
@@ -260,3 +256,4 @@ do it first and re-measure the rest after it.
 - [x] Ghost buttons in text rows align with the text around them (f064805)
 - [x] Token hygiene: tokens only in component CSS, `.visually-hidden` reused, tokens.test.ts checks every var() (2757620)
 - [x] Stop useCachedMe logging "No queryFn was passed" on every page, via skipToken (5096ee8)
+- [x] Show password as an eye icon toggle inside the field, so Password matches Username width (c11c233)
