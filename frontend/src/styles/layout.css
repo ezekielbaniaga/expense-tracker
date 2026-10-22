@@ -183,11 +183,28 @@ body {
   text-decoration: none;
 }
 
+/* Clears the tab bar (3.5rem) plus a gap; the list also clears the floating button (3.5rem) and its gap */
 main {
-  padding-bottom: 6rem;
+  padding-bottom: calc(3.5rem + var(--sp-4) + env(safe-area-inset-bottom));
+}
+
+main.main--fab {
+  padding-bottom: calc(8rem + var(--sp-4) + env(safe-area-inset-bottom));
+}
+
+/* Phones only: the floating button belongs to the list */
+@media (max-width: 47.999rem) {
+  .add-expense.add-expense--list-only {
+    display: none;
+  }
 }
 
 @media (min-width: 48rem) {
+  main,
+  main.main--fab {
+    padding-bottom: 6rem;
+  }
+
   .topbar {
     flex-wrap: nowrap;
   }

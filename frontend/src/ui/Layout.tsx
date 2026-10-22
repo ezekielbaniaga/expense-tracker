@@ -10,6 +10,8 @@ export function Layout() {
   const { state } = useAuth();
   const { pathname } = useLocation();
   const main = useRef<HTMLElement>(null);
+  // On phones the button floats over the list only; from 48rem it stays in the top bar on every page
+  const onList = pathname === "/";
   return (
     <>
       {/* Not a #main link: the router would put the hash in the URL */}
@@ -27,7 +29,7 @@ export function Layout() {
         <Link to="/" className="topbar__name">
           Expense Tracker
         </Link>
-        <NavLink to="/expenses/new" className="btn btn--primary add-expense">
+        <NavLink to="/expenses/new" className={`btn btn--primary add-expense${onList ? "" : " add-expense--list-only"}`}>
           <PlusIcon />
           <span>Add expense</span>
         </NavLink>
@@ -57,7 +59,7 @@ export function Layout() {
           <AccountMenu />
         </div>
       </header>
-      <main id="main" ref={main} tabIndex={-1}>
+      <main id="main" ref={main} tabIndex={-1} className={onList ? "main--fab" : undefined}>
         <ErrorBoundary key={pathname}>
           <Outlet />
         </ErrorBoundary>

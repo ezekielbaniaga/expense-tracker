@@ -36,6 +36,7 @@ function renderLayout(path: string) {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<PageHeading>Expenses</PageHeading>} />
+            <Route path="/other" element={<PageHeading>Other</PageHeading>} />
           </Route>
         </Routes>
       </MemoryRouter>
@@ -79,6 +80,21 @@ describe("Layout", () => {
     expect(screen.queryByRole("heading", { name: "Something went wrong" })).toBeNull();
     client.dispose();
     vi.restoreAllMocks();
+  });
+
+  it("marks the Add expense button list-only and the page for the floating button only on the list", async () => {
+    let client = renderLayout("/");
+    await screen.findByRole("button", { name: "Account menu for alice" });
+    expect(screen.getByRole("link", { name: "Add expense" }).classList.contains("add-expense--list-only")).toBe(false);
+    expect(document.getElementById("main")?.classList.contains("main--fab")).toBe(true);
+    cleanup();
+    client.dispose();
+
+    client = renderLayout("/other");
+    await screen.findByRole("button", { name: "Account menu for alice" });
+    expect(screen.getByRole("link", { name: "Add expense" }).classList.contains("add-expense--list-only")).toBe(true);
+    expect(document.getElementById("main")?.classList.contains("main--fab")).toBe(false);
+    client.dispose();
   });
 
   it("has one Main nav, one h1, the skip link first and Admin only for ADMIN", async () => {
