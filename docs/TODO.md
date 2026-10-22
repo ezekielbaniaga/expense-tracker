@@ -14,13 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The expense detail page has redundant actions and data.** `expenses/ExpenseDetailPage.tsx` offers "Edit"
-      and "Edit description" side by side (Edit already edits the description). The Delete trigger looks like
-      the others, though its dialog uses danger. The category shows twice (56 px badge plus chip). Version and
-      Id are internals, and the 44 px Copy button makes the Id row taller than its `dt`, so they misalign.
-      Fix: one primary "Edit" and a danger-ghost "Delete"; drop "Edit description" (or keep it only as a quick
-      edit from the list); keep the badge or the chip, not both; move Id and Version into a collapsed
-      `<details>` "Technical details", with Copy as a `btn--sm` ghost button.
 - [ ] **The profile page reads like raw markup.** In `profile/ProfilePage.tsx`, the Account card puts the
       avatar alone on its own row; the Name row misaligns (the 44 px Edit button is taller than the `dt`); Role
       is the raw `ADMIN`. The Security warning is a plain sentence starting "Warning:", and the password inputs
@@ -233,3 +226,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Gave the summary bar and legend dots strong category colours (266ec8b)
 - [x] Admin user filter laid out as one filter-bar row with field labels (36ebbd5)
 - [x] Restructured the admin user page into header, Details and Access cards with segmented Status and Role (f4a3a03)
+- [x] Slimmed the expense detail page: one Edit, danger-ghost Delete, category chip only, Technical details block (77a18cc)
