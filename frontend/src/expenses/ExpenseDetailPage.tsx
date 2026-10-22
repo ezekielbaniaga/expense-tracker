@@ -10,18 +10,17 @@ import { formatMoney } from "../format/money";
 import { usePreferences } from "../ui/preferences";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
-import { CategoryBadge, CategoryChip } from "../ui/Chip";
+import { CategoryChip } from "../ui/Chip";
 import { ChevronLeftIcon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
 import { PageHeading } from "../ui/focus";
-import { FieldError, errorProps, FormAlert } from "../ui/forms";
+import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { applyServerErrors, ExpenseFields, expenseResolver, useCategories } from "./ExpenseFields";
 import { errorMessage } from "./ExpenseListPage";
 import {
   toCreateRequest,
   toFormValues,
-  validateDescription,
   type ExpenseFormValues,
 } from "./expenseSchema";
 import { Skeleton } from "../ui/Skeleton";
@@ -54,11 +53,11 @@ export function ExpenseDetailPage() {
     }
   }, [failure, toast]);
 
-  const [mode, setMode] = useState<"view" | "edit" | "description" | "delete">("view");
+  const [mode, setMode] = useState<"view" | "edit" | "delete">("view");
   // The button that opened a form gets focus back when the form closes
   const openers = useRef<Record<string, HTMLButtonElement | null>>({});
   const lastOpener = useRef<string | null>(null);
-  const open = (next: "edit" | "description" | "delete") => {
+  const open = (next: "edit" | "delete") => {
     lastOpener.current = next;
     setMode(next);
   };
@@ -88,7 +87,6 @@ export function ExpenseDetailPage() {
         <div className="stack">
           <PageHeading id="expense-heading">{e.description ?? NO_DESCRIPTION}</PageHeading>
           <div className="detail-hero">
-            <CategoryBadge category={e.category} />
             <p className="detail-hero__amount">{formatMoney(e.amount, currency)}</p>
             <p className="detail-hero__meta">
               <CategoryChip category={e.category} /> <span>{formatLongDay(e.date)}</span>
@@ -100,36 +98,40 @@ export function ExpenseDetailPage() {
               <dd>{formatLocalDateTime(e.createdAt)}</dd>
               <dt>Last modified</dt>
               <dd>{e.lastModified ? formatLocalDateTime(e.lastModified) : "Never"}</dd>
-              <dt>Version</dt>
-              <dd>{e.version}</dd>
-              <dt>Id</dt>
-              <dd>
-                <ShortId id={e.id} />
-              </dd>
             </dl>
+            <details className="tech-details">
+              <summary>Technical details</summary>
+              <dl className="detail-list">
+                <dt>Version</dt>
+                <dd>{e.version}</dd>
+                <dt>Id</dt>
+                <dd>
+                  <ShortId id={e.id} />
+                </dd>
+              </dl>
+            </details>
           </Card>
           {mode === "view" && (
-            <p>
-              <button type="button" ref={(b) => void (openers.current.edit = b)} onClick={() => open("edit")}>
-                Edit
-              </button>{" "}
-              <button
-                type="button"
-                ref={(b) => void (openers.current.description = b)}
-                onClick={() => open("description")}
+            <div className="detail-actions">
+              <Button
+                variant="primary"
+                ref={(b) => void (openers.current.edit = b)}
+                onClick={() => open("edit")}
               >
-                Edit description
-              </button>{" "}
-              <button type="button" ref={(b) => void (openers.current.delete = b)} onClick={() => open("delete")}>
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                className="btn--danger-ghost"
+                ref={(b) => void (openers.current.delete = b)}
+                onClick={() => open("delete")}
+              >
                 Delete
-              </button>
-            </p>
+              </Button>
+            </div>
           )}
           {mode === "edit" && (
             <EditForm expense={e} onReload={reload} onDone={() => setMode("view")} />
-          )}
-          {mode === "description" && (
-            <DescriptionForm expense={e} onReload={reload} onDone={() => setMode("view")} />
           )}
           {mode === "delete" && (
             <DeleteDialog expense={e} onReload={reload} onCancel={() => setMode("view")} />
@@ -163,9 +165,9 @@ function ShortId({ id }: { id: string }) {
           <span className="visually-hidden">{id}</span>
         </>
       )}
-      <button type="button" aria-label="Copy id" onClick={() => void copy()}>
+      <Button variant="ghost" size="sm" aria-label="Copy id" onClick={() => void copy()}>
         Copy
-      </button>
+      </Button>
     </span>
   );
 }
@@ -334,63 +336,6 @@ function EditFormFields({
           Cancel
         </button>
       </div>
-    </form>
-  );
-}
-
-function DescriptionForm({ expense, onReload, onDone }: FormProps) {
-  const { client } = useAuth();
-  const saved = useSaved(onDone, "Description saved");
-  const [description, setDescription] = useState(expense.description ?? "");
-  const [fieldError, setFieldError] = useState<string | undefined>();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const failure = useWriteFailure(expense.id, (error) => {
-    if (error.status === 400 && error.code === "VALIDATION_ERROR") {
-      failure.setMessage(error.messages.join(" "));
-      return true;
-    }
-    return false;
-  });
-
-  const patch = useMutation({
-    mutationFn: () =>
-      client.request<ExpenseDto>(`/api/expense/${encodeURIComponent(expense.id)}/description`, {
-        method: "PATCH",
-        body: { version: expense.version, description },
-      }),
-    onSuccess: saved,
-    onError: failure.handle,
-  });
-
-  return (
-    <form
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        failure.clear();
-        const message = validateDescription(description);
-        setFieldError(message);
-        if (message) inputRef.current?.focus();
-        else patch.mutate();
-      }}
-    >
-      <label htmlFor="description">Description</label>
-      <input
-        id="description"
-        ref={inputRef}
-        value={description}
-        autoFocus
-        {...errorProps("description", fieldError)}
-        onChange={(event) => setDescription(event.target.value)}
-      />
-      <FieldError id="description" message={fieldError} />
-      <WriteNotice failure={failure} onReload={onReload} />
-      <Button type="submit" variant="primary" pending={patch.isPending}>
-        Save description
-      </Button>{" "}
-      <button type="button" onClick={onDone}>
-        Cancel
-      </button>
     </form>
   );
 }

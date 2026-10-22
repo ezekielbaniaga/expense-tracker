@@ -323,17 +323,6 @@ describe("focus after a failed submit", () => {
     await screen.findByText("Current password is incorrect");
     await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Current password")));
   });
-
-  it("edit description: the input when it is empty", async () => {
-    signedIn();
-    await renderAt("/expenses/e1", "Lunch");
-    fireEvent.click(screen.getByRole("button", { name: "Edit description" }));
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Description")));
-    type("Description", "");
-    screen.getByRole("button", { name: "Save description" }).focus();
-    fireEvent.click(screen.getByRole("button", { name: "Save description" }));
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Description")));
-  });
 });
 
 describe("focus around inline confirms", () => {

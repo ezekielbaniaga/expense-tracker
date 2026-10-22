@@ -40,16 +40,16 @@ test("Add another keeps the form open and empties it", async ({ page, request })
   await expect(page.getByRole("link", { name: "First of two", exact: true })).toBeVisible();
 });
 
-test("edit the description, then delete into Archived", async ({ page, request }) => {
+test("edit the expense, then delete into Archived", async ({ page, request }) => {
   const user = await registerUser(request);
   await signIn(page, user);
   const id = await createExpense(page, "Lifecycle coffee");
 
-  await page.getByRole("button", { name: "Edit description" }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByLabel("Description").fill("Lifecycle tea");
-  await page.getByRole("button", { name: "Save description" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Lifecycle tea" })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "Description saved" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
 
   // Cancel leaves it alone
   await page.getByRole("button", { name: "Delete", exact: true }).click();

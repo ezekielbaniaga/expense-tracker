@@ -67,4 +67,11 @@ describe("admin user filter bar", () => {
     expect(css).toMatch(/\.back-link \{\s*display: inline-flex;\s*align-items: center;/);
     expect(css).toMatch(/(^|\n)\.form-actions \{\s*position: sticky;/);
   });
+
+  // The detail page: Delete is a danger-colored ghost, Id and Version sit in a collapsed details block
+  it("styles the expense detail actions and technical details", () => {
+    expect(css).toMatch(/\.btn--danger-ghost \{\s*color: var\(--danger\);/);
+    expect(css).toMatch(/\.detail-actions \{\s*display: flex;/);
+    expect(css).toMatch(/\.tech-details summary \{\s*color: var\(--muted\);/);
+  });
 });

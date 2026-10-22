@@ -170,6 +170,15 @@ select[aria-invalid="true"] {
   filter: brightness(0.95);
 }
 
+/* A ghost button that reads as destructive without the filled danger look */
+.btn--danger-ghost {
+  color: var(--danger);
+}
+
+.btn--danger-ghost:hover:not(:disabled) {
+  background: var(--danger-fill);
+}
+
 .btn--icon {
   width: 2.75rem;
   padding: 0;
@@ -702,6 +711,33 @@ tr.row--new {
 
 .detail-list dd {
   margin: 0;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* Version and Id are internals: collapsed under the dates */
+.tech-details {
+  margin-top: var(--sp-3);
+}
+
+.tech-details summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tech-details .detail-list {
+  margin-top: var(--sp-2);
+}
+
+/* Center the Copy button against the id text so the row is not taller than its dt */
+.tech-details .detail-list dd {
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
 }
 
 .short-id {

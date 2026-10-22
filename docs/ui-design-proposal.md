@@ -576,27 +576,27 @@ Lemonade-style: one focused card, the amount first and big, quick choices as chi
 
 ```
 ┌──────────────────────────────────────┐
-│ ←                              [ ⋯ ] │  more: Edit description, Delete
+│ ←                                    │
 ├──────────────────────────────────────┤
 │   (🍴)                               │
-│   Lunch with team          ✎         │  click title to edit description (PATCH)
+│   Lunch with team                    │
 │   24.00                              │  --fs-xl
 │   (Food) · Tue, Oct 21 2026          │
 │                                      │
 │ ┌──────────────────────────────────┐ │
 │ │ CREATED        Oct 21, 09:05     │ │
 │ │ LAST MODIFIED  Never             │ │
-│ │ VERSION        0                 │ │
-│ │ ID             3f2a…c91 [copy]   │ │
+│ │ ▸ Technical details (collapsed)  │ │
 │ └──────────────────────────────────┘ │
 │ [           Edit expense           ] │
 └──────────────────────────────────────┘
 ```
 
 - Amount, description, category and date are the visible content; Created / Last modified / Version / Id move to a
-  muted "Details" card (Id shortened with a copy button and the full value as accessible text).
+  muted "Details" card (Id shortened with a copy button and the full value as accessible text, under "Technical details").
 - **Edit** opens the same form as Add, prefilled (in place on the page, as today, or as a sheet); PUT with `version`.
-- **Edit description** is inline: the title becomes an input with Save/Cancel; PATCH with `version` as today.
+- Version and Id sit in a collapsed "Technical details" block (Copy is a small ghost button). The category shows once,
+  as the chip. Edit is the primary button and Delete a danger-colored ghost; there is no separate "Edit description".
 - **Delete** opens a confirm `Dialog` ("Delete this expense? It moves to Archived and is removed for good after the
   retention period.") with Cancel focused first; DELETE with `?version=`. Success toast "Expense deleted".
 - All existing 409 handling stays: `CONCURRENT_MODIFICATION` keeps the input and shows a Reload banner;

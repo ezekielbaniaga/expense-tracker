@@ -795,6 +795,14 @@ describe("expense detail", () => {
     expect(screen.getByText("e1")).toBeTruthy();
     expect(screen.getByText("12.50")).toBeTruthy();
     expect(screen.getByText("Food")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Edit description" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Edit" }).className).toContain("btn--primary");
+    expect(screen.getByRole("button", { name: "Delete" }).className).toContain("btn--danger-ghost");
+    const tech = screen.getByText("Technical details").closest("details")!;
+    expect(tech.open).toBe(false);
+    expect(within(tech).getByText("e1")).toBeTruthy();
+    expect(within(tech).getByText("3")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy id" }).className).toContain("btn--sm");
     expect(screen.getByText("Saturday, October 17, 2026")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Details" })).toBeTruthy();
     expect(screen.getByText("3")).toBeTruthy();
@@ -1189,40 +1197,6 @@ describe("edit, patch description and delete", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("size must be between 0 and 250")).toBeTruthy();
     expect(input("Description").getAttribute("aria-invalid")).toBe("true");
-  });
-
-  it("PATCHes only the description with the version and updates the page", async () => {
-    let body: unknown;
-    server.use(
-      detail(),
-      http.patch(`${BASE}/api/expense/e1/description`, async ({ request }) => {
-        body = await request.json();
-        return HttpResponse.json(stored({ version: 4, description: "Brunch" }));
-      }),
-    );
-    renderAt("/expenses/e1");
-    await screen.findByRole("heading", { name: "Lunch" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit description" }));
-    fireEvent.change(input("Description"), { target: { value: "Brunch" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save description" }));
-    expect(await screen.findByRole("heading", { name: "Brunch" })).toBeTruthy();
-    expect((await screen.findByRole("status")).textContent).toBe("Description saved");
-    expect(body).toEqual({ version: 3, description: "Brunch" });
-    expect(screen.getByText("4")).toBeTruthy();
-  });
-
-  it("keeps the typed description on a 409 and offers Reload", async () => {
-    server.use(
-      detail(),
-      http.patch(`${BASE}/api/expense/e1/description`, () => conflict("CONCURRENT_MODIFICATION")),
-    );
-    renderAt("/expenses/e1");
-    await screen.findByRole("heading", { name: "Lunch" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit description" }));
-    fireEvent.change(input("Description"), { target: { value: "Brunch" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save description" }));
-    expect((await screen.findByRole("alert")).textContent).toMatch(/Reload/);
-    expect(input("Description").value).toBe("Brunch");
   });
 
   it("DELETEs with ?version=, invalidates both lists and returns to the list", async () => {

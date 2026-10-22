@@ -41,7 +41,7 @@ for (const colorScheme of SCHEMES) {
       // The detail screen of the first seeded row
       await page.goto("/");
       await page.locator("table.expense-table tbody a").first().click();
-      await expect(page.getByRole("button", { name: "Edit description" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
       await check(page, testInfo, `detail-${colorScheme}-${width}`);
 
       // The admin screens, in a context of their own so the user's session is untouched
