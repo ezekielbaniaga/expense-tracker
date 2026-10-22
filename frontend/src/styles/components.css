@@ -324,6 +324,13 @@ select[aria-invalid="true"] {
 }
 
 /* Card, Skeleton, EmptyState */
+
+/* A page body whose direct children (cards, forms, lists) are spaced evenly instead of touching */
+.stack {
+  display: grid;
+  gap: var(--sp-4);
+}
+
 .card {
   padding: var(--sp-4);
   background: var(--surface);
@@ -671,10 +678,6 @@ tr.row--new {
   gap: var(--sp-2);
   margin: 0;
   color: var(--muted);
-}
-
-.detail-card {
-  margin-bottom: var(--sp-4);
 }
 
 .detail-list {

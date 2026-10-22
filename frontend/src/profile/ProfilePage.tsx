@@ -37,7 +37,7 @@ export function ProfilePage() {
 
   const me = query.data;
   return (
-    <>
+    <div className="stack">
       <section aria-labelledby="profile-heading">
         <PageHeading id="profile-heading">Profile</PageHeading>
         {query.isPending && <Skeleton label="Loading profile..." />}
@@ -71,7 +71,7 @@ export function ProfilePage() {
       <AppearanceSection />
       <ChangePasswordSection username={me?.username} />
       <DevicesSection />
-    </>
+    </div>
   );
 }
 

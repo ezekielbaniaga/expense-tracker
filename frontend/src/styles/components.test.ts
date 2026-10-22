@@ -11,6 +11,12 @@ describe("components.css", () => {
     expect(css).not.toMatch(/(^|\n)label:has\(input\[type="checkbox"\]\)/);
   });
 
+  // Cards that are siblings in a page body touched each other; .stack spaces them
+  it("defines a .stack utility that spaces its children with the page gap", () => {
+    expect(css).toMatch(/(^|\n)\.stack \{\s*display: grid;\s*gap: var\(--sp-4\);/);
+    expect(css).not.toContain(".detail-card");
+  });
+
   // The Filters panel is collapsed at every width, not only on phones
   it("hides the closed filters panel at every width", () => {
     expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);

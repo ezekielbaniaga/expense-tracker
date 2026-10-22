@@ -57,7 +57,7 @@ export function AdminUserPage() {
         </p>
       )}
       {user && (
-        <>
+        <div className="stack">
           <Card className="user-header">
             <Avatar name={user.displayName ?? user.username} id={user.id} className="avatar--lg" />
             <div>
@@ -83,7 +83,7 @@ export function AdminUserPage() {
             <dd>{user.lastModified ? formatLocalDateTime(user.lastModified) : "Never"}</dd>
           </dl>
           <UserForm user={user} onReload={() => void query.refetch()} />
-        </>
+        </div>
       )}
     </section>
   );

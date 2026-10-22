@@ -85,7 +85,7 @@ export function ExpenseDetailPage() {
         </p>
       )}
       {e && (
-        <>
+        <div className="stack">
           <PageHeading id="expense-heading">{e.description ?? NO_DESCRIPTION}</PageHeading>
           <div className="detail-hero">
             <CategoryBadge category={e.category} />
@@ -94,7 +94,7 @@ export function ExpenseDetailPage() {
               <CategoryChip category={e.category} /> <span>{formatLongDay(e.date)}</span>
             </p>
           </div>
-          <Card title="Details" className="detail-card">
+          <Card title="Details">
             <dl className="detail-list">
               <dt>Created</dt>
               <dd>{formatLocalDateTime(e.createdAt)}</dd>
@@ -134,7 +134,7 @@ export function ExpenseDetailPage() {
           {mode === "delete" && (
             <DeleteDialog expense={e} onReload={reload} onCancel={() => setMode("view")} />
           )}
-        </>
+        </div>
       )}
     </section>
   );

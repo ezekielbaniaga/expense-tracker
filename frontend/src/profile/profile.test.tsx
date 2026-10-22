@@ -107,6 +107,15 @@ describe("profile", () => {
     expect(within(profile).getByText("Jan 2026")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/me");
   });
+
+  // The cards are siblings; .stack (a grid with a gap) is what keeps their borders apart
+  it("lays the profile sections out in one .stack", async () => {
+    server.use(sessions([THIS_DEVICE]));
+    await renderProfile();
+    const stack = screen.getByRole("region", { name: "Profile" }).parentElement;
+    expect(stack?.classList.contains("stack")).toBe(true);
+    expect(stack?.querySelectorAll(":scope > .card, :scope > section.card").length).toBe(3);
+  });
 });
 
 describe("display name", () => {
