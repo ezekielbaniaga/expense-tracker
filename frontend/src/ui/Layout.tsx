@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { AccountMenu } from "./AccountMenu";
@@ -10,6 +10,15 @@ export function Layout() {
   const { state } = useAuth();
   const { pathname } = useLocation();
   const main = useRef<HTMLElement>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
+  // The bar only gets its edge once content has scrolled under it
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined" || !sentinel.current) return;
+    const observer = new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting));
+    observer.observe(sentinel.current);
+    return () => observer.disconnect();
+  }, []);
   // On phones the button floats over the list only; from 48rem it stays in the top bar on every page
   const onList = pathname === "/";
   return (
@@ -25,7 +34,9 @@ export function Layout() {
       >
         Skip to content
       </a>
-      <header className="topbar">
+      {/* 1px marker at the page top: out of view means the page has scrolled */}
+      <div ref={sentinel} className="topbar-sentinel" aria-hidden="true" />
+      <header className="topbar" data-scrolled={scrolled ? "true" : undefined}>
         <Link to="/" className="topbar__name">
           Expense Tracker
         </Link>

@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -116,5 +116,35 @@ describe("Layout", () => {
     expect(screen.getAllByRole("navigation", { name: "Main" })).toHaveLength(1);
     client.dispose();
     role = "USER";
+  });
+
+  it("sets data-scrolled on the top bar only while the sentinel is out of view, and works without IntersectionObserver", async () => {
+    let callback: (entries: { isIntersecting: boolean }[]) => void = () => {};
+    const disconnect = vi.fn();
+    class FakeObserver {
+      constructor(cb: typeof callback) {
+        callback = cb;
+      }
+      observe() {}
+      disconnect = disconnect;
+    }
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    let client = renderLayout("/");
+    await screen.findByRole("button", { name: "Account menu for alice" });
+    const header = document.querySelector("header.topbar")!;
+    expect(header.hasAttribute("data-scrolled")).toBe(false);
+    act(() => callback([{ isIntersecting: false }]));
+    expect(header.getAttribute("data-scrolled")).toBe("true");
+    act(() => callback([{ isIntersecting: true }]));
+    expect(header.hasAttribute("data-scrolled")).toBe(false);
+    cleanup();
+    client.dispose();
+    expect(disconnect).toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+    client = renderLayout("/");
+    await screen.findByRole("button", { name: "Account menu for alice" });
+    expect(document.querySelector("header.topbar")?.hasAttribute("data-scrolled")).toBe(false);
+    client.dispose();
   });
 });

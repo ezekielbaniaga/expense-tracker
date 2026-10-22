@@ -16,6 +16,21 @@ body {
   gap: var(--sp-2) var(--sp-4);
   padding: var(--sp-2) 0;
   background: var(--bg);
+  transition: box-shadow 0.15s ease;
+}
+
+.topbar[data-scrolled="true"] {
+  box-shadow: var(--shadow-1);
+}
+
+/* Watched by an IntersectionObserver in Layout; leaving the viewport turns the bar's shadow on */
+.topbar-sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
 }
 
 .topbar__name {

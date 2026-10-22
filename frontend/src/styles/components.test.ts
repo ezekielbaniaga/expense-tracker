@@ -160,4 +160,9 @@ describe("base.css root size", () => {
     expect(css).toMatch(/\.auth \{[^}]*min-height: 100vh;\s*min-height: 100dvh;[^}]*isolation: isolate;/);
     expect(css).toMatch(/body:has\(\.auth\) \{\s*padding-bottom: 0;/);
   });
+
+  it("shows the top bar shadow only once scrolled, via the sentinel", () => {
+    expect(layout).toMatch(/\.topbar\[data-scrolled="true"\] \{\s*box-shadow: var\(--shadow-1\);/);
+    expect(layout).toMatch(/\.topbar-sentinel \{\s*position: absolute;\s*top: 0;/);
+  });
 });
