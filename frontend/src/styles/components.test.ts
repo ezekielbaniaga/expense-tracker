@@ -44,3 +44,15 @@ describe("components.css", () => {
     expect(css).toMatch(/(^|\n)\.expense-table tbody > tr:not\(\.expense-table__day\):hover \{\s*background: var\(--surface-2\);/);
   });
 });
+
+describe("summary bar colours", () => {
+  it.each(["food", "transport", "bills", "entertainment", "unknown"])(
+    "fills the %s segment and dot with the strong token, not the pastel",
+    (cat) => {
+      const rule = css.match(
+        new RegExp(`\\.summary-bar__segment\\.chip--cat-${cat},\\s*\\.summary-legend__swatch\\.chip--cat-${cat}\\s*\\{([^}]*)\\}`),
+      );
+      expect(rule?.[1]).toContain(`background: var(--cat-${cat}-strong)`);
+    },
+  );
+});

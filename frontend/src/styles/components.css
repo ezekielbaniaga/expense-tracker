@@ -1054,7 +1054,7 @@ tr.row--new {
   display: flex;
   gap: 2px;
   height: 12px;
-  margin: var(--sp-3) 0;
+  margin: var(--sp-2) 0 var(--sp-3);
   overflow: hidden;
   border-radius: var(--r-sm, 6px);
 }
@@ -1062,6 +1062,32 @@ tr.row--new {
 .summary-bar__segment {
   flex-basis: 0;
   min-width: 4px;
+}
+
+/* two classes outrank .chip--cat-*, whose pastel fill is nearly invisible on the card */
+.summary-bar__segment.chip--cat-food,
+.summary-legend__swatch.chip--cat-food {
+  background: var(--cat-food-strong);
+}
+
+.summary-bar__segment.chip--cat-transport,
+.summary-legend__swatch.chip--cat-transport {
+  background: var(--cat-transport-strong);
+}
+
+.summary-bar__segment.chip--cat-bills,
+.summary-legend__swatch.chip--cat-bills {
+  background: var(--cat-bills-strong);
+}
+
+.summary-bar__segment.chip--cat-entertainment,
+.summary-legend__swatch.chip--cat-entertainment {
+  background: var(--cat-entertainment-strong);
+}
+
+.summary-bar__segment.chip--cat-unknown,
+.summary-legend__swatch.chip--cat-unknown {
+  background: var(--cat-unknown-strong);
 }
 
 .summary-legend {

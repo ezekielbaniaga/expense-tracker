@@ -55,6 +55,13 @@
   --cat-unknown-bg: var(--surface-2);
   --cat-unknown-fg: var(--muted);
 
+  /* solid fills for the summary bar and legend dots; the pastel -bg fills are about 1.1:1 on --surface */
+  --cat-food-strong: var(--peach-strong);
+  --cat-transport-strong: var(--sky-strong);
+  --cat-bills-strong: var(--lemon-strong);
+  --cat-entertainment-strong: var(--mint-strong);
+  --cat-unknown-strong: var(--muted);
+
   --font: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --fs-caps: 0.65625rem;
   --fs-sm: 0.75rem;

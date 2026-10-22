@@ -107,6 +107,10 @@ const nonTextPairs: [string, string][] = [
   ["--focus-ring", "--surface"],
   ["--line-strong", "--surface"],
   ["--line-strong", "--bg"],
+  ...["food", "transport", "bills", "entertainment", "unknown"].map((c): [string, string] => [
+    `--cat-${c}-strong`,
+    "--surface",
+  ]),
 ];
 
 describe("design tokens", () => {
