@@ -612,10 +612,12 @@ describe("expense list", () => {
       expect(screen.getByText("Page 2 of 2")).toBeTruthy();
       state.total = 20;
       await act(() => queryClient.invalidateQueries({ queryKey: ["expenses"] }));
-      // Page 0 is cached with the old total, so wait for the pager to go (one page left) rather than the rows
-      await waitFor(() => expect(screen.queryByText(/Page \d+ of/)).toBeNull());
-      expect(screen.getByText("Item 0-0")).toBeTruthy();
-      expect(pages.at(-1)).toBe("0");
+      // The pager goes as soon as page 1 answers with one page left, before the redirect shows page 0
+      await waitFor(() => {
+        expect(screen.queryByText(/Page \d+ of/)).toBeNull();
+        expect(screen.getByText("Item 0-0")).toBeTruthy();
+        expect(pages.at(-1)).toBe("0");
+      });
     });
 
     it("leaves an in-range page alone", async () => {

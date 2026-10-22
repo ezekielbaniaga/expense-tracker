@@ -197,10 +197,12 @@ describe("users list", () => {
       expect(await screen.findByRole("link", { name: "user1x0" })).toBeTruthy();
       state.total = 20;
       await act(() => queryClient.invalidateQueries({ queryKey: ["users"] }));
-      // Page 0 is cached with the old total, so wait for the pager to go (one page left) rather than the rows
-      await waitFor(() => expect(screen.queryByText(/Page \d+ of/)).toBeNull());
-      expect(screen.getByRole("link", { name: "user0x0" })).toBeTruthy();
-      expect(requests.at(-1)!.page).toBe("0");
+      // The pager goes as soon as page 1 answers with one page left, before the redirect shows page 0
+      await waitFor(() => {
+        expect(screen.queryByText(/Page \d+ of/)).toBeNull();
+        expect(screen.getByRole("link", { name: "user0x0" })).toBeTruthy();
+        expect(requests.at(-1)!.page).toBe("0");
+      });
     });
 
     it("leaves an in-range page alone and does not redirect when there are no users", async () => {
@@ -225,7 +227,8 @@ describe("users list", () => {
         const q = params(request.url);
         requests.push(q);
         if (q.sort === "bogus,asc") return error(400, "INVALID_SORT", ["sort is not valid."]);
-        return HttpResponse.json(page([ALICE]));
+        // A total that makes page 2 exist, or the out-of-range redirect races the header click
+        return HttpResponse.json(page([ALICE], Number(q.page), 20, 45));
       }),
     );
     renderAt("/admin/users?page=2");
