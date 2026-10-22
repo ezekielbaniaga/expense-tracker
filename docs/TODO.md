@@ -14,13 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The desktop expense table is noisy.** Amount is right-aligned with tabular figures only on phones, so on
-      desktop the decimals do not line up. When the list is sorted by date, every row repeats the date under
-      its day header ("TODAY" over "Oct 22, 2026" ×8); phones already hide it (`.expense-table--grouped`).
-      Every description is an underlined link, which stacks up a column of underlines. Fix: right-align the
-      amount `td`/`th` with `tabular-nums` at every width; hide the date column on desktop too when grouped;
-      make the whole row the link (the stretched `::after` the phone cards use) with a hover background, and
-      drop the underline inside the table.
 - [ ] **The summary bar and legend dots are barely visible.** `.summary-bar__segment` and
       `.summary-legend__swatch` use the pastel `--cat-*-bg` fills, about 1.1:1 on `--surface` (sky
       `#dceeff` on white), so Transport's segment and every legend dot almost disappear. Fix: add
@@ -254,3 +247,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Fixed the account menu: Close hidden on desktop, desktop shadow, monitor icon for Your devices, RoleChip (d4d6771)
 - [x] Removed the lines inside phone expense cards and kept "Sort by" on one line (62a6ee1)
 - [x] Hide the pager when there is nothing to page and make the page-size select auto-width (64ca84e)
+- [x] Tidied the desktop expense table: right-aligned tabular amounts, date column hidden under day headers, whole-row link without underline (214e6e6)
