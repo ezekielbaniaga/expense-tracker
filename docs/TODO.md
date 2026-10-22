@@ -14,13 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The admin user page shows role and status three times.** `admin/AdminUserPage.tsx` shows the header
-      chips, then a `dl` (Role USER, Status Enabled, Version), then the form (Enabled checkbox, Role select).
-      The `dl` sits outside any card while the header is in one, the Save button touches the select (no gap),
-      Version is an internal optimistic-lock number, and "Back to users" lacks the chevron the other back links
-      have. Fix: the header card with chips; a Details card with Created and Last modified only; an Access card
-      with Status and Role as `SegmentedControl`s and Save in a `.form-actions` row; `.back-link` with
-      `ChevronLeftIcon`.
 - [ ] **The expense detail page has redundant actions and data.** `expenses/ExpenseDetailPage.tsx` offers "Edit"
       and "Edit description" side by side (Edit already edits the description). The Delete trigger looks like
       the others, though its dialog uses danger. The category shows twice (56 px badge plus chip). Version and
@@ -239,3 +232,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Tidied the desktop expense table: right-aligned tabular amounts, date column hidden under day headers, whole-row link without underline (214e6e6)
 - [x] Gave the summary bar and legend dots strong category colours (266ec8b)
 - [x] Admin user filter laid out as one filter-bar row with field labels (36ebbd5)
+- [x] Restructured the admin user page into header, Details and Access cards with segmented Status and Role (f4a3a03)
