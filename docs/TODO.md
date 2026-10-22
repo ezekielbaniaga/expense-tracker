@@ -1,6 +1,6 @@
 # TODO
 
-Last investigation: 2026-10-22 — UI review in Chromium, 15 findings (layout, filters, spacing, clutter)
+Last investigation: 2026-10-23 — UI alignment and polish audit in Chromium at 1280/768/375/320px, light and dark, 18 findings (see Web UI alignment and polish)
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
@@ -8,7 +8,160 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## Web UI alignment and polish (2026-10-23 audit)
+
+Measured with Playwright against the Vite dev server (API stubbed) at 1280, 768, 375 and 320px, light and dark, with
+classic scrollbars. Axe found no violations and no page scrolls sideways, even at 320px. All findings are layout and
+visual. Spec: `docs/ui-design-proposal.md` (cited as "spec"). Work top to bottom: item 1 changes every size, so
+do it first and re-measure the rest after it.
+
+**How to test every item (required).** A fix for one width must not move the other:
+1. Before the change, record screenshots and `getBoundingClientRect()` of the affected elements at **1280, 768 and
+   375px** (320px for anything that wraps), in light and dark. The 48rem (768px) breakpoint is where the nav,
+   tables and FAB change.
+2. Decide which widths the change is meant for. A phone-only rule goes in `@media (max-width: 47.999rem)` (or a base
+   rule that a 48rem block overrides). A desktop-only rule goes in `@media (min-width: 48rem)`. A shared rule
+   needs a reason in the commit message.
+3. After the change, compare again. Widths the fix is not meant for must be pixel-identical (allow ±0.5px).
+   Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
+4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
+
+- [ ] **`rem` is 13px, so the whole UI is about 19% smaller than the spec.** `base.css` sets `:root { font-size:
+      var(--fs-base) }` (0.8125rem), which makes `rem` 13px. All `rem` tokens shrink with it. Measured: caps labels
+      8.53px (spec 10.5), `--fs-sm` text 9.75px (spec 12), explicit `--fs-base` text 10.56px (spec 13), inputs
+      10.6px. On touch screens inputs are 13px (spec: 16px, because iOS zooms the page on a focused input under
+      16px). "44px" targets measure 35.8px, `btn--sm` 29px, segmented items 32.5px, the "Back to …" link 20px, and
+      the top bar's Add expense (32.5px) and avatar (35.8px) differ in height. The spec's scale (line 231) assumes
+      1rem = 16px. Fix: `html { font-size: 100%; }` and `body { font-size: var(--fs-base); line-height: 1.5 }`;
+      leave the tokens alone. Best practice is a root of 100% so the user's browser font setting still applies
+      (WCAG 1.4.4). Then re-check headings against the spec table: `h1` becomes 28px, while the spec wants
+      `--fs-md` on phones and `--fs-lg` from 48rem. Give the top bar items (Add expense, nav links, avatar) one
+      height. Every width changes on purpose here, so compare both against the spec, not against "before".
+- [ ] **Content shifts sideways when the vertical scrollbar appears or goes (desktop).** Measured: 45 users give a
+      15px scrollbar, a 2-user search none, and the nav moves 7.5px (379.5 to 387). The same happens between any
+      long and short page (Archived, Profile). Fix: `html { scrollbar-gutter: stable; }` in `base.css`. Tested
+      with an injected style: the nav stays at 379.5px on both lists. Baseline 2024; overlay scrollbars (phones,
+      macOS default) ignore it, so 375px must not change. Avoid `overflow-y: scroll`, which shows an empty track
+      on short pages. `both-edges` would keep the column exactly centered but wastes 15px on the left.
+- [ ] **Global control margins misalign every row of controls.** `components.css` gives `input, select` a
+      `margin: 4px 0 8px` and `button` a `margin: 4px 0`. In a row their boxes then end at different heights
+      (`align-items: end` and `center`). Measured on every width:
+      - admin filter: Search 4px lower than Username and Status
+      - Password + "Show password" (login, register, profile): 2px
+      - expense search + Filters: 2px
+      - Pagination: Previous/Next 2px off the size select, and the "Per page" label 6px low
+
+      Fix the cause, not each row. Remove the margins from the element rules and space with layout: `.field {
+      display: grid; gap: var(--sp-1) }` for label, control and error, and `gap` / `.stack` between fields. Then
+      `.filter-bar`, `.password-input`, `.list-controls__search` and `.pagination` align with `align-items: end`
+      or `center` and no per-row margin hacks. On phones the Search button wraps to its own row: make it full width
+      (`flex: 1 1 100%` below 30rem) instead of hanging on the left. Check every form at 1280 and 375. The spacing
+      that the margins used to provide must come back through `gap`; compare field-to-field distances before
+      and after.
+- [ ] **Forms have a ragged right edge and uneven vertical rhythm.** Inputs are capped at `max-width: 24rem`, but
+      chip rows, the sticky Save row and cards span the full width. On the 375px New expense page the inputs end at
+      x=328 and the cards at x=359. On desktop the Category chips run to x=660 under 312px inputs. Group gaps also
+      vary. Text fields get 8px + 8px from margins, but fieldsets (Category, Quick date) get none, so "QUICK DATE"
+      sits 4px under the chips while "DATE" sits 16px under them. Every `legend` is also 2px right of the labels
+      (default legend padding; only `.list-controls__range legend` resets it). Fix: one form layout, a `.form`
+      grid with `gap: var(--sp-4)` and `max-width: 28rem` (spec: forms 28rem). Inputs go `width: 100%` inside it
+      (full width on phones). Use `legend { padding: 0 }` for `.chip-group` and `.segmented`. Applies to New and
+      Edit expense, Profile password, Login and Register.
+- [ ] **The "Add expense" FAB shows on every phone page and covers content.** The spec puts the FAB "only on the
+      list" (line 316). It shows on New expense, so two "Add expense" buttons are on screen, and on Detail, Profile
+      and Admin. Measured at 375px: the FAB (y 636–682) sits beside the sticky Save/Cancel row on the edit form,
+      and it covers the last table rows and the pager. `main { padding-bottom: 6rem }` (78px now) does not clear
+      tab bar plus FAB. Fix: render the FAB only on `/` below 48rem. From 48rem it is the top bar button, which
+      must stay on every page. Set `main`'s bottom padding from the tab bar and FAB heights plus
+      `env(safe-area-inset-bottom)`. Desktop must not change; check that the 48rem rule still resets it.
+- [ ] **Table cells break words and amounts.** `td { overflow-wrap: anywhere }` breaks inside short tokens:
+      - 1280px expense list: "Entertainm/ent", "1,234,567/.89"
+      - Archived (all widths): "12.5/0", and the date wraps
+      - 375px admin users: "Admi/n", "Enable/d", "user1/0"
+
+      The Done item "right-aligned tabular amounts" (214e6e6) is therefore incomplete. Fix: `white-space: nowrap`
+      on `.chip`, `.status-chip`, amount and date cells, and give the narrow columns `width: 1%` so the
+      description column takes the slack and wraps. Use `overflow-wrap: break-word` (not `anywhere`) on `td` so
+      long words break only when they must. Right-align Archived amounts with `tabular-nums` like the main list.
+      On phones the admin table still scrolls inside `.table-scroll`; consider hiding Created below 30rem. Check
+      the expense cards at 375px, which share `.expense-table`, so they stay unchanged.
+- [ ] **Admin user page: the Status/Role segmented controls look off.** The selected item draws a 2px accent border
+      inside a 1px track border plus 2px padding, so it reads as a double outline that hugs the left edge. The
+      two items also have different widths ("Enabled" 78px, "Disabled" 84px), so the switch looks lopsided.
+      Fix: equal-width items (`display: grid; grid-auto-flow: column; grid-auto-columns: 1fr`). Mark the
+      selected item with fill plus `box-shadow: inset 0 0 0 2px var(--accent-strong)` and no border. Track
+      padding 3px. Keep the forced-colors border (`Highlight`). The account menu uses the same component (Theme:
+      System/Light/Dark), so check it at both widths too.
+- [ ] **Save sits in a page-colored strip inside the Access card.** `.form-actions` is sticky with `background:
+      var(--bg)` for the expense forms. Inside a white card it shows as a beige box in light mode and a black box
+      in dark mode, at every width. Fix: `.card .form-actions { position: static; padding: 0; background: none }`.
+      Keep the sticky bar for the expense forms, which are not in a card. Check New/Edit expense at 375px, where
+      the sticky row is wanted.
+- [ ] **Admin user header chips are uneven.** Measured: "User" chip 18.6px, "Enabled" chip 20px (only one has a
+      16px icon). Chips are separated by a literal space inside a `<p>`. Fix: one chip height (`min-height:
+      1.25rem; line-height: 1`, icons `flex: none`) for `.status-chip` and `.admin-pill`. Lay out
+      `.user-header__chips` as `display: flex; gap: var(--sp-2)`. On phones let the name, pill and chips wrap
+      under each other with the avatar top-aligned.
+- [ ] **Login/Register: the accent blobs are clipped to hard rectangles, and the page scrolls.** `.auth::before` is
+      `z-index: -1`, so it paints under `body`'s background. On desktop the blobs only show outside the 60rem body
+      as two hard-edged bands. On phones they are invisible. Fix: `.auth { isolation: isolate }`. Tested with
+      an injected style: soft blobs at 1280 and 375. Separately, `.auth { min-height: 100vh }` plus the body's
+      bottom padding makes the page 24px taller than the viewport, so a scrollbar appears on an empty page. Use
+      `min-height: 100dvh` and drop the body padding on auth pages. Also consider an icon toggle (eye,
+      `aria-pressed`, label "Show password") inside the field. The text button makes Password 112px narrower than
+      Username.
+- [ ] **Filters panel hierarchy is flat.** "DATES" (legend) and "FROM" (label) are the same 8.5px muted caps, 4px
+      apart, so they read as one stack of labels. The From/To/Min/Max inputs are 117px wide in a 560px panel.
+      "Clear filters" sits above a full-ink line, because `var(--border, currentColor)` uses a token that does not
+      exist. Fix: style the group legends one step up (`--fs-sm`, `--ink`, weight 600) with `--sp-3` above each
+      fieldset. Use `grid-template-columns: repeat(2, minmax(0, 14rem))`. Divider: `var(--line)`. Check at 375px,
+      where the two columns must still fit at 320px.
+- [ ] **Sticky top bar has no edge when content scrolls under it.** The bar's background is `--bg`, with no border
+      or shadow, so rows slide under it without separation (both widths). The spec says it "gets `--shadow-1` after
+      scrolling". Fix: a 1px `--line` bottom border or `--shadow-1`, toggled by an IntersectionObserver sentinel or
+      a CSS scroll-driven animation. Only when scrolled.
+- [ ] **Account menu bottom sheet (phone) has no scrim or handle.** It opens over a page that stays fully visible
+      and clickable. The spec says "bottom sheet with a drag handle and a Close button". Close is plain bold
+      text. Fix: below 48rem add a backdrop (`color-mix(in srgb, var(--ink) 40%, transparent)`, like
+      `.dialog::backdrop`) that closes on tap, a 4×32px handle, and `Close` as a secondary button. The desktop
+      dropdown must not change.
+- [ ] **Empty results are bare text.** "No expenses match these filters." and "No users match." are plain left-aligned
+      paragraphs. The unfiltered empty list and Archived use `EmptyState`. Fix: `EmptyState` with a "Clear
+      filters" action (the list) or "Clear search" (admin), at both widths.
+- [ ] **Ghost buttons in text rows do not line up with the text around them.** In Profile → Account, "Add your name"
+      (a ghost button with 12px padding) starts 13px right of the Role chip in the next row. Fix: in `dd` and
+      inline contexts give ghost buttons `margin-inline-start: calc(-1 * var(--sp-3))`. That keeps the hit area
+      and aligns the label with the column. Same check for Profile → Devices "Revoke" against the card's right
+      padding.
+- [ ] **Token hygiene.** Uses of tokens that do not exist or differ from them:
+      - `var(--border, currentColor)` (no such token)
+      - fallbacks that differ from the token: `var(--sp-3, 1rem)` (token 12px), `var(--sp-4, 1rem)`,
+        `var(--fs-lg, 1.5rem)` (token 1.125rem), `var(--fs-xl, 1.75rem)`, `var(--r-sm, 0.25rem)`
+      - raw values: `999px`, `0.5rem` radius, `0.8125rem` on day headers, `56px` badge
+      - `.list-controls__search label` re-implements `.visually-hidden` with the deprecated `clip`
+
+      Fix: tokens only, no fallbacks, and reuse `.visually-hidden`. Extend `tokens.test.ts` so every
+      `var(--x)` in `src/styles` names a defined token. No visual change except the Filters divider, so diff
+      the screenshots at both widths.
+- [ ] **Every page logs "No queryFn was passed … [["me"]]" in the console.** `useMe.ts` peeks at the cache with
+      `useQuery` and no `queryFn`. Use `useQueryClient().getQueryData` plus a subscription, or `useQuery` with
+      `enabled: false` and the real `queryFn`, so the shell still never fetches.
+- [ ] **Add a layout regression spec.** All of the above slipped past jsdom and axe. Extend `e2e/a11y.spec.ts`
+      (it already runs 360 and 1280, light and dark) or add `e2e/layout.spec.ts` with these assertions:
+      - controls in one row share their top and bottom edges (±1px)
+      - the nav does not move between a long and a short list
+      - no text below 10px
+      - inputs are ≥ 16px on the touch project
+      - targets are ≥ 24px (≥ 44px on touch)
+      - single-word chips and amounts stay on one line
+
+      Runs under `npm run e2e` (Compose stack), not in unattended runs.
+
 ## Needs you
+
+- [ ] **Decide whether Admin stays in the phone tab bar.** The spec (line 322) keeps the bottom tab bar to three
+      items (Expenses, Archived, Profile) with Admin in the avatar menu "because few users have it". Today admins get
+      four tabs, and Admin is in the menu too. Keep it as is, or drop the tab below 48rem (the desktop nav link stays)?
 
 - [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
       `docker_compose/.env`, log in through `:8081` and check that `user_sessions.ip_address` holds your client
