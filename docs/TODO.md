@@ -26,21 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Global control margins misalign every row of controls.** `components.css` gives `input, select` a
-      `margin: 4px 0 8px` and `button` a `margin: 4px 0`. In a row their boxes then end at different heights
-      (`align-items: end` and `center`). Measured on every width:
-      - admin filter: Search 4px lower than Username and Status
-      - Password + "Show password" (login, register, profile): 2px
-      - expense search + Filters: 2px
-      - Pagination: Previous/Next 2px off the size select, and the "Per page" label 6px low
-
-      Fix the cause, not each row. Remove the margins from the element rules and space with layout: `.field {
-      display: grid; gap: var(--sp-1) }` for label, control and error, and `gap` / `.stack` between fields. Then
-      `.filter-bar`, `.password-input`, `.list-controls__search` and `.pagination` align with `align-items: end`
-      or `center` and no per-row margin hacks. On phones the Search button wraps to its own row: make it full width
-      (`flex: 1 1 100%` below 30rem) instead of hanging on the left. Check every form at 1280 and 375. The spacing
-      that the margins used to provide must come back through `gap`; compare field-to-field distances before
-      and after.
 - [ ] **Forms have a ragged right edge and uneven vertical rhythm.** Inputs are capped at `max-width: 24rem`, but
       chip rows, the sticky Save row and cards span the full width. On the 375px New expense page the inputs end at
       x=328 and the cards at x=359. On desktop the Category chips run to x=660 under 312px inputs. Group gaps also
@@ -344,3 +329,4 @@ do it first and re-measure the rest after it.
 - [x] Debounced the Min/Max amount filters (300 ms) and made typed filters replace the history entry (dd6c83c)
 - [x] Root font size set to 100% so rem is 16px; h1 sized per spec; desktop top bar items share one height (922a09f)
 - [x] Reserved the scrollbar gutter on the root so content no longer shifts sideways between long and short pages (f3efe15)
+- [x] Removed global control margins; forms/fields space with gap, controls align in rows (e7a4cec)
