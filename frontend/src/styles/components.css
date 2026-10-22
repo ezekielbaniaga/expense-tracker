@@ -66,6 +66,17 @@ select[aria-invalid="true"] {
 form {
   display: grid;
   gap: var(--sp-4);
+  max-width: 28rem;
+}
+
+/* One column width for every form (spec: 28rem), so inputs, chips, cards and the Save row share a right
+   edge. Inputs fill it; a filter bar is a wrapping row of fields, so it keeps its own widths. */
+form:has(> .filter-bar) {
+  max-width: none;
+}
+
+form:not(:has(> .filter-bar)) :is(input:not([type="checkbox"]), select) {
+  max-width: none;
 }
 
 /* TextField, SelectField, DateField and AmountField (ui/fields.tsx) */
@@ -235,6 +246,12 @@ form {
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* The default legend padding put every group title 2px right of the field labels */
+.chip-group legend,
+.segmented legend {
+  padding: 0;
 }
 
 .chip-group__items {

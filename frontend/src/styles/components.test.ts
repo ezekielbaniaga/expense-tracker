@@ -26,6 +26,13 @@ describe("components.css", () => {
     expect(css).toMatch(/\.filter-bar > button \{\s*flex: 1 1 100%;/);
   });
 
+  // Inputs stopped at 24rem while chips and the Save row ran full width: ragged right edge
+  it("gives forms one 28rem column with full-width inputs and flush legends", () => {
+    expect(css).toMatch(/(^|\n)form \{[^}]*max-width: 28rem;/);
+    expect(css).toMatch(/form:not\(:has\(> \.filter-bar\)\) :is\(input:not\(\[type="checkbox"\]\), select\) \{\s*max-width: none;/);
+    expect(css).toMatch(/\.chip-group legend,\s*\.segmented legend \{\s*padding: 0;/);
+  });
+
   // The Filters panel is collapsed at every width, not only on phones
   it("hides the closed filters panel at every width", () => {
     expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);
