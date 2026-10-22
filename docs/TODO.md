@@ -14,11 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **Phone expense cards draw lines inside each card.** Below 48rem the rows become bordered cards, but
-      `th, td { border-bottom: 1px solid var(--line) }` (`styles/layout.css`) still applies, so a line runs
-      under the description and under the category of every card. Fix: `.expense-table td { border-bottom: 0 }`
-      in the phone block. The "Sort by" label also wraps onto two lines at 390 px, so add `white-space: nowrap`
-      and keep the select `width: auto`.
 - [ ] **Pagination is oversized and shows when there is nothing to page.** The page-size select takes the
       global `width: 100%; max-width: 24rem` (312 px for "20"), and wraps under the buttons on phones. With
       one page it still shows "Page 1 of 1" between two disabled buttons. This affects the expense and admin
@@ -263,3 +258,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Collapsed the expense Filters panel at every width, with removable active-filter chips (d2e9e0f)
 - [x] Space Profile, expense detail and admin user page bodies with a `.stack` grid (6a76055)
 - [x] Fixed the account menu: Close hidden on desktop, desktop shadow, monitor icon for Your devices, RoleChip (d4d6771)
+- [x] Removed the lines inside phone expense cards and kept "Sort by" on one line (62a6ee1)
