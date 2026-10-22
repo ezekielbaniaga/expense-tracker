@@ -14,14 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The Min/Max amount and From/To filters wrap and misalign.** `.list-controls__range` puts
-      label + input + label + input in one wrapping flex row. Every input takes `width: 100%; max-width: 24rem`
-      from the global input rule, so "Max amount" ends up alone at the line end with its input on the next
-      line (1280 and 800 px). The global `label { margin-top }` also sets the labels lower than the inputs, and
-      these labels use body text while Category above uses the caps `.field-label`. Fix: make each range a
-      fieldset ("Dates", "Amount") with two `.field`s side by side (label above, `.field-label`), e.g.
-      `grid-template-columns: repeat(2, minmax(0, 12rem))`, with inputs at `max-width: none` inside it. Two
-      columns still fit at 360 px.
 - [ ] **Filters are always open on wide screens, and the Filters button does nothing there.** `styles/
       components.css` hides `.list-controls__filters[data-open="false"]` only below 48rem. On a desktop the
       button flips `aria-expanded` but the panel (about 200 px of chips and inputs) always shows above the
@@ -290,3 +282,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Fixed docs and comments that contradicted the code (RENT category, X-API-Version, UTC+14 dates, display name 409) (99884a9)
 - [x] Admin area pill moved from the top bar to the admin page headings, nowrap on top bar items (0ec2025)
 - [x] Category filter chips now centre their label like Period chips (`label:where(:has(...))`) (9b76bc7)
+- [x] Min/Max amount and From/To filters laid out as Dates/Amount fieldsets in two columns (0ebad6f)
