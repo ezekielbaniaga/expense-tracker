@@ -19,6 +19,7 @@ body {
 }
 
 .topbar__name {
+  white-space: nowrap;
   font-weight: 700;
   font-size: var(--fs-md);
   color: var(--ink);
@@ -148,6 +149,7 @@ body {
 }
 
 .main-nav a {
+  white-space: nowrap;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -170,6 +172,7 @@ body {
 
 /* Floating button on phones, a primary button in the bar on wide screens */
 .add-expense {
+  flex-shrink: 0;
   position: fixed;
   right: var(--sp-4);
   bottom: calc(4.5rem + env(safe-area-inset-bottom));

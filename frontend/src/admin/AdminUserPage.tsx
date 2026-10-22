@@ -15,6 +15,7 @@ import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { isForbidden, NO_ADMIN_ACCESS } from "./AdminUsersPage";
 import { Skeleton } from "../ui/Skeleton";
+import { AdminPill } from "./AdminPill";
 import { RoleChip, StatusChip } from "./UserChips";
 
 /** 400 is a malformed id; it looks the same as an unknown one. */
@@ -60,7 +61,10 @@ export function AdminUserPage() {
           <Card className="user-header">
             <Avatar name={user.displayName ?? user.username} id={user.id} className="avatar--lg" />
             <div>
-              <PageHeading id="user-heading">{user.username}</PageHeading>
+              <div className="admin-heading">
+                <PageHeading id="user-heading">{user.username}</PageHeading>
+                <AdminPill />
+              </div>
               <p className="user-header__chips">
                 <RoleChip role={user.role} /> <StatusChip enabled={user.enabled} />
               </p>

@@ -15,6 +15,7 @@ import { SortableHeader, type SortDirection } from "../ui/SortableHeader";
 import { TableScroll } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { Skeleton } from "../ui/Skeleton";
+import { AdminPill } from "./AdminPill";
 import { RoleChip, StatusChip } from "./UserChips";
 
 /**
@@ -165,7 +166,10 @@ export function AdminUsersPage() {
   const data = query.data;
   return (
     <section aria-labelledby="users-heading">
-      <PageHeading id="users-heading">Users</PageHeading>
+      <div className="admin-heading">
+        <PageHeading id="users-heading">Users</PageHeading>
+        <AdminPill />
+      </div>
       <form
         aria-label="Filter users"
         onSubmit={(event) => {

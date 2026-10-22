@@ -90,6 +90,7 @@ select[aria-invalid="true"] {
 
 /* Button and IconButton (ui/Button.tsx) */
 .btn {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -780,7 +781,18 @@ tr.row--new {
   margin-top: var(--sp-3, 0.75rem);
 }
 
-.topbar__pill {
+.admin-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+}
+
+.admin-heading > h1 {
+  margin: 0;
+}
+
+.admin-pill {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
@@ -789,6 +801,7 @@ tr.row--new {
   font-size: var(--fs-sm);
   color: var(--accent-ink);
   background: var(--accent-fill);
+  white-space: nowrap;
 }
 
 /* Expense list sorting: column headers from 48rem, the "Sort by" select below it. One markup. */

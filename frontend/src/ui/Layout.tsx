@@ -27,12 +27,6 @@ export function Layout() {
         <Link to="/" className="topbar__name">
           Expense Tracker
         </Link>
-        {pathname.startsWith("/admin") && (
-          <span className="topbar__pill">
-            <ShieldIcon size={16} />
-            Admin area
-          </span>
-        )}
         <NavLink to="/expenses/new" className="btn btn--primary add-expense">
           <PlusIcon />
           <span>Add expense</span>
