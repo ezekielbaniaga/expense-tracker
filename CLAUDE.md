@@ -10,6 +10,7 @@ Spring Boot 4 expense tracker built to learn backend practices, mainly hand-roll
   - Migrations: `src/main/resources/db/migration/V*.sql` — never edit an applied migration, add a new one
 - `frontend/` — React + Vite + TypeScript web UI (Node 24), features by folder under `src/`; nginx image serves it and proxies the API
 - `docker_compose/` — Postgres + app via Docker Compose
+- `docs/diagrams/` — animated README diagrams; edit `build.mjs`, then `node docs/diagrams/build.mjs` regenerates the SVGs
 - API requests (Bruno, with scripts) live in a separate repo, not here
 
 ## Build and test

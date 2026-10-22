@@ -110,6 +110,13 @@ flowchart TD
 
 ## 1. Login
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/login-dark.svg">
+    <img src="docs/diagrams/login-light.svg" alt="Animated login flow: Client to AuthController, LoginRateLimiter (429 when too many attempts), AuthenticationManager checking the password against users (401 on bad credentials), UserSessionService storing the SHA-256 hash of a new refresh token in user_sessions, JWTService issuing an access JWT with the session id, and LoginResponse back to the client.">
+  </picture>
+</p>
+
 The client sends credentials to:
 
 ```http
