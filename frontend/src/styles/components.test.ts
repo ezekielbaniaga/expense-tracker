@@ -47,6 +47,14 @@ describe("components.css", () => {
     expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);
   });
 
+  // Filters panel hierarchy: group legends one step above the field labels, wider two-column grid, real divider token
+  it("styles the filters group legends as headings and uses the --line divider", () => {
+    expect(css).toMatch(/\.list-controls__range legend \{[^}]*font-size: var\(--fs-sm\);\s*font-weight: 600;[^}]*color: var\(--ink\);/);
+    expect(css).toMatch(/\.list-controls__range \{[^}]*repeat\(2, minmax\(0, 14rem\)\);[^}]*margin: var\(--sp-3\) 0 0;/);
+    expect(css).toMatch(/\.list-controls__footer \{[^}]*border-top: 1px solid var\(--line\);/);
+    expect(css).not.toContain("var(--border");
+  });
+
   // The page-size select took the global 24rem max-width; it is now auto-width beside an inline label
   it("sizes the pagination select to its content", () => {
     expect(css).toMatch(/\.pagination select \{\s*width: auto;/);

@@ -1112,9 +1112,9 @@ tr.row--new {
 /* Dates and Amount: a fieldset of two fields side by side, label above input. */
 .list-controls__range {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 12rem));
+  grid-template-columns: repeat(2, minmax(0, 14rem));
   gap: var(--sp-1) var(--sp-2);
-  margin: 0;
+  margin: var(--sp-3) 0 0;
   padding: 0;
   border: 0;
   min-width: 0;
@@ -1123,6 +1123,12 @@ tr.row--new {
 .list-controls__range legend {
   grid-column: 1 / -1;
   padding: 0;
+  /* a step above the field labels so the group title reads as the heading */
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
 }
 
 .list-controls__field {
@@ -1171,7 +1177,7 @@ tr.row--new {
 .list-controls__footer {
   margin-top: var(--sp-3);
   padding-top: var(--sp-2);
-  border-top: 1px solid var(--border, currentColor);
+  border-top: 1px solid var(--line);
 }
 
 /* Active filters while the panel is collapsed: removable chips under the search */
