@@ -34,4 +34,13 @@ describe("components.css", () => {
     expect(css).toMatch(/\.sort-select label \{\s*white-space: nowrap;/);
     expect(css).toMatch(/\.sort-select select \{\s*width: auto;/);
   });
+
+  // Desktop table: aligned amounts, no repeated dates under day headers, whole row is the link
+  it("tidies the desktop expense table at every width", () => {
+    expect(css).toMatch(/\.expense-table__amount,\s*\.expense-table th\.expense-table__amount \{\s*text-align: right;\s*font-variant-numeric: tabular-nums;/);
+    expect(css).toMatch(/(^|\n)\.expense-table--grouped \.expense-table__date \{\s*display: none;/);
+    expect(css).toMatch(/(^|\n)\.expense-table__description a \{\s*text-decoration: none;/);
+    expect(css).toMatch(/(^|\n)\.expense-table__description a::after \{\s*content: "";\s*position: absolute;\s*inset: 0;/);
+    expect(css).toMatch(/(^|\n)\.expense-table tbody > tr:not\(\.expense-table__day\):hover \{\s*background: var\(--surface-2\);/);
+  });
 });

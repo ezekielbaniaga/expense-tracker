@@ -12,6 +12,8 @@ interface SortableHeaderProps {
   /** Phrases for the announcement, e.g. "lowest first" and "highest first". */
   phrases: { asc: string; desc: string };
   onSort: () => void;
+  /** Extra class on the `th`, for column-specific styling. */
+  className?: string;
 }
 
 /**
@@ -25,10 +27,14 @@ export function SortableHeader({
   direction,
   phrases,
   onSort,
+  className,
 }: SortableHeaderProps) {
   const name = announceName ?? label.toLowerCase();
   return (
-    <th aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : undefined}>
+    <th
+      className={className}
+      aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : undefined}
+    >
       <button type="button" className="sort-header" onClick={onSort}>
         {label}
         {active && (direction === "asc" ? <SortUpIcon size={16} /> : <SortDownIcon size={16} />)}

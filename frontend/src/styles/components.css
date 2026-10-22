@@ -901,6 +901,36 @@ tr.row--new {
   }
 }
 
+/* Desktop table: amounts line up on the decimal, the date column goes under day headers, and the
+   whole row is the link through the description link's stretched ::after (as on the phone cards). */
+.expense-table__amount,
+.expense-table th.expense-table__amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.expense-table--grouped .expense-table__date {
+  display: none;
+}
+
+.expense-table tbody > tr:not(.expense-table__day) {
+  position: relative;
+}
+
+.expense-table tbody > tr:not(.expense-table__day):hover {
+  background: var(--surface-2);
+}
+
+.expense-table__description a {
+  text-decoration: none;
+}
+
+.expense-table__description a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
 .expense-table__day th {
   font-size: 0.8125rem;
   letter-spacing: 0.04em;

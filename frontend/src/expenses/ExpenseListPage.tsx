@@ -49,11 +49,11 @@ const PHRASES: Record<SortKey, { asc: string; desc: string }> = {
   amount: { asc: "lowest first", desc: "highest first" },
 };
 
-const HEADERS: { key: SortKey; label: string }[] = [
+const HEADERS: { key: SortKey; label: string; className?: string }[] = [
   { key: "description", label: "Description" },
   { key: "category", label: "Category" },
-  { key: "date", label: "Date" },
-  { key: "amount", label: "Amount" },
+  { key: "date", label: "Date", className: "expense-table__date" },
+  { key: "amount", label: "Amount", className: "expense-table__amount" },
 ];
 
 /** The phone "Sort by" choices; the values are the same `sort` param the headers write. */
@@ -411,10 +411,11 @@ export function ExpenseListPage() {
             <table className={sortKey === "date" ? "expense-table expense-table--grouped" : "expense-table"}>
               <thead>
                 <tr>
-                  {HEADERS.map(({ key, label }) => (
+                  {HEADERS.map(({ key, label, className }) => (
                     <SortableHeader
                       key={key}
                       label={label}
+                      className={className}
                       active={sortKey === key}
                       direction={sortDir}
                       phrases={PHRASES[key]}
