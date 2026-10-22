@@ -57,12 +57,11 @@ do it first and re-measure the rest after it.
 
 ## Needs you
 
-- [ ] **Check the client IP behind nginx.** Log in through `:8081` and check that `user_sessions.ip_address` holds
-      your client IP, not nginx's. Compose defaults `TRUSTED_PROXIES` to the nginx address `172[.]28[.]0[.]10`, so
-      `docker_compose/.env` needs no `TRUSTED_PROXIES` line unless that address changes.
+Nothing right now.
 
 ## Done
 
+- [x] Client IP behind nginx checked (2026-10-23): a login through `:8081` stored the host address `172.28.0.1`, not nginx's `172.28.0.10`, and a forged `X-Forwarded-For: 1.2.3.4` was ignored
 - [x] Admin stays a fourth phone tab for admins (decided 2026-10-23); the spec now says so
 - [x] Ran `frontend/run_e2e.sh` and clicked through every screen with the keyboard only and on a narrow window (2026-10-23)
 - [x] Node 24 LTS (v24.22.0) installed for the Web UI frontend items; Node 20.15.1 was too old for Vite 7
