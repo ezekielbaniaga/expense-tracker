@@ -14,12 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The summary bar and legend dots are barely visible.** `.summary-bar__segment` and
-      `.summary-legend__swatch` use the pastel `--cat-*-bg` fills, about 1.1:1 on `--surface` (sky
-      `#dceeff` on white), so Transport's segment and every legend dot almost disappear. Fix: add
-      `--cat-*-strong` tokens (peach/sky/lemon/mint `-strong`, both themes; `tokens.test.ts` checks they
-      match) and use them for the bar and dots. Also tighten the margins between the total, the count and the
-      bar.
 - [ ] **The admin user filter is laid out in two broken rows.** In `admin/AdminUsersPage.tsx`, the bare labels
       (`display: block`) and 24rem inputs put Username on one line and Status + Search on the next, with
       labels in body text. Fix: one `.filter-bar` row (`display: flex; align-items: end; gap`) of
@@ -248,3 +242,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Removed the lines inside phone expense cards and kept "Sort by" on one line (62a6ee1)
 - [x] Hide the pager when there is nothing to page and make the page-size select auto-width (64ca84e)
 - [x] Tidied the desktop expense table: right-aligned tabular amounts, date column hidden under day headers, whole-row link without underline (214e6e6)
+- [x] Gave the summary bar and legend dots strong category colours (266ec8b)
