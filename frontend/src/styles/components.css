@@ -49,7 +49,7 @@ label {
   margin-top: var(--sp-2);
 }
 
-label:has(input[type="checkbox"]) {
+label:where(:has(input[type="checkbox"])) {
   display: inline-block;
 }
 
