@@ -145,4 +145,11 @@ describe("base.css root size", () => {
     expect(css).toMatch(/\.user-header__chips \{\s*display: flex;\s*flex-wrap: wrap;\s*gap: var\(--sp-2\);/);
     expect(css).toMatch(/@media \(max-width: 47\.999rem\) \{\s*\.user-header \{\s*align-items: flex-start;/);
   });
+
+  // z-index: -1 painted the blobs under body's background (hard bands on desktop, hidden on phones);
+  // the extra body padding made the empty page scroll
+  it("isolates the auth blobs and sizes the auth page to one screen without a scrollbar", () => {
+    expect(css).toMatch(/\.auth \{[^}]*min-height: 100vh;\s*min-height: 100dvh;[^}]*isolation: isolate;/);
+    expect(css).toMatch(/body:has\(\.auth\) \{\s*padding-bottom: 0;/);
+  });
 });

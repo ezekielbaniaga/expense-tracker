@@ -603,7 +603,14 @@ form:not(:has(> .filter-bar)) :is(input:not([type="checkbox"]), select) {
   justify-items: center;
   gap: var(--sp-5);
   min-height: 100vh;
+  min-height: 100dvh;
   padding-block: var(--sp-6);
+  isolation: isolate;
+}
+
+/* The page is exactly one screen tall, so body's bottom padding would add a scrollbar */
+body:has(.auth) {
+  padding-bottom: 0;
 }
 
 .auth::before {
