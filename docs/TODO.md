@@ -14,11 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The admin user filter is laid out in two broken rows.** In `admin/AdminUsersPage.tsx`, the bare labels
-      (`display: block`) and 24rem inputs put Username on one line and Status + Search on the next, with
-      labels in body text. Fix: one `.filter-bar` row (`display: flex; align-items: end; gap`) of
-      `TextField`/`SelectField` with `.field-label`s, and Search aligned to the input bottoms. Or apply on
-      change like the expense list (debounced username, Status at once) and drop the button.
 - [ ] **The admin user page shows role and status three times.** `admin/AdminUserPage.tsx` shows the header
       chips, then a `dl` (Role USER, Status Enabled, Version), then the form (Enabled checkbox, Role select).
       The `dl` sits outside any card while the header is in one, the Save button touches the select (no gap),
@@ -243,3 +238,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Hide the pager when there is nothing to page and make the page-size select auto-width (64ca84e)
 - [x] Tidied the desktop expense table: right-aligned tabular amounts, date column hidden under day headers, whole-row link without underline (214e6e6)
 - [x] Gave the summary bar and legend dots strong category colours (266ec8b)
+- [x] Admin user filter laid out as one filter-bar row with field labels (36ebbd5)
