@@ -618,15 +618,16 @@ Lemonade-style: one focused card, the amount first and big, quick choices as chi
 
 Cards, top to bottom:
 
-1. **Account**: large avatar (80px), username, display name (if the backend change lands, with an Edit button), role
-   chip, "Member since Oct 2026".
-2. **Appearance**: theme mode segmented control, accent swatches (same controls as the account menu), and optionally
-   currency symbol and density (see [Preferences](#preferences)).
-3. **Security**: change password (existing form and rules, restyled; current password, new password with the rules
-   checklist). Success still signs out everywhere and goes to `/login`, with a clear warning before submit.
-4. **Your devices**: one card per session: a device line parsed from the User-Agent ("Firefox on Linux",
-   "Safari on iPhone", falling back to the raw string), IP, "Last active 5 min ago", "This device" badge. Revoke
-   per device and "Sign out other devices" keep their inline confirms (or move to `Dialog`).
+1. **Account**: a header row with the large avatar (80px) and the username with "Member since Oct 2026", then a
+   `dl` with Name (Edit as a small ghost button) and Role as the role chip.
+2. **Appearance**: the display currency. Theme mode and accent live in the account menu only, not here.
+3. **Security**: a `.note` callout warning that changing the password signs you out everywhere, then the change
+   password form (current and new password as `PasswordField` with show/hide). Success still signs out everywhere
+   and goes to `/login`.
+4. **Your devices**: a divider list, one row per session: the device line parsed from the User-Agent ("Firefox on
+   Linux", "Safari on iPhone", falling back to the raw string) with a "This device" status chip, one muted line
+   "10.0.0.1 · active 5 min ago · expires Oct 31, 2026" with the full times in `title`, and Revoke as a small ghost
+   button on the right. Revoke and "Sign out other devices" keep their inline confirms.
 
 `/me#devices` anchors the devices card so the account menu can link straight to it. Today the section has no
 `id` (only `aria-labelledby="devices-heading"`) and React Router does not scroll to a hash, so add `id="devices"` and

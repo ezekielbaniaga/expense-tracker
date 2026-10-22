@@ -103,8 +103,8 @@ describe("profile", () => {
     await renderProfile();
     const profile = screen.getByRole("region", { name: "Profile" });
     expect(await within(profile).findByText("alice")).toBeTruthy();
-    expect(within(profile).getByText("USER")).toBeTruthy();
-    expect(within(profile).getByText("Jan 2026")).toBeTruthy();
+    expect(within(profile).getByText("User").classList.contains("status-chip")).toBe(true);
+    expect(within(profile).getByText("Member since Jan 2026")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/me");
   });
 
@@ -344,6 +344,25 @@ describe("profile cards", () => {
     expect(document.getElementById("devices")).toBeTruthy();
   });
 
+  it("puts the password inputs behind show/hide, the warning in a note and Edit as a small ghost button", async () => {
+    server.use(sessions([THIS_DEVICE]));
+    await renderProfile();
+    const form = screen.getByRole("form", { name: "Change password" });
+    expect(within(form).getAllByRole("button", { name: "Show password" })).toHaveLength(2);
+    expect(screen.getByRole("note").classList.contains("note")).toBe(true);
+    const add = await screen.findByRole("button", { name: "Add your name" });
+    expect(add.className).toContain("btn--ghost");
+    expect(add.className).toContain("btn--sm");
+  });
+
+  it("keeps theme and accent in the account menu only", async () => {
+    server.use(sessions([THIS_DEVICE]));
+    await renderProfile();
+    const profile = screen.getByRole("region", { name: "Profile" });
+    expect(within(profile).queryByRole("group", { name: "Theme" })).toBeNull();
+    expect(within(profile).queryByRole("group", { name: "Accent" })).toBeNull();
+  });
+
   it("names a real User-Agent as browser and system", async () => {
     server.use(
       sessions([
@@ -368,7 +387,12 @@ describe("your devices", () => {
     expect(within(items[0]).getByText("Firefox on Linux")).toBeTruthy();
     expect(within(items[0]).getByText("This device")).toBeTruthy();
     expect(within(items[0]).getByText(/10\.0\.0\.1/)).toBeTruthy();
-    expect(within(items[0]).getByText(/Last active .*Oct 18, 2026, 9:05 AM/)).toBeTruthy();
+    expect(within(items[0]).getByText("This device").classList.contains("status-chip")).toBe(true);
+    // One muted line; the full times are in the title
+    const meta = items[0].querySelector(".device__meta");
+    expect(meta?.textContent).toMatch(/^10\.0\.0\.1 \u00b7 active .+ \u00b7 expires Oct 31, 2026$/);
+    expect(meta?.querySelector('[title*="Oct 18, 2026, 9:05 AM"]')).toBeTruthy();
+    expect(within(items[0]).getByRole("button", { name: "Revoke" }).className).toContain("btn--ghost");
     expect(within(items[1]).getByText("Safari on iPhone")).toBeTruthy();
     expect(within(items[1]).queryByText("This device")).toBeNull();
   });

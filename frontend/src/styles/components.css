@@ -1152,3 +1152,69 @@ tr.row--new {
   margin-right: var(--sp-1);
   border-radius: 50%;
 }
+
+/* Profile: avatar beside the username, then the details list */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4, 1rem);
+  margin-bottom: var(--sp-3);
+}
+
+.profile-header p {
+  margin: 0;
+}
+
+.profile-header__name {
+  font-size: var(--fs-lg, 1.5rem);
+  font-weight: 700;
+}
+
+.profile-header__since {
+  color: var(--muted);
+}
+
+/* The Edit button is 36px tall; center the dt against it so the row does not look shifted */
+.profile-details {
+  align-items: center;
+}
+
+.device-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A callout for a warning that comes before a form */
+.note {
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 4px solid var(--lemon-strong);
+  border-radius: var(--r-sm, 0.25rem);
+  color: var(--lemon-ink);
+  background: var(--lemon-fill);
+}
+
+/* Devices: a divider list, Revoke on the right */
+.device {
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--line);
+}
+
+.device:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.device__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.device__meta {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}

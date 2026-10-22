@@ -74,4 +74,13 @@ describe("admin user filter bar", () => {
     expect(css).toMatch(/\.detail-actions \{\s*display: flex;/);
     expect(css).toMatch(/\.tech-details summary \{\s*color: var\(--muted\);/);
   });
+
+  // Profile page: header row, warning callout and devices as a divider list
+  it("styles the profile header, the .note callout and the device list", () => {
+    expect(css).toMatch(/\.profile-header \{\s*display: flex;\s*align-items: center;/);
+    expect(css).toMatch(/\.note \{[^}]*border-left: 4px solid/);
+    expect(css).toMatch(/\.device \{\s*padding: var\(--sp-3\) 0;\s*border-top: 1px solid var\(--line\);/);
+    expect(css).toMatch(/\.device__row \{\s*display: flex;\s*align-items: center;\s*justify-content: space-between;/);
+    expect(css).toMatch(/\.device-list \{[^}]*list-style: none;/);
+  });
 });

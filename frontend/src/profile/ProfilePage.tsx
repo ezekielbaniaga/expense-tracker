@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { useLocation } from "react-router-dom";
 import { ApiError, fieldErrors } from "../api/errors";
-import { formatLocalDateTime, formatMonthYear, formatRelativeTime } from "../format/dates";
+import { formatLocalDateTime, formatLocalDay, formatMonthYear, formatRelativeTime } from "../format/dates";
 import { deviceName } from "../format/userAgent";
 import { type RevokedSessionsDto, type SessionDto, type UpdateMeRequest, type UserDto } from "../api/user";
 import { useMe } from "./useMe";
@@ -12,16 +12,14 @@ import { tooManyAttemptsMessage } from "../auth/LoginPage";
 import { errorMessage } from "../expenses/ExpenseListPage";
 import { Button } from "../ui/Button";
 import { PageHeading, useRefocusOnClose } from "../ui/focus";
-import { SelectField, TextField } from "../ui/fields";
+import { PasswordField, SelectField, TextField } from "../ui/fields";
 import { usePreferences } from "../ui/preferences";
 import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
 import { validateChangePassword, type ChangePasswordFormValues } from "./changePasswordSchema";
 import { Skeleton } from "../ui/Skeleton";
 import { Avatar } from "../ui/Avatar";
-import { SegmentedControl } from "../ui/Chip";
-import { THEME_OPTIONS } from "../ui/AccountMenu";
-import { ACCENTS, type Accent, type Theme } from "../ui/theme";
+import { RoleChip } from "../admin/UserChips";
 
 const FIELDS = ["currentPassword", "newPassword"] as const;
 type Field = (typeof FIELDS)[number];
@@ -52,18 +50,22 @@ export function ProfilePage() {
         {me && (
           <div className="card">
             <h2 className="card__title">Account</h2>
-            <Avatar name={me.displayName ?? me.username} id={me.id} className="avatar--lg" />
-            <dl>
-              <dt>Username</dt>
-              <dd>{me.username}</dd>
+            <div className="profile-header">
+              <Avatar name={me.displayName ?? me.username} id={me.id} className="avatar--lg" />
+              <div>
+                <p className="profile-header__name">{me.username}</p>
+                <p className="profile-header__since">Member since {formatMonthYear(me.createdAt)}</p>
+              </div>
+            </div>
+            <dl className="profile-details">
               <dt>Name</dt>
               <dd>
                 <DisplayNameEditor displayName={me.displayName} />
               </dd>
               <dt>Role</dt>
-              <dd>{me.role}</dd>
-              <dt>Member since</dt>
-              <dd>{formatMonthYear(me.createdAt)}</dd>
+              <dd>
+                <RoleChip role={me.role} />
+              </dd>
             </dl>
           </div>
         )}
@@ -123,8 +125,9 @@ function DisplayNameEditor({ displayName }: { displayName: string | null }) {
     return (
       <>
         {displayName && <span>{displayName} </span>}
-        <button
-          type="button"
+        <Button
+          size="sm"
+          variant="ghost"
           ref={opener}
           onClick={() => {
             setValue(displayName ?? "");
@@ -134,7 +137,7 @@ function DisplayNameEditor({ displayName }: { displayName: string | null }) {
           }}
         >
           {displayName ? "Edit" : "Add your name"}
-        </button>
+        </Button>
       </>
     );
   }
@@ -182,31 +185,6 @@ function AppearanceSection() {
       <h2 id="appearance-heading" className="card__title">
         Appearance
       </h2>
-      <SegmentedControl
-        legend="Theme"
-        name="profile-theme"
-        options={THEME_OPTIONS}
-        value={prefs.theme}
-        onChange={(v) => prefs.setTheme(v as Theme)}
-      />
-      <fieldset className="swatches">
-        <legend className="field-label">Accent</legend>
-        <div className="swatches__row">
-          {ACCENTS.map((a: Accent) => (
-            <label key={a} className={`swatch swatch--${a}${prefs.accent === a ? " swatch--selected" : ""}`}>
-              <input
-                className="swatch__input"
-                type="radio"
-                name="profile-accent"
-                value={a}
-                checked={prefs.accent === a}
-                aria-label={a[0].toUpperCase() + a.slice(1)}
-                onChange={() => prefs.setAccent(a)}
-              />
-            </label>
-          ))}
-        </div>
-      </fieldset>
       <SelectField id="display-currency" label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
         <option value="">None</option>
         {options.map((code) => (
@@ -298,21 +276,21 @@ function ChangePasswordSection({ username }: { username: string | undefined }) {
       <h2 id="password-heading" className="card__title">
         Security
       </h2>
-      <p role="note">Warning: changing your password signs you out on every device, this one too.</p>
+      <p className="note" role="note">
+        <strong>Warning:</strong> changing your password signs you out on every device, this one too.
+      </p>
       <form aria-label="Change password" onSubmit={onSubmit} noValidate>
-        <TextField
+        <PasswordField
           label="Current password"
           id="currentPassword"
-          type="password"
           autoComplete="current-password"
           error={errors.currentPassword?.message}
           {...register("currentPassword")}
         />
 
-        <TextField
+        <PasswordField
           label="New password"
           id="newPassword"
-          type="password"
           autoComplete="new-password"
           error={errors.newPassword?.message}
           {...register("newPassword")}
@@ -383,7 +361,7 @@ function DevicesSection() {
         </p>
       )}
       {query.isSuccess && (
-        <ul aria-labelledby="devices-heading">
+        <ul className="device-list" aria-labelledby="devices-heading">
           {sessions.map((session) => (
             <SessionItem key={session.id} session={session} />
           ))}
@@ -446,20 +424,32 @@ function SessionItem({ session }: { session: SessionDto }) {
   });
 
   return (
-    <li>
-      <strong>{deviceName(session.userAgent)}</strong>
-      {session.current && (
-        <>
-          {" "}
-          <em>This device</em>
-        </>
-      )}
-      <p>
-        IP {session.ipAddress ?? "unknown"}. Last active {formatRelativeTime(session.lastUsedAt)} (
-        {formatLocalDateTime(session.lastUsedAt)}), signed in {formatLocalDateTime(session.createdAt)}, expires{" "}
-        {formatLocalDateTime(session.expiresAt)}
-      </p>
-      {confirming ? (
+    <li className="device">
+      <div className="device__row">
+        <div className="device__info">
+          <strong>{deviceName(session.userAgent)}</strong>
+          {session.current && (
+            <>
+              {" "}
+              <span className="status-chip status-chip--accent">This device</span>
+            </>
+          )}
+          <p className="device__meta">
+            {session.ipAddress ?? "unknown IP"} {"\u00b7"}{" "}
+            <span title={`Last active ${formatLocalDateTime(session.lastUsedAt)}; signed in ${formatLocalDateTime(session.createdAt)}`}>
+              active {formatRelativeTime(session.lastUsedAt)}
+            </span>{" "}
+            {"\u00b7"}{" "}
+            <span title={formatLocalDateTime(session.expiresAt)}>expires {formatLocalDay(session.expiresAt)}</span>
+          </p>
+        </div>
+        {!confirming && (
+          <Button size="sm" variant="ghost" ref={revokeButton} onClick={() => setConfirming(true)}>
+            Revoke
+          </Button>
+        )}
+      </div>
+      {confirming && (
         <div>
           <p>
             {session.current
@@ -481,10 +471,6 @@ function SessionItem({ session }: { session: SessionDto }) {
             Cancel
           </button>
         </div>
-      ) : (
-        <button type="button" ref={revokeButton} onClick={() => setConfirming(true)}>
-          Revoke
-        </button>
       )}
     </li>
   );
