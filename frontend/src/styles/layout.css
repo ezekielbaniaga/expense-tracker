@@ -64,6 +64,14 @@ body {
   border-radius: 50%;
 }
 
+/* Phone only: dims the page behind the bottom sheet; a tap closes it */
+.account-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
+}
+
 .account-menu__panel {
   position: fixed;
   inset: auto 0 0;
@@ -76,6 +84,16 @@ body {
   border-radius: var(--r-md) var(--r-md) 0 0;
   max-height: 85vh;
   overflow-y: auto;
+}
+
+/* The sheet's drag handle (decorative; Close is the control) */
+.account-menu__panel::before {
+  content: "";
+  justify-self: center;
+  inline-size: 2rem;
+  block-size: 0.25rem;
+  border-radius: 0.125rem;
+  background: var(--line);
 }
 
 .account-menu__who {
@@ -259,6 +277,11 @@ main.main--fab {
     inline-size: 20rem;
     border-radius: var(--r-md);
     box-shadow: var(--shadow-2);
+  }
+
+  .account-menu__backdrop,
+  .account-menu__panel::before {
+    display: none;
   }
 
   /* Two classes: .btn in components.css loads later and ties a single class on specificity */

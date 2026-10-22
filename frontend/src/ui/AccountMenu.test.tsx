@@ -127,6 +127,19 @@ describe("AccountMenu", () => {
     client.dispose();
   });
 
+  it("closes when the backdrop is tapped, and Close is a secondary button", async () => {
+    const client = renderMenu();
+    const button = await trigger();
+    fireEvent.click(button);
+    expect(screen.getByRole("button", { name: "Close" }).className).toContain("btn--secondary");
+    const backdrop = document.querySelector(".account-menu__backdrop") as HTMLElement;
+    expect(backdrop.getAttribute("aria-hidden")).toBe("true");
+    fireEvent.click(backdrop);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector(".account-menu__backdrop")).toBeNull();
+    client.dispose();
+  });
+
   it("changes the theme and accent, closes on navigation and signs out once", async () => {
     const client = renderMenu();
     fireEvent.click(await trigger());
@@ -158,6 +171,17 @@ describe("AccountMenu styles", () => {
 
   it("hides Close on desktop with a selector that beats .btn", () => {
     expect(css).toMatch(/\.account-menu \.account-menu__close\s*\{\s*display: none;/);
+  });
+
+  it("shows a scrim and a 4x32px handle on the phone sheet only", () => {
+    expect(css).toMatch(
+      /\.account-menu__backdrop\s*\{[^}]*color-mix\(in srgb, var\(--ink\) 40%, transparent\)/,
+    );
+    expect(css).toMatch(/\.account-menu__panel::before\s*\{[^}]*inline-size: 2rem;[^}]*block-size: 0\.25rem/);
+    const desktop = css.slice(css.indexOf("@media (min-width: 48rem)"));
+    expect(desktop).toMatch(
+      /\.account-menu__backdrop,\s*\.account-menu__panel::before\s*\{\s*display: none;/,
+    );
   });
 
   it("floats the desktop panel with a shadow", () => {

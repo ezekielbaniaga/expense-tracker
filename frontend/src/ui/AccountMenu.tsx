@@ -70,6 +70,13 @@ export function AccountMenu() {
       </button>
       {open && (
         <div
+          className="account-menu__backdrop"
+          aria-hidden="true"
+          onClick={close}
+        />
+      )}
+      {open && (
+        <div
           id={panelId}
           role="region"
           aria-labelledby={headingId}
@@ -149,7 +156,6 @@ export function AccountMenu() {
           </Button>
           <Button
             size="sm"
-            variant="ghost"
             className="account-menu__close"
             onClick={() => {
               close();
