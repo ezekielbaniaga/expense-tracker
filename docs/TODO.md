@@ -26,17 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Table cells break words and amounts.** `td { overflow-wrap: anywhere }` breaks inside short tokens:
-      - 1280px expense list: "Entertainm/ent", "1,234,567/.89"
-      - Archived (all widths): "12.5/0", and the date wraps
-      - 375px admin users: "Admi/n", "Enable/d", "user1/0"
-
-      The Done item "right-aligned tabular amounts" (214e6e6) is therefore incomplete. Fix: `white-space: nowrap`
-      on `.chip`, `.status-chip`, amount and date cells, and give the narrow columns `width: 1%` so the
-      description column takes the slack and wraps. Use `overflow-wrap: break-word` (not `anywhere`) on `td` so
-      long words break only when they must. Right-align Archived amounts with `tabular-nums` like the main list.
-      On phones the admin table still scrolls inside `.table-scroll`; consider hiding Created below 30rem. Check
-      the expense cards at 375px, which share `.expense-table`, so they stay unchanged.
 - [ ] **Admin user page: the Status/Role segmented controls look off.** The selected item draws a 2px accent border
       inside a 1px track border plus 2px padding, so it reads as a double outline that hugs the left edge. The
       two items also have different widths ("Enabled" 78px, "Disabled" 84px), so the switch looks lopsided.
@@ -316,3 +305,4 @@ do it first and re-measure the rest after it.
 - [x] Removed global control margins; forms/fields space with gap, controls align in rows (e7a4cec)
 - [x] Forms share one 28rem column with full-width inputs and flush chip/segmented legends (57e55cd)
 - [x] "Add expense" FAB shown only on the list on phones, main bottom padding sized from tab bar and FAB (d4702fb)
+- [x] Table cells no longer break inside words and amounts; Archived amounts right-aligned with tabular-nums (dd06d06)
