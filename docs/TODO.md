@@ -26,14 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Login/Register: the accent blobs are clipped to hard rectangles, and the page scrolls.** `.auth::before` is
-      `z-index: -1`, so it paints under `body`'s background. On desktop the blobs only show outside the 60rem body
-      as two hard-edged bands. On phones they are invisible. Fix: `.auth { isolation: isolate }`. Tested with
-      an injected style: soft blobs at 1280 and 375. Separately, `.auth { min-height: 100vh }` plus the body's
-      bottom padding makes the page 24px taller than the viewport, so a scrollbar appears on an empty page. Use
-      `min-height: 100dvh` and drop the body padding on auth pages. Also consider an icon toggle (eye,
-      `aria-pressed`, label "Show password") inside the field. The text button makes Password 112px narrower than
-      Username.
 - [ ] **Filters panel hierarchy is flat.** "DATES" (legend) and "FROM" (label) are the same 8.5px muted caps, 4px
       apart, so they read as one stack of labels. The From/To/Min/Max inputs are 117px wide in a 560px panel.
       "Clear filters" sits above a full-ink line, because `var(--border, currentColor)` uses a token that does not
@@ -80,6 +72,10 @@ do it first and re-measure the rest after it.
       - single-word chips and amounts stay on one line
 
       Runs under `npm run e2e` (Compose stack), not in unattended runs.
+
+- [ ] **Show password as an icon toggle inside the field.** On Login/Register the text "Show password" button makes
+      the Password field 112px narrower than Username. Replace it with an icon button (eye, `aria-pressed`,
+      accessible label "Show password") placed inside the field, so both fields are the same width.
 
 ## Needs you
 
@@ -292,3 +288,4 @@ do it first and re-measure the rest after it.
 - [x] Fixed the Status/Role segmented controls: equal-width items, inset ring on the selected one (39ba4a5)
 - [x] Save row inside the Access card no longer shows a page-colored strip (8b480a6)
 - [x] Admin user header chips: one chip height, flex gap, phone wrap with top-aligned avatar (278e1dc)
+- [x] Login/Register: accent blobs isolated and no scrollbar on the empty page (100dvh, no body bottom padding); the password eye toggle was left for later (166e377)
