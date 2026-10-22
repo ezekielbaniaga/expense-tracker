@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { useAuth } from "../auth/AuthProvider";
 import type { UserDto } from "../api/user";
 
@@ -13,7 +13,8 @@ export function useMe() {
   });
 }
 
-/** Whatever `["me"]` holds already; never fetches (the app shell must not). */
+/** Whatever `["me"]` holds already; never fetches (the app shell must not).
+ * `skipToken` rather than `enabled: false`: no `queryFn` makes TanStack log a console error. */
 export function useCachedMe(): UserDto | undefined {
-  return useQuery<UserDto>({ queryKey: ME_KEY, enabled: false }).data;
+  return useQuery<UserDto>({ queryKey: ME_KEY, queryFn: skipToken }).data;
 }
