@@ -26,13 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **The "Add expense" FAB shows on every phone page and covers content.** The spec puts the FAB "only on the
-      list" (line 316). It shows on New expense, so two "Add expense" buttons are on screen, and on Detail, Profile
-      and Admin. Measured at 375px: the FAB (y 636–682) sits beside the sticky Save/Cancel row on the edit form,
-      and it covers the last table rows and the pager. `main { padding-bottom: 6rem }` (78px now) does not clear
-      tab bar plus FAB. Fix: render the FAB only on `/` below 48rem. From 48rem it is the top bar button, which
-      must stay on every page. Set `main`'s bottom padding from the tab bar and FAB heights plus
-      `env(safe-area-inset-bottom)`. Desktop must not change; check that the 48rem rule still resets it.
 - [ ] **Table cells break words and amounts.** `td { overflow-wrap: anywhere }` breaks inside short tokens:
       - 1280px expense list: "Entertainm/ent", "1,234,567/.89"
       - Archived (all widths): "12.5/0", and the date wraps
@@ -322,3 +315,4 @@ do it first and re-measure the rest after it.
 - [x] Reserved the scrollbar gutter on the root so content no longer shifts sideways between long and short pages (f3efe15)
 - [x] Removed global control margins; forms/fields space with gap, controls align in rows (e7a4cec)
 - [x] Forms share one 28rem column with full-width inputs and flush chip/segmented legends (57e55cd)
+- [x] "Add expense" FAB shown only on the list on phones, main bottom padding sized from tab bar and FAB (d4702fb)
