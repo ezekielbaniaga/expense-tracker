@@ -26,11 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Admin user header chips are uneven.** Measured: "User" chip 18.6px, "Enabled" chip 20px (only one has a
-      16px icon). Chips are separated by a literal space inside a `<p>`. Fix: one chip height (`min-height:
-      1.25rem; line-height: 1`, icons `flex: none`) for `.status-chip` and `.admin-pill`. Lay out
-      `.user-header__chips` as `display: flex; gap: var(--sp-2)`. On phones let the name, pill and chips wrap
-      under each other with the avatar top-aligned.
 - [ ] **Login/Register: the accent blobs are clipped to hard rectangles, and the page scrolls.** `.auth::before` is
       `z-index: -1`, so it paints under `body`'s background. On desktop the blobs only show outside the 60rem body
       as two hard-edged bands. On phones they are invisible. Fix: `.auth { isolation: isolate }`. Tested with
@@ -296,3 +291,4 @@ do it first and re-measure the rest after it.
 - [x] Table cells no longer break inside words and amounts; Archived amounts right-aligned with tabular-nums (dd06d06)
 - [x] Fixed the Status/Role segmented controls: equal-width items, inset ring on the selected one (39ba4a5)
 - [x] Save row inside the Access card no longer shows a page-colored strip (8b480a6)
+- [x] Admin user header chips: one chip height, flex gap, phone wrap with top-aligned avatar (278e1dc)
