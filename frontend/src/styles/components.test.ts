@@ -91,6 +91,7 @@ describe("admin user filter bar", () => {
   it("styles the back link and the form-actions row used by the admin user page", () => {
     expect(css).toMatch(/\.back-link \{\s*display: inline-flex;\s*align-items: center;/);
     expect(css).toMatch(/(^|\n)\.form-actions \{\s*position: sticky;/);
+    expect(css).toMatch(/\.card \.form-actions \{\s*position: static;\s*padding: 0;\s*background: none;/);
   });
 
   // The detail page: Delete is a danger-colored ghost, Id and Version sit in a collapsed details block

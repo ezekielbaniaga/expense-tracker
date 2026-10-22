@@ -694,6 +694,13 @@ form:not(:has(> .filter-bar)) :is(input:not([type="checkbox"]), select) {
   }
 }
 
+/* Inside a card the row is plain: no sticky page-colored strip on the card's surface */
+.card .form-actions {
+  position: static;
+  padding: 0;
+  background: none;
+}
+
 /* The row just added: a soft accent wash that fades out */
 @keyframes row-new {
   from {
