@@ -121,6 +121,28 @@ export function errorMessage(error: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
+const trimmed = (text: string) => text.trim();
+const asIs = (text: string) => text;
+
+/**
+ * A text-like input that follows a URL param: typing waits 300 ms before `commit` writes it (so one
+ * request, one history entry), and a param that changed elsewhere (Clear filters, Back) shows in the box.
+ */
+function useDebouncedParam(urlValue: string, commit: (value: string) => void, normalize: (text: string) => string = asIs) {
+  const [text, setText] = useState(urlValue);
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
+  useEffect(() => {
+    const value = normalize(text);
+    if (value === urlValue) return;
+    const timer = setTimeout(() => commitRef.current(value), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [text, urlValue, normalize]);
+  // Not when it is just our own normalized text coming back, or "coffee " would lose its space
+  useEffect(() => setText((current) => (normalize(current) === urlValue ? current : urlValue)), [urlValue, normalize]);
+  return [text, setText] as const;
+}
+
 export function ExpenseListPage() {
   const { client } = useAuth();
   const { currency } = usePreferences();
@@ -145,7 +167,6 @@ export function ExpenseListPage() {
     (params.minAmount !== "" || params.maxAmount !== "" ? 1 : 0);
   // Collapsed at every width until the Filters button (or Custom) opens it
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [searchText, setSearchText] = useState(params.q);
   const query = useQuery({
     queryKey: ["expenses", params],
     queryFn: async () =>
@@ -173,7 +194,7 @@ export function ExpenseListPage() {
   });
 
   /** Applies the changes to the URL; page goes back to 0 unless it is one of them. */
-  const update = (changes: Record<string, string | null>) => {
+  const update = (changes: Record<string, string | null>, options?: { replace: boolean }) => {
     setNotice(null);
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
@@ -183,22 +204,13 @@ export function ExpenseListPage() {
         else next.set(name, value);
       }
       return next;
-    });
+    }, options);
   };
 
-  const updateRef = useRef(update);
-  updateRef.current = update;
-  const urlQ = params.q;
-  // Typing waits 300 ms before it reaches the URL (and so the request)
-  useEffect(() => {
-    const text = searchText.trim();
-    if (text === urlQ) return;
-    const timer = setTimeout(() => updateRef.current({ q: text }), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [searchText, urlQ]);
-  // The URL changed elsewhere (Clear filters, back button): show it in the box.
-  // Not when it is just our own trimmed text coming back, or "coffee " would lose its space
-  useEffect(() => setSearchText((text) => (text.trim() === urlQ ? text : urlQ)), [urlQ]);
+  // Typed filters replace the history entry, so Back leaves the list instead of undoing keystrokes
+  const [searchText, setSearchText] = useDebouncedParam(params.q, (q) => update({ q }, { replace: true }), trimmed);
+  const [minText, setMinText] = useDebouncedParam(params.minAmount, (minAmount) => update({ minAmount }, { replace: true }));
+  const [maxText, setMaxText] = useDebouncedParam(params.maxAmount, (maxAmount) => update({ maxAmount }, { replace: true }));
 
   /** Removable chips for the active filters, shown while the panel is collapsed. */
   const activeTags: { key: string; label: string; remove: () => void }[] = [
@@ -237,7 +249,7 @@ export function ExpenseListPage() {
   /** An explicit date edit; clearing both would otherwise snap back to This month. */
   const setDate = (name: "from" | "to", value: string) => {
     const other = name === "from" ? params.to : params.from;
-    update({ [name]: value, period: value === "" && other === "" ? "all" : null });
+    update({ [name]: value, period: value === "" && other === "" ? "all" : null }, { replace: true });
   };
 
   const [sortKey, sortDir] = params.sort.split(",") as [string, SortDirection];
@@ -351,13 +363,13 @@ export function ExpenseListPage() {
             <legend className="field-label">Amount</legend>
             <div className="list-controls__field">
               <label htmlFor="filter-min" className="field-label">Min amount</label>
-              <input id="filter-min" type="number" min="0" step="0.01" inputMode="decimal" value={params.minAmount}
-                onChange={(e) => update({ minAmount: e.target.value })} />
+              <input id="filter-min" type="number" min="0" step="0.01" inputMode="decimal" value={minText}
+                onChange={(e) => setMinText(e.target.value)} />
             </div>
             <div className="list-controls__field">
               <label htmlFor="filter-max" className="field-label">Max amount</label>
-              <input id="filter-max" type="number" min="0" step="0.01" inputMode="decimal" value={params.maxAmount}
-                onChange={(e) => update({ maxAmount: e.target.value })} />
+              <input id="filter-max" type="number" min="0" step="0.01" inputMode="decimal" value={maxText}
+                onChange={(e) => setMaxText(e.target.value)} />
             </div>
           </fieldset>
           {hasFilters && (

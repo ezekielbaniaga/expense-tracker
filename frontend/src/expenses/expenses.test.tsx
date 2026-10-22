@@ -456,6 +456,48 @@ describe("expense list", () => {
       await waitFor(() => expect(box.value).toBe("tea"));
     });
 
+    it("debounces the amount filters: one request, and the history entry is replaced", async () => {
+      const queries = record();
+      let navigate: ReturnType<typeof useNavigate> | undefined;
+      function Grab() {
+        navigate = useNavigate();
+        return null;
+      }
+      render(
+        <AppProviders client={client} queryClient={queryClient}>
+          <MemoryRouter initialEntries={["/?period=all&q=tea"]}>
+            <Grab />
+            <AppRoutes />
+          </MemoryRouter>
+        </AppProviders>,
+      );
+      await screen.findByText("Lunch");
+      act(() => navigate!("/?period=all"));
+      await waitFor(() => expect((screen.getByPlaceholderText("Search descriptions") as HTMLInputElement).value).toBe(""));
+      await waitFor(() => expect(queries.at(-1)!.has("q")).toBe(false));
+      const count = queries.length;
+      const min = screen.getByLabelText("Min amount") as HTMLInputElement;
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        for (const value of ["1", "12", "12.5"]) {
+          fireEvent.change(min, { target: { value } });
+          vi.advanceTimersByTime(100);
+        }
+        expect(min.value).toBe("12.5");
+        vi.advanceTimersByTime(199);
+        expect(queries.length).toBe(count);
+        vi.advanceTimersByTime(1);
+      } finally {
+        vi.useRealTimers();
+      }
+      await waitFor(() => expect(queries.at(-1)!.get("minAmount")).toBe("12.5"));
+      expect(queries.slice(count)).toHaveLength(1);
+      // The typed value replaced the "/?period=all" entry, so Back goes to the one before it
+      act(() => navigate!(-1));
+      await waitFor(() => expect((screen.getByPlaceholderText("Search descriptions") as HTMLInputElement).value).toBe("tea"));
+      await waitFor(() => expect(min.value).toBe(""));
+    });
+
     it("category chips, date range and amounts reach the request and count on the Filters button", async () => {
       const queries = record();
       renderAt("/?period=all");
