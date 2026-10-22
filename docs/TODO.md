@@ -14,16 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The profile page reads like raw markup.** In `profile/ProfilePage.tsx`, the Account card puts the
-      avatar alone on its own row; the Name row misaligns (the 44 px Edit button is taller than the `dt`); Role
-      is the raw `ADMIN`. The Security warning is a plain sentence starting "Warning:", and the password inputs
-      are plain `TextField`s while sign-in uses `PasswordField` with show/hide. Devices is a bulleted list of
-      long sentences with an italic "This device" and a full-size Revoke button under each. Theme and Accent
-      also duplicate the account menu. Fix: an avatar + name/username header row like the admin user page, a
-      `dl` with Edit as `btn--sm` ghost, and Role as `RoleChip`; a `.note` callout style for the warning;
-      `PasswordField` for both passwords; devices as a divider list (name + "This device" `status-chip`, one
-      muted line "127.0.0.1 · active 5 h ago · expires Nov 21" with full times in `title`, Revoke as a
-      `btn--sm` ghost on the right). Decide whether appearance lives in the menu or on Profile, not both.
 - [ ] **Amount filters send a request and a history entry per keystroke.** `expenses/ExpenseListPage.tsx`
       calls `update` on every `onChange` of Min/Max amount (and the date inputs), with `setSearchParams` pushing
       a history entry each time. Typing "12.5" sent 3 list and 3 summary requests, and Back steps through "1",
@@ -227,3 +217,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Admin user filter laid out as one filter-bar row with field labels (36ebbd5)
 - [x] Restructured the admin user page into header, Details and Access cards with segmented Status and Role (f4a3a03)
 - [x] Slimmed the expense detail page: one Edit, danger-ghost Delete, category chip only, Technical details block (77a18cc)
+- [x] Profile page: header row, RoleChip, .note warning, PasswordField, device divider list; Theme/Accent only in the account menu (a9369ef)
