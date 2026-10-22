@@ -26,12 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Filters panel hierarchy is flat.** "DATES" (legend) and "FROM" (label) are the same 8.5px muted caps, 4px
-      apart, so they read as one stack of labels. The From/To/Min/Max inputs are 117px wide in a 560px panel.
-      "Clear filters" sits above a full-ink line, because `var(--border, currentColor)` uses a token that does not
-      exist. Fix: style the group legends one step up (`--fs-sm`, `--ink`, weight 600) with `--sp-3` above each
-      fieldset. Use `grid-template-columns: repeat(2, minmax(0, 14rem))`. Divider: `var(--line)`. Check at 375px,
-      where the two columns must still fit at 320px.
 - [ ] **Sticky top bar has no edge when content scrolls under it.** The bar's background is `--bg`, with no border
       or shadow, so rows slide under it without separation (both widths). The spec says it "gets `--shadow-1` after
       scrolling". Fix: a 1px `--line` bottom border or `--shadow-1`, toggled by an IntersectionObserver sentinel or
@@ -289,3 +283,4 @@ do it first and re-measure the rest after it.
 - [x] Save row inside the Access card no longer shows a page-colored strip (8b480a6)
 - [x] Admin user header chips: one chip height, flex gap, phone wrap with top-aligned avatar (278e1dc)
 - [x] Login/Register: accent blobs isolated and no scrollbar on the empty page (100dvh, no body bottom padding); the password eye toggle was left for later (166e377)
+- [x] Filters panel hierarchy: bolder ink legends, wider 2-col grid, --line divider (e53e59d)
