@@ -1,6 +1,6 @@
 # TODO
 
-Last investigation: 2026-10-21 20:24 — 10 new findings (expense list 1.3, summary, display name, list and admin UI)
+Last investigation: 2026-10-22 — UI review in Chromium, 15 findings (layout, filters, spacing, clutter)
 
 Findings from the project review on 2026-10-12, plus later investigations. Paths are relative to
 `backend/src/main/java/ezekiel/baniaga/springboot/maven/backend/`.
@@ -8,9 +8,116 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
-## Findings 2026-10-21
+## UI review 2026-10-22
 
-      Test: type "coffee ", advance 300 ms, the box still reads "coffee ".
+Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked API. Paths are relative to
+`frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
+assertion, not only a Vitest test. The first five came from the user.
+
+- [ ] **The "Admin area" pill pushes the top bar around.** On `/admin/*`, `ui/Layout.tsx:30` adds
+      `.topbar__pill` to the bar, which is `flex-wrap: nowrap` from 48rem (`styles/layout.css`). The nav moves
+      right by the pill's width, and the items shrink until "Expense Tracker" and "Add expense" each wrap onto
+      two lines (at 1280 and 800 px). The pill also repeats the Admin nav link, which is already highlighted.
+      Fix: drop the pill from the bar and show it next to the `h1` on `AdminUsersPage` and `AdminUserPage`,
+      which keeps the design proposal's "obvious you are acting on other users". Also give
+      `.topbar__name`, `.main-nav a` and `.btn` `white-space: nowrap` and `.add-expense` `flex-shrink: 0`, so a
+      future item cannot wrap them either. Update `admin/admin.test.tsx:125`.
+- [ ] **Category filter chips have their label at the top.** `label:has(input[type="checkbox"]) { display:
+      inline-block }` (`styles/components.css`, specificity 0,1,2) beats `.chip { display: inline-flex }`
+      (0,1,0). Multi-select chips use checkboxes, so they lose `align-items: center`: computed `display` is
+      `block` for a Category chip and `flex` for a Period chip. Fix: lower the rule to
+      `label:where(:has(input[type="checkbox"]))` so any class wins over it. Check: Category chips match the
+      Period chips' height and centring.
+- [ ] **The Min/Max amount and From/To filters wrap and misalign.** `.list-controls__range` puts
+      label + input + label + input in one wrapping flex row. Every input takes `width: 100%; max-width: 24rem`
+      from the global input rule, so "Max amount" ends up alone at the line end with its input on the next
+      line (1280 and 800 px). The global `label { margin-top }` also sets the labels lower than the inputs, and
+      these labels use body text while Category above uses the caps `.field-label`. Fix: make each range a
+      fieldset ("Dates", "Amount") with two `.field`s side by side (label above, `.field-label`), e.g.
+      `grid-template-columns: repeat(2, minmax(0, 12rem))`, with inputs at `max-width: none` inside it. Two
+      columns still fit at 360 px.
+- [ ] **Filters are always open on wide screens, and the Filters button does nothing there.** `styles/
+      components.css` hides `.list-controls__filters[data-open="false"]` only below 48rem. On a desktop the
+      button flips `aria-expanded` but the panel (about 200 px of chips and inputs) always shows above the
+      summary, so the first view is busy. Fix: collapse it at every width by default. The default view is
+      the heading, Period chips, then the search box with a "Filters" button (filter icon, "Filters · n" count)
+      on the same row, then the summary and the list. When open, the panel is a `.card` holding Category,
+      Dates, Amount and a "Clear filters" link in its footer. Keep `Custom` opening it (already does). While it
+      is collapsed with active filters, show them as removable chips under the search ("Food ×",
+      "≥ 10.00 ×"), so the state stays visible. Update `docs/ui-design-proposal.md` (Filters, "on wide screens
+      inline"). Tests in `expenses/expenses.test.tsx` and `a11y.test.tsx` that use the filter controls must
+      press Filters first if the panel leaves the accessibility tree when closed.
+- [ ] **Profile sections touch each other.** `profile/ProfilePage.tsx` renders four sibling `.card`s and
+      nothing spaces them, so their borders meet. Other pages patch this case by case (`.summary-card`,
+      `.detail-card` `margin-bottom`), and `AdminUserPage` puts a `dl` right under its card. Fix: add a
+      `.stack` utility (`display: grid; gap: var(--sp-4)`), use it as the page body on Profile, expense detail
+      and admin user, and drop the one-off margins.
+- [ ] **The account menu shows "Close" on desktop and has no shadow.** `styles/layout.css` hides
+      `.account-menu__close` from 48rem, but `styles/components.css` is imported after it (`main.tsx:7`), and
+      `.btn { display: inline-flex }` has the same specificity, so it wins and Close shows. Escape and a click
+      outside already close the panel. Fix: `.account-menu .account-menu__close { display: none }` in the
+      48rem block. Also give the desktop panel `box-shadow: var(--shadow-2)`, because it floats over the list
+      with only a 1px `--line` border. "Your devices" reuses Profile's user icon, so give it a device or monitor
+      icon instead. Show the role as a `RoleChip`, not the raw `ADMIN`.
+- [ ] **Phone expense cards draw lines inside each card.** Below 48rem the rows become bordered cards, but
+      `th, td { border-bottom: 1px solid var(--line) }` (`styles/layout.css`) still applies, so a line runs
+      under the description and under the category of every card. Fix: `.expense-table td { border-bottom: 0 }`
+      in the phone block. The "Sort by" label also wraps onto two lines at 390 px, so add `white-space: nowrap`
+      and keep the select `width: auto`.
+- [ ] **Pagination is oversized and shows when there is nothing to page.** The page-size select takes the
+      global `width: 100%; max-width: 24rem` (312 px for "20"), and wraps under the buttons on phones. With
+      one page it still shows "Page 1 of 1" between two disabled buttons. This affects the expense and admin
+      lists (`ui/Pagination.tsx`). Fix: `.pagination select { width: auto }` with the label inline ("Per
+      page"); hide Previous/Next and the status when `totalPages <= 1`; hide the size select too when `total`
+      is at most the smallest size.
+- [ ] **The desktop expense table is noisy.** Amount is right-aligned with tabular figures only on phones, so on
+      desktop the decimals do not line up. When the list is sorted by date, every row repeats the date under
+      its day header ("TODAY" over "Oct 22, 2026" ×8); phones already hide it (`.expense-table--grouped`).
+      Every description is an underlined link, which stacks up a column of underlines. Fix: right-align the
+      amount `td`/`th` with `tabular-nums` at every width; hide the date column on desktop too when grouped;
+      make the whole row the link (the stretched `::after` the phone cards use) with a hover background, and
+      drop the underline inside the table.
+- [ ] **The summary bar and legend dots are barely visible.** `.summary-bar__segment` and
+      `.summary-legend__swatch` use the pastel `--cat-*-bg` fills, about 1.1:1 on `--surface` (sky
+      `#dceeff` on white), so Transport's segment and every legend dot almost disappear. Fix: add
+      `--cat-*-strong` tokens (peach/sky/lemon/mint `-strong`, both themes; `tokens.test.ts` checks they
+      match) and use them for the bar and dots. Also tighten the margins between the total, the count and the
+      bar.
+- [ ] **The admin user filter is laid out in two broken rows.** In `admin/AdminUsersPage.tsx`, the bare labels
+      (`display: block`) and 24rem inputs put Username on one line and Status + Search on the next, with
+      labels in body text. Fix: one `.filter-bar` row (`display: flex; align-items: end; gap`) of
+      `TextField`/`SelectField` with `.field-label`s, and Search aligned to the input bottoms. Or apply on
+      change like the expense list (debounced username, Status at once) and drop the button.
+- [ ] **The admin user page shows role and status three times.** `admin/AdminUserPage.tsx` shows the header
+      chips, then a `dl` (Role USER, Status Enabled, Version), then the form (Enabled checkbox, Role select).
+      The `dl` sits outside any card while the header is in one, the Save button touches the select (no gap),
+      Version is an internal optimistic-lock number, and "Back to users" lacks the chevron the other back links
+      have. Fix: the header card with chips; a Details card with Created and Last modified only; an Access card
+      with Status and Role as `SegmentedControl`s and Save in a `.form-actions` row; `.back-link` with
+      `ChevronLeftIcon`.
+- [ ] **The expense detail page has redundant actions and data.** `expenses/ExpenseDetailPage.tsx` offers "Edit"
+      and "Edit description" side by side (Edit already edits the description). The Delete trigger looks like
+      the others, though its dialog uses danger. The category shows twice (56 px badge plus chip). Version and
+      Id are internals, and the 44 px Copy button makes the Id row taller than its `dt`, so they misalign.
+      Fix: one primary "Edit" and a danger-ghost "Delete"; drop "Edit description" (or keep it only as a quick
+      edit from the list); keep the badge or the chip, not both; move Id and Version into a collapsed
+      `<details>` "Technical details", with Copy as a `btn--sm` ghost button.
+- [ ] **The profile page reads like raw markup.** In `profile/ProfilePage.tsx`, the Account card puts the
+      avatar alone on its own row; the Name row misaligns (the 44 px Edit button is taller than the `dt`); Role
+      is the raw `ADMIN`. The Security warning is a plain sentence starting "Warning:", and the password inputs
+      are plain `TextField`s while sign-in uses `PasswordField` with show/hide. Devices is a bulleted list of
+      long sentences with an italic "This device" and a full-size Revoke button under each. Theme and Accent
+      also duplicate the account menu. Fix: an avatar + name/username header row like the admin user page, a
+      `dl` with Edit as `btn--sm` ghost, and Role as `RoleChip`; a `.note` callout style for the warning;
+      `PasswordField` for both passwords; devices as a divider list (name + "This device" `status-chip`, one
+      muted line "127.0.0.1 · active 5 h ago · expires Nov 21" with full times in `title`, Revoke as a
+      `btn--sm` ghost on the right). Decide whether appearance lives in the menu or on Profile, not both.
+- [ ] **Amount filters send a request and a history entry per keystroke.** `expenses/ExpenseListPage.tsx`
+      calls `update` on every `onChange` of Min/Max amount (and the date inputs), with `setSearchParams` pushing
+      a history entry each time. Typing "12.5" sent 3 list and 3 summary requests, and Back steps through "1",
+      "12", "12.5". The search box already debounces 300 ms. Fix: debounce the amount inputs the same way and
+      pass `{ replace: true }` for typed filter changes, so Back leaves the list instead of undoing keystrokes.
+      Test: type "12.5", advance 300 ms, one list request and `?minAmount=12.5`.
 
 ## Needs you
 
