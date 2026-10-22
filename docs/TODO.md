@@ -26,9 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Every page logs "No queryFn was passed … [["me"]]" in the console.** `useMe.ts` peeks at the cache with
-      `useQuery` and no `queryFn`. Use `useQueryClient().getQueryData` plus a subscription, or `useQuery` with
-      `enabled: false` and the real `queryFn`, so the shell still never fetches.
 - [ ] **Add a layout regression spec.** All of the above slipped past jsdom and axe. Extend `e2e/a11y.spec.ts`
       (it already runs 360 and 1280, light and dark) or add `e2e/layout.spec.ts` with these assertions:
       - controls in one row share their top and bottom edges (±1px)
@@ -262,3 +259,4 @@ do it first and re-measure the rest after it.
 - [x] Empty filter results use EmptyState with Clear filters / Clear search (a26ecb5)
 - [x] Ghost buttons in text rows align with the text around them (f064805)
 - [x] Token hygiene: tokens only in component CSS, `.visually-hidden` reused, tokens.test.ts checks every var() (2757620)
+- [x] Stop useCachedMe logging "No queryFn was passed" on every page, via skipToken (5096ee8)
