@@ -14,13 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **The account menu shows "Close" on desktop and has no shadow.** `styles/layout.css` hides
-      `.account-menu__close` from 48rem, but `styles/components.css` is imported after it (`main.tsx:7`), and
-      `.btn { display: inline-flex }` has the same specificity, so it wins and Close shows. Escape and a click
-      outside already close the panel. Fix: `.account-menu .account-menu__close { display: none }` in the
-      48rem block. Also give the desktop panel `box-shadow: var(--shadow-2)`, because it floats over the list
-      with only a 1px `--line` border. "Your devices" reuses Profile's user icon, so give it a device or monitor
-      icon instead. Show the role as a `RoleChip`, not the raw `ADMIN`.
 - [ ] **Phone expense cards draw lines inside each card.** Below 48rem the rows become bordered cards, but
       `th, td { border-bottom: 1px solid var(--line) }` (`styles/layout.css`) still applies, so a line runs
       under the description and under the category of every card. Fix: `.expense-table td { border-bottom: 0 }`
@@ -269,3 +262,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Min/Max amount and From/To filters laid out as Dates/Amount fieldsets in two columns (0ebad6f)
 - [x] Collapsed the expense Filters panel at every width, with removable active-filter chips (d2e9e0f)
 - [x] Space Profile, expense detail and admin user page bodies with a `.stack` grid (6a76055)
+- [x] Fixed the account menu: Close hidden on desktop, desktop shadow, monitor icon for Your devices, RoleChip (d4d6771)
