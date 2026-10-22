@@ -211,6 +211,17 @@ form:not(:has(> .filter-bar)) :is(input:not([type="checkbox"]), select) {
   background: var(--danger-fill);
 }
 
+/* A ghost button's label sits one padding in from its box. In a text row, pull the box out by that padding
+   so the label lines up with the column (dd) or the card edge (Revoke) and the hit area stays the same.
+   The margins reach into the dt gap and the card's 16px padding, so nothing overflows at 320px. */
+dd > .btn--ghost:first-child {
+  margin-inline-start: calc(-1 * var(--sp-3));
+}
+
+.device__row > .btn--ghost {
+  margin-inline-end: calc(-1 * var(--sp-3));
+}
+
 .btn--icon {
   width: 2.75rem;
   padding: 0;

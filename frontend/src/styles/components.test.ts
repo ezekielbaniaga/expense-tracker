@@ -165,4 +165,10 @@ describe("base.css root size", () => {
     expect(layout).toMatch(/\.topbar\[data-scrolled="true"\] \{\s*box-shadow: var\(--shadow-1\);/);
     expect(layout).toMatch(/\.topbar-sentinel \{\s*position: absolute;\s*top: 0;/);
   });
+
+  // The sm ghost button has 12px side padding, so its label sat 12px off the text column
+  it("pulls ghost buttons in text rows out by their padding so labels align", () => {
+    expect(css).toMatch(/dd > \.btn--ghost:first-child \{\s*margin-inline-start: calc\(-1 \* var\(--sp-3\)\);/);
+    expect(css).toMatch(/\.device__row > \.btn--ghost \{\s*margin-inline-end: calc\(-1 \* var\(--sp-3\)\);/);
+  });
 });
