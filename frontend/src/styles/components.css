@@ -661,20 +661,49 @@ body:has(.auth) {
   text-align: center;
 }
 
+/* The show/hide toggle sits inside the field at the inline end, so the input keeps the full width */
 .password-input {
-  display: flex;
-  gap: var(--sp-2);
-  align-items: center;
+  position: relative;
 }
 
 .password-input input {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
+  padding-inline-end: 2.75rem;
+}
+
+.password-input__toggle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  min-height: 0;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+}
+
+.password-input__toggle:hover:not(:disabled) {
+  background: transparent;
+  color: var(--ink);
 }
 
 .password-input__toggle[aria-pressed="true"] {
-  background: var(--selected-bg);
   color: var(--selected-text);
+}
+
+.password-input__toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .rules {
