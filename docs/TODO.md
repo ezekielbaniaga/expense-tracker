@@ -26,11 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Save sits in a page-colored strip inside the Access card.** `.form-actions` is sticky with `background:
-      var(--bg)` for the expense forms. Inside a white card it shows as a beige box in light mode and a black box
-      in dark mode, at every width. Fix: `.card .form-actions { position: static; padding: 0; background: none }`.
-      Keep the sticky bar for the expense forms, which are not in a card. Check New/Edit expense at 375px, where
-      the sticky row is wanted.
 - [ ] **Admin user header chips are uneven.** Measured: "User" chip 18.6px, "Enabled" chip 20px (only one has a
       16px icon). Chips are separated by a literal space inside a `<p>`. Fix: one chip height (`min-height:
       1.25rem; line-height: 1`, icons `flex: none`) for `.status-chip` and `.admin-pill`. Lay out
@@ -300,3 +295,4 @@ do it first and re-measure the rest after it.
 - [x] "Add expense" FAB shown only on the list on phones, main bottom padding sized from tab bar and FAB (d4702fb)
 - [x] Table cells no longer break inside words and amounts; Archived amounts right-aligned with tabular-nums (dd06d06)
 - [x] Fixed the Status/Role segmented controls: equal-width items, inset ring on the selected one (39ba4a5)
+- [x] Save row inside the Access card no longer shows a page-colored strip (8b480a6)
