@@ -852,6 +852,8 @@ tr.row--new {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
+  min-height: 1.25rem;
+  line-height: 1;
   padding: 2px var(--sp-2);
   border-radius: 999px;
   font-size: var(--fs-sm);
@@ -880,7 +882,26 @@ tr.row--new {
 }
 
 .user-header__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
   margin: var(--sp-1) 0 0;
+}
+
+.status-chip > svg,
+.admin-pill > svg {
+  flex: none;
+}
+
+/* Phones: name, pill and chips wrap under each other beside a top-aligned avatar. */
+@media (max-width: 47.999rem) {
+  .user-header {
+    align-items: flex-start;
+  }
+
+  .user-header > div {
+    min-width: 0;
+  }
 }
 
 .pagination {
@@ -921,6 +942,8 @@ tr.row--new {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
+  min-height: 1.25rem;
+  line-height: 1;
   padding: 2px var(--sp-2);
   border-radius: 999px;
   font-size: var(--fs-sm);

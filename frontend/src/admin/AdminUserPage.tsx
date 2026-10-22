@@ -70,9 +70,10 @@ export function AdminUserPage() {
                 <PageHeading id="user-heading">{user.username}</PageHeading>
                 <AdminPill />
               </div>
-              <p className="user-header__chips">
-                <RoleChip role={user.role} /> <StatusChip enabled={user.enabled} />
-              </p>
+              <div className="user-header__chips">
+                <RoleChip role={user.role} />
+                <StatusChip enabled={user.enabled} />
+              </div>
             </div>
           </Card>
           <Card title="Details">

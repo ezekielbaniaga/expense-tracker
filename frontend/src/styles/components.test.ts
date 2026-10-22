@@ -137,4 +137,12 @@ describe("base.css root size", () => {
     expect(css).toMatch(/\.table-amount \{\s*text-align: right;\s*font-variant-numeric: tabular-nums;/);
     expect(css).toMatch(/@media \(min-width: 48rem\) \{\s*[^}]*\.expense-table__amount \{\s*width: 1%;\s*white-space: nowrap;/);
   });
+
+  it("gives status chips and the admin pill one height, and lays the header chips out with a gap", () => {
+    expect(css).toMatch(/\.status-chip \{[^}]*min-height: 1\.25rem;\s*line-height: 1;/);
+    expect(css).toMatch(/\.admin-pill \{[^}]*min-height: 1\.25rem;\s*line-height: 1;/);
+    expect(css).toMatch(/\.status-chip > svg,\s*\.admin-pill > svg \{\s*flex: none;/);
+    expect(css).toMatch(/\.user-header__chips \{\s*display: flex;\s*flex-wrap: wrap;\s*gap: var\(--sp-2\);/);
+    expect(css).toMatch(/@media \(max-width: 47\.999rem\) \{\s*\.user-header \{\s*align-items: flex-start;/);
+  });
 });
