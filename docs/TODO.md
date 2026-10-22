@@ -26,16 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Token hygiene.** Uses of tokens that do not exist or differ from them:
-      - `var(--border, currentColor)` (no such token)
-      - fallbacks that differ from the token: `var(--sp-3, 1rem)` (token 12px), `var(--sp-4, 1rem)`,
-        `var(--fs-lg, 1.5rem)` (token 1.125rem), `var(--fs-xl, 1.75rem)`, `var(--r-sm, 0.25rem)`
-      - raw values: `999px`, `0.5rem` radius, `0.8125rem` on day headers, `56px` badge
-      - `.list-controls__search label` re-implements `.visually-hidden` with the deprecated `clip`
-
-      Fix: tokens only, no fallbacks, and reuse `.visually-hidden`. Extend `tokens.test.ts` so every
-      `var(--x)` in `src/styles` names a defined token. No visual change except the Filters divider, so diff
-      the screenshots at both widths.
 - [ ] **Every page logs "No queryFn was passed … [["me"]]" in the console.** `useMe.ts` peeks at the cache with
       `useQuery` and no `queryFn`. Use `useQueryClient().getQueryData` plus a subscription, or `useQuery` with
       `enabled: false` and the real `queryFn`, so the shell still never fetches.
@@ -271,3 +261,4 @@ do it first and re-measure the rest after it.
 - [x] Phone account menu sheet now has a tap-to-close scrim, a 4x32px handle and a secondary Close button (5a5189c)
 - [x] Empty filter results use EmptyState with Clear filters / Clear search (a26ecb5)
 - [x] Ghost buttons in text rows align with the text around them (f064805)
+- [x] Token hygiene: tokens only in component CSS, `.visually-hidden` reused, tokens.test.ts checks every var() (2757620)
