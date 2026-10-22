@@ -84,3 +84,18 @@ describe("admin user filter bar", () => {
     expect(css).toMatch(/\.device-list \{[^}]*list-style: none;/);
   });
 });
+
+// The rem tokens assume 1rem = 16px; a 13px root shrank the whole UI by 19%
+describe("base.css root size", () => {
+  const base = readFileSync("src/styles/base.css", "utf8");
+
+  it("keeps the root at 100% and sets the text size on body", () => {
+    expect(base).toMatch(/:root \{[^}]*font-size: 100%;/);
+    expect(base).toMatch(/\nbody \{[^}]*font-size: var\(--fs-base\);/);
+  });
+
+  it("sizes h1 --fs-md on phones and --fs-lg from 48rem", () => {
+    expect(base).toMatch(/\nh1 \{\s*font-size: var\(--fs-md\);/);
+    expect(base).toMatch(/@media \(min-width: 48rem\) \{\s*h1 \{\s*font-size: var\(--fs-lg\);/);
+  });
+});

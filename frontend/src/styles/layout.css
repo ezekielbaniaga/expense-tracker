@@ -204,8 +204,8 @@ main {
   .main-nav a {
     flex: 0 0 auto;
     flex-direction: row;
-    min-height: 0;
-    padding: 0.6rem var(--sp-3);
+    min-height: 2.75rem;
+    padding: 0 var(--sp-3);
     border-radius: var(--r-sm);
     font-size: var(--fs-base);
     letter-spacing: normal;
@@ -216,7 +216,7 @@ main {
     position: static;
     order: 3;
     margin-left: auto;
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     border-radius: var(--r-sm);
     box-shadow: none;
   }
