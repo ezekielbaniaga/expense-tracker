@@ -4,6 +4,10 @@ A Spring Boot expense tracker demonstrating modern backend practices, including 
 
 The authentication system was intentionally built incrementally to understand what Spring Security is doing underneath its defaults rather than simply relying on auto-configuration.
 
+<p align="center">
+  <img src="screenshot.png" alt="Expense Tracker sign-in screen on a phone" width="300">
+</p>
+
 ---
 
 ## Authentication Architecture
