@@ -322,8 +322,8 @@ New shared components live in `src/ui/`. Each one keeps native elements undernea
 
 - **Top bar**: wordmark left (name is an open decision; the app title stays "Expense Tracker" until then), an
   optional search button on the list page, the avatar button right. Sticky; gets `--shadow-1` after scrolling.
-- **Bottom tab bar**: Expenses, Archived, Profile (three items; Admin lives in the avatar menu because few users have
-  it). Icon + caps label, active item in the accent fill. `nav aria-label="Main"`, links with `aria-current="page"`
+- **Bottom tab bar**: Expenses, Archived, Profile, plus Admin as a fourth item for admins (decided 2026-10-23; Admin
+  is also in the avatar menu). Icon + caps label, active item in the accent fill. `nav aria-label="Main"`, links with `aria-current="page"`
   (as today). Padding includes `env(safe-area-inset-bottom)`; `index.html` viewport gets `viewport-fit=cover`.
 - **Add expense**: a floating action button on the list page (bottom-right, above the tab bar). Alternative: a fourth,
   center tab "Add". Open decision; the FAB keeps the tab bar to three and is the common pattern.

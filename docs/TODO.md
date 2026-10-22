@@ -8,6 +8,24 @@ Findings from the project review on 2026-10-12, plus later investigations. Paths
 Work items top to bottom, one per commit. When an item is fixed, move it to **Done** with its
 commit hash. Items that need a human decision or action outside the code go in **Needs you**.
 
+## Tooling
+
+- [ ] **Give the e2e run its own image tags.** `frontend/run_e2e.sh` runs `backend/build_docker_image.sh`
+      (`./mvnw clean install`, then `docker build -t expense-tracker:1.0`) and `frontend/build_docker_image.sh`
+      (`expense-tracker-web:1.0`), and `docker_compose/docker-compose.e2e.yml` runs those tags. So every e2e run
+      replaces the images the main Compose stack (`docker-compose.yml`) uses with a build of the working tree, and
+      `clean` wipes `backend/target`. Fix:
+      - both build scripts take an `IMAGE_TAG` environment variable, default `1.0`, so running them with no
+        arguments still builds `:1.0`
+      - `backend/build_docker_image.sh` runs `./mvnw package` instead of `clean install`
+      - `run_e2e.sh` builds with `IMAGE_TAG=e2e`, and `docker-compose.e2e.yml` runs `expense-tracker:e2e` and
+        `expense-tracker-web:e2e`
+      - update any README, CLAUDE.md or script comments that name the tags
+
+      Verify without running e2e: `sh -n` on the three scripts, `docker compose -f docker_compose/docker-compose.e2e.yml config`
+      shows the `:e2e` images, and `docker-compose.yml` still names `:1.0`. Unattended runs still must not run
+      `run_e2e.sh` or `npm run e2e`; the owner runs it once afterwards.
+
 ## Web UI alignment and polish (2026-10-23 audit)
 
 Measured with Playwright against the Vite dev server (API stubbed) at 1280, 768, 375 and 320px, light and dark, with
@@ -39,25 +57,14 @@ do it first and re-measure the rest after it.
 
 ## Needs you
 
-- [ ] **Decide whether Admin stays in the phone tab bar.** The spec (line 322) keeps the bottom tab bar to three
-      items (Expenses, Archived, Profile) with Admin in the avatar menu "because few users have it". Today admins get
-      four tabs, and Admin is in the menu too. Keep it as is, or drop the tab below 48rem (the desktop nav link stays)?
-
-- [ ] **Manual checks once the Web UI items are done.** (1) Compose: update `TRUSTED_PROXIES` in your
-      `docker_compose/.env`, log in through `:8081` and check that `user_sessions.ip_address` holds your client
-      IP, not nginx's. (2) Run `frontend/run_e2e.sh`. (3) Click through every
-      screen with the keyboard only and on a narrow window.
-- [ ] **Decide whether `frontend/run_e2e.sh` should build its own image tags.** It runs `backend/build_docker_image.sh`
-      (`./mvnw clean install`, then `docker build -t expense-tracker:1.0`) and `frontend/build_docker_image.sh`
-      (`expense-tracker-web:1.0`), and `docker_compose/docker-compose.e2e.yml` runs those tags. So every e2e
-      run replaces the images the main Compose stack (`docker-compose.yml`) uses with a build of the current
-      working tree, and `clean` wipes `backend/target`. Suggested: let both build scripts take a tag
-      (e.g. `IMAGE_TAG`, default `1.0`), have `run_e2e.sh` build `expense-tracker:e2e` and
-      `expense-tracker-web:e2e`, and use those in the e2e Compose file (also `package` instead of
-      `clean install`). Until then, unattended runs must not run `run_e2e.sh` or `npm run e2e`.
+- [ ] **Check the client IP behind nginx.** Log in through `:8081` and check that `user_sessions.ip_address` holds
+      your client IP, not nginx's. Compose defaults `TRUSTED_PROXIES` to the nginx address `172[.]28[.]0[.]10`, so
+      `docker_compose/.env` needs no `TRUSTED_PROXIES` line unless that address changes.
 
 ## Done
 
+- [x] Admin stays a fourth phone tab for admins (decided 2026-10-23); the spec now says so
+- [x] Ran `frontend/run_e2e.sh` and clicked through every screen with the keyboard only and on a narrow window (2026-10-23)
 - [x] Node 24 LTS (v24.22.0) installed for the Web UI frontend items; Node 20.15.1 was too old for Vite 7
 - [x] Cleaned up the untracked files in the repo root
 - [x] Rotated the `POSTGRES_PASSWORD`, `ADMIN_PASSWORD` and `JWT_SECRET` that were committed to history (2026-10-17): new random values in the git-ignored `docker_compose/.env`. The old values still sit in public history and are dead only where nothing uses them; the Compose database volume `spring-boot-sample_pgdata`, created with them, was deleted, and any other deployment needs the same rotation
