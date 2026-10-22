@@ -14,12 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **Category filter chips have their label at the top.** `label:has(input[type="checkbox"]) { display:
-      inline-block }` (`styles/components.css`, specificity 0,1,2) beats `.chip { display: inline-flex }`
-      (0,1,0). Multi-select chips use checkboxes, so they lose `align-items: center`: computed `display` is
-      `block` for a Category chip and `flex` for a Period chip. Fix: lower the rule to
-      `label:where(:has(input[type="checkbox"]))` so any class wins over it. Check: Category chips match the
-      Period chips' height and centring.
 - [ ] **The Min/Max amount and From/To filters wrap and misalign.** `.list-controls__range` puts
       label + input + label + input in one wrapping flex row. Every input takes `width: 100%; max-width: 24rem`
       from the global input rule, so "Max amount" ends up alone at the line end with its input on the next
@@ -295,3 +289,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] The admin user list shows the creation date in the viewer's time zone (`formatLocalDay`), with time zone tests (831e0aa)
 - [x] Fixed docs and comments that contradicted the code (RENT category, X-API-Version, UTC+14 dates, display name 409) (99884a9)
 - [x] Admin area pill moved from the top bar to the admin page headings, nowrap on top bar items (0ec2025)
+- [x] Category filter chips now centre their label like Period chips (`label:where(:has(...))`) (9b76bc7)
