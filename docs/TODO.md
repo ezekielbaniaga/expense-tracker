@@ -26,13 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Admin user page: the Status/Role segmented controls look off.** The selected item draws a 2px accent border
-      inside a 1px track border plus 2px padding, so it reads as a double outline that hugs the left edge. The
-      two items also have different widths ("Enabled" 78px, "Disabled" 84px), so the switch looks lopsided.
-      Fix: equal-width items (`display: grid; grid-auto-flow: column; grid-auto-columns: 1fr`). Mark the
-      selected item with fill plus `box-shadow: inset 0 0 0 2px var(--accent-strong)` and no border. Track
-      padding 3px. Keep the forced-colors border (`Highlight`). The account menu uses the same component (Theme:
-      System/Light/Dark), so check it at both widths too.
 - [ ] **Save sits in a page-colored strip inside the Access card.** `.form-actions` is sticky with `background:
       var(--bg)` for the expense forms. Inside a white card it shows as a beige box in light mode and a black box
       in dark mode, at every width. Fix: `.card .form-actions { position: static; padding: 0; background: none }`.
@@ -306,3 +299,4 @@ do it first and re-measure the rest after it.
 - [x] Forms share one 28rem column with full-width inputs and flush chip/segmented legends (57e55cd)
 - [x] "Add expense" FAB shown only on the list on phones, main bottom padding sized from tab bar and FAB (d4702fb)
 - [x] Table cells no longer break inside words and amounts; Archived amounts right-aligned with tabular-nums (dd06d06)
+- [x] Fixed the Status/Role segmented controls: equal-width items, inset ring on the selected one (39ba4a5)
