@@ -298,20 +298,30 @@ export function ExpenseListPage() {
               });
             }}
           />
-          <div className="list-controls__range">
-            <label htmlFor="filter-from">From</label>
-            <input id="filter-from" type="date" value={params.from} onChange={(e) => setDate("from", e.target.value)} />
-            <label htmlFor="filter-to">To</label>
-            <input id="filter-to" type="date" value={params.to} onChange={(e) => setDate("to", e.target.value)} />
-          </div>
-          <div className="list-controls__range">
-            <label htmlFor="filter-min">Min amount</label>
-            <input id="filter-min" type="number" min="0" step="0.01" inputMode="decimal" value={params.minAmount}
-              onChange={(e) => update({ minAmount: e.target.value })} />
-            <label htmlFor="filter-max">Max amount</label>
-            <input id="filter-max" type="number" min="0" step="0.01" inputMode="decimal" value={params.maxAmount}
-              onChange={(e) => update({ maxAmount: e.target.value })} />
-          </div>
+          <fieldset className="list-controls__range">
+            <legend className="field-label">Dates</legend>
+            <div className="list-controls__field">
+              <label htmlFor="filter-from" className="field-label">From</label>
+              <input id="filter-from" type="date" value={params.from} onChange={(e) => setDate("from", e.target.value)} />
+            </div>
+            <div className="list-controls__field">
+              <label htmlFor="filter-to" className="field-label">To</label>
+              <input id="filter-to" type="date" value={params.to} onChange={(e) => setDate("to", e.target.value)} />
+            </div>
+          </fieldset>
+          <fieldset className="list-controls__range">
+            <legend className="field-label">Amount</legend>
+            <div className="list-controls__field">
+              <label htmlFor="filter-min" className="field-label">Min amount</label>
+              <input id="filter-min" type="number" min="0" step="0.01" inputMode="decimal" value={params.minAmount}
+                onChange={(e) => update({ minAmount: e.target.value })} />
+            </div>
+            <div className="list-controls__field">
+              <label htmlFor="filter-max" className="field-label">Max amount</label>
+              <input id="filter-max" type="number" min="0" step="0.01" inputMode="decimal" value={params.maxAmount}
+                onChange={(e) => update({ maxAmount: e.target.value })} />
+            </div>
+          </fieldset>
         </div>
         {hasFilters && (
           <button type="button" onClick={() => setSearchParams({})}>

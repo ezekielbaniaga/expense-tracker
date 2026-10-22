@@ -899,12 +899,40 @@ tr.row--new {
   margin-block: var(--sp-2);
 }
 
-.list-controls__search,
-.list-controls__range {
+.list-controls__search {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
+}
+
+/* Dates and Amount: a fieldset of two fields side by side, label above input. */
+.list-controls__range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 12rem));
+  gap: var(--sp-1) var(--sp-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.list-controls__range legend {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+.list-controls__field {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.list-controls__field label {
+  margin-top: 0;
+}
+
+.list-controls__field input {
+  max-width: none;
 }
 
 .list-controls__search label {

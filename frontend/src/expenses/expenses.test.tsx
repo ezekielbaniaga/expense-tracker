@@ -478,6 +478,18 @@ describe("expense list", () => {
       expect(screen.getByRole("button", { name: "Filters \u00b7 3" })).toBeTruthy();
     });
 
+    it("groups the date and amount inputs into Dates and Amount fieldsets", async () => {
+      record();
+      renderAt("/?period=all");
+      await screen.findByText("Lunch");
+      const dates = screen.getByRole("group", { name: "Dates" });
+      expect(within(dates).getByLabelText("From")).toBeTruthy();
+      expect(within(dates).getByLabelText("To")).toBeTruthy();
+      const amount = screen.getByRole("group", { name: "Amount" });
+      expect(within(amount).getByLabelText("Min amount")).toBeTruthy();
+      expect(within(amount).getByLabelText("Max amount")).toBeTruthy();
+    });
+
     it("says nothing matches and Clear filters goes back to the defaults", async () => {
       const queries = record(EMPTY_PAGE);
       renderAt("/?q=zzz&category=FOOD&period=all");
