@@ -26,11 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **Account menu bottom sheet (phone) has no scrim or handle.** It opens over a page that stays fully visible
-      and clickable. The spec says "bottom sheet with a drag handle and a Close button". Close is plain bold
-      text. Fix: below 48rem add a backdrop (`color-mix(in srgb, var(--ink) 40%, transparent)`, like
-      `.dialog::backdrop`) that closes on tap, a 4×32px handle, and `Close` as a secondary button. The desktop
-      dropdown must not change.
 - [ ] **Empty results are bare text.** "No expenses match these filters." and "No users match." are plain left-aligned
       paragraphs. The unfiltered empty list and Archived use `EmptyState`. Fix: `EmptyState` with a "Clear
       filters" action (the list) or "Clear search" (admin), at both widths.
@@ -281,3 +276,4 @@ do it first and re-measure the rest after it.
 - [x] Login/Register: accent blobs isolated and no scrollbar on the empty page (100dvh, no body bottom padding); the password eye toggle was left for later (166e377)
 - [x] Filters panel hierarchy: bolder ink legends, wider 2-col grid, --line divider (e53e59d)
 - [x] Sticky top bar shows --shadow-1 only once scrolled, via an IntersectionObserver sentinel (54117d7)
+- [x] Phone account menu sheet now has a tap-to-close scrim, a 4x32px handle and a secondary Close button (5a5189c)
