@@ -22,6 +22,12 @@ describe("components.css", () => {
     expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);
   });
 
+  // The page-size select took the global 24rem max-width; it is now auto-width beside an inline label
+  it("sizes the pagination select to its content", () => {
+    expect(css).toMatch(/\.pagination select \{\s*width: auto;/);
+    expect(css).toMatch(/\.pagination__size \{\s*display: inline-flex;/);
+  });
+
   // The global th, td bottom border drew lines inside each phone card
   it("clears the cell borders inside phone expense cards and keeps Sort by on one line", () => {
     expect(css).toMatch(/\.expense-table td \{\s*padding: 0;\s*border-bottom: 0;/);

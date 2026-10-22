@@ -457,7 +457,7 @@ export function ExpenseListPage() {
         totalPages={query.data?.totalPages ?? 0}
         size={params.size}
         defaultSize={pageSize}
-        disabled={!query.data}
+        total={query.data?.total}
         onPage={(page) => update({ page: String(page) })}
         onSize={(size) => update({ size: String(size) })}
       />

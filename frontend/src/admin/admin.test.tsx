@@ -113,7 +113,7 @@ describe("users list", () => {
         const q = params(request.url);
         requests.push(q);
         if (q.page === "1") return HttpResponse.json(page([BOB], 1, 1, 2));
-        if (q.username === "bo") return HttpResponse.json(page([{ ...BOB, enabled: false }]));
+        if (q.username === "bo") return HttpResponse.json(page([{ ...BOB, enabled: false }], 0, 20, 25));
         return HttpResponse.json(page([ALICE], 0, 1, 2));
       }),
     );
@@ -140,7 +140,7 @@ describe("users list", () => {
     await waitFor(() => expect(requests.at(-1)).toEqual({ username: "bo", enabled: "false", page: "0", size: "20" }));
     expect(await screen.findByRole("cell", { name: "Disabled" })).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText("Page size"), { target: { value: "50" } });
+    fireEvent.change(screen.getByLabelText("Per page"), { target: { value: "50" } });
     await waitFor(() => expect(requests.at(-1)).toEqual({ username: "bo", enabled: "false", page: "0", size: "50" }));
   });
 
@@ -184,7 +184,7 @@ describe("users list", () => {
       const requests = serve({ total: 5 });
       renderAt("/admin/users?page=9");
       expect(await screen.findByRole("link", { name: "user0x0" })).toBeTruthy();
-      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      expect(screen.queryByText(/Page \d+ of/)).toBeNull();
       expect(requests.at(-1)!.page).toBe("0");
     });
 
@@ -197,8 +197,8 @@ describe("users list", () => {
       expect(await screen.findByRole("link", { name: "user1x0" })).toBeTruthy();
       state.total = 20;
       await act(() => queryClient.invalidateQueries({ queryKey: ["users"] }));
-      // Page 0 is cached with the old total, so wait for the fresh "Page 1 of 1" rather than the rows
-      expect(await screen.findByText("Page 1 of 1")).toBeTruthy();
+      // Page 0 is cached with the old total, so wait for the pager to go (one page left) rather than the rows
+      await waitFor(() => expect(screen.queryByText(/Page \d+ of/)).toBeNull());
       expect(screen.getByRole("link", { name: "user0x0" })).toBeTruthy();
       expect(requests.at(-1)!.page).toBe("0");
     });

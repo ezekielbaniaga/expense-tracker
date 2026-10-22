@@ -562,7 +562,7 @@ describe("expense list", () => {
     expect(await screen.findByText("Page 1 of 3")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(await screen.findByText("Page 2 of 3")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Page size"), { target: { value: "10" } });
+    fireEvent.change(screen.getByLabelText("Per page"), { target: { value: "10" } });
     await waitFor(() => expect(pages).toContain("0/10"));
     expect(pages.slice(0, 2)).toEqual(["0/20", "1/20"]);
   });
@@ -598,7 +598,7 @@ describe("expense list", () => {
       const pages = serve({ total: 5 });
       renderAt("/?page=9");
       expect(await screen.findByText("Item 0-0")).toBeTruthy();
-      expect(screen.getByText("Page 1 of 1")).toBeTruthy();
+      expect(screen.queryByText(/Page \d+ of/)).toBeNull();
       expect(pages.at(-1)).toBe("0");
     });
 
@@ -612,8 +612,8 @@ describe("expense list", () => {
       expect(screen.getByText("Page 2 of 2")).toBeTruthy();
       state.total = 20;
       await act(() => queryClient.invalidateQueries({ queryKey: ["expenses"] }));
-      // Page 0 is cached with the old total, so wait for the fresh "Page 1 of 1" rather than the rows
-      expect(await screen.findByText("Page 1 of 1")).toBeTruthy();
+      // Page 0 is cached with the old total, so wait for the pager to go (one page left) rather than the rows
+      await waitFor(() => expect(screen.queryByText(/Page \d+ of/)).toBeNull());
       expect(screen.getByText("Item 0-0")).toBeTruthy();
       expect(pages.at(-1)).toBe("0");
     });

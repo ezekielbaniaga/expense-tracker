@@ -28,7 +28,7 @@ test("sort, filter, page and search the list", async ({ page, request }) => {
   await page.getByRole("button", { name: "Filters" }).click();
   await page.locator("label.chip", { hasText: "Food" }).click();
   await expect(page).toHaveURL(/category=FOOD/);
-  await expect(page.getByText("Page 1 of 1")).toBeVisible();
+  await expect(page.getByText(/Page \d+ of/)).toHaveCount(0); // one page: no pager
   await expect(rows).toHaveCount(7);
   await expect(rows.first()).toContainText("Zed item 01");
 

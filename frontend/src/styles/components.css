@@ -784,6 +784,17 @@ tr.row--new {
   margin-top: var(--sp-3, 0.75rem);
 }
 
+.pagination__size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.pagination select {
+  width: auto;
+}
+
 .admin-heading {
   display: flex;
   flex-wrap: wrap;

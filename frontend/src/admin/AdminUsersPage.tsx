@@ -249,7 +249,7 @@ export function AdminUsersPage() {
         totalPages={data?.totalPages ?? 0}
         size={filters.size}
         defaultSize={DEFAULT_USER_PAGE_SIZE}
-        disabled={!data}
+        total={data?.total}
         onPage={(page) => update({ page: String(page) })}
         onSize={(size) => update({ size: String(size) })}
       />
