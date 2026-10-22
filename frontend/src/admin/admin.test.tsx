@@ -95,12 +95,6 @@ function renderAt(path: string) {
   );
 }
 
-/** The text of the <dd> after the <dt> named `term`. */
-function detail(term: string): string | null | undefined {
-  const dl = document.querySelector("dl") as HTMLElement;
-  return within(dl).getByText(term, { selector: "dt" }).nextElementSibling?.textContent;
-}
-
 function params(url: string): Record<string, string> {
   return Object.fromEntries(new URL(url).searchParams);
 }
@@ -315,21 +309,35 @@ describe("edit user", () => {
       ),
     );
     await renderBob();
-    expect(detail("Version")).toBe("3");
     // A promotion is not destructive, so it saves without a confirm
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ADMIN" } });
+    fireEvent.click(screen.getByRole("radio", { name: "ADMIN" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Saved.")).toBeTruthy();
     expect(bodies).toEqual([{ version: 3, role: "ADMIN" }]);
-    expect(detail("Version")).toBe("4");
-    expect(detail("Role")).toBe("ADMIN");
+    expect((screen.getByRole("radio", { name: "ADMIN" }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("lays the page out as header, Details and Access cards without repeating role and status", async () => {
+    server.use(getUser(BOB));
+    await renderBob();
+    const dts = Array.from(document.querySelectorAll("dt")).map((e) => e.textContent);
+    expect(dts).toEqual(["Created", "Last modified"]);
+    expect(screen.getByRole("group", { name: "Status" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Role" })).toBeTruthy();
+    const form = screen.getByRole("form", { name: "Edit user" });
+    expect(form.querySelector(".card__title")?.textContent).toBe("Access");
+    expect(form.querySelector(".form-actions")?.contains(screen.getByRole("button", { name: "Save" }))).toBe(true);
+    const back = screen.getByRole("link", { name: "Back to users" });
+    expect(back.classList.contains("back-link")).toBe(true);
+    expect(back.querySelector("svg")).toBeTruthy();
+    expect(document.querySelector(".stack")?.contains(form)).toBe(true);
   });
 
   it("confirms a disable inline before sending it", async () => {
     const bodies: unknown[] = [];
     server.use(getUser(BOB), patchUser("u-2", bodies, () => HttpResponse.json({ ...BOB, enabled: false, version: 4 })));
     await renderBob();
-    fireEvent.click(screen.getByLabelText("Enabled"));
+    fireEvent.click(screen.getByRole("radio", { name: "Disabled" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(screen.getByText(/Disable bob\?/)).toBeTruthy();
     expect(bodies).toEqual([]);
@@ -345,7 +353,7 @@ describe("edit user", () => {
     );
     renderAt("/admin/users/u-1");
     await screen.findByRole("heading", { name: "alice" });
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "USER" } });
+    fireEvent.click(screen.getByRole("radio", { name: "USER" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(screen.getByText(/Demote alice\?/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Confirm save" }));
@@ -362,7 +370,7 @@ describe("edit user", () => {
     );
     renderAt("/admin/users/u-3");
     await screen.findByRole("heading", { name: "carol" });
-    fireEvent.click(screen.getByLabelText("Enabled"));
+    fireEvent.click(screen.getByRole("radio", { name: "Disabled" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm save" }));
     expect((await screen.findByRole("alert")).textContent).toBe(
@@ -372,8 +380,9 @@ describe("edit user", () => {
 
   it("offers Reload on CONCURRENT_MODIFICATION and keeps the input", async () => {
     const bodies: Record<string, unknown>[] = [];
+    let gets = 0;
     server.use(
-      getUser(BOB, { ...BOB, version: 5 }),
+      http.get(`${BASE}/users/u-2`, () => HttpResponse.json(++gets === 1 ? BOB : { ...BOB, version: 5 })),
       patchUser("u-2", bodies, (body) =>
         body.version === 3
           ? error(409, "CONCURRENT_MODIFICATION", ["User was modified by another user"])
@@ -381,12 +390,13 @@ describe("edit user", () => {
       ),
     );
     await renderBob();
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ADMIN" } });
+    fireEvent.click(screen.getByRole("radio", { name: "ADMIN" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/This user was changed elsewhere/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Reload" }));
-    await waitFor(() => expect(detail("Version")).toBe("5"));
-    expect((screen.getByLabelText("Role") as HTMLSelectElement).value).toBe("ADMIN");
+    await waitFor(() => expect(gets).toBe(2));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((screen.getByRole("radio", { name: "ADMIN" }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Saved.")).toBeTruthy();
     expect(bodies.map((b) => b.version)).toEqual([3, 5]);
@@ -410,7 +420,7 @@ describe("edit user", () => {
   it("says so when a demoted admin saves", async () => {
     server.use(getUser(BOB), patchUser("u-2", [], () => error(403, "ACCESS_DENIED", ["Access Denied"])));
     await renderBob();
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ADMIN" } });
+    fireEvent.click(screen.getByRole("radio", { name: "ADMIN" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/You no longer have admin access/);
   });

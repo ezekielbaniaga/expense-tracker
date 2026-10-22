@@ -19,12 +19,12 @@ test("the admin disables a user, which ends their session and blocks sign-in", a
   await signIn(page, ADMIN);
   await openUser(page, target);
   const form = page.getByRole("form", { name: "Edit user" });
-  await form.getByLabel("Enabled").uncheck();
+  await form.getByRole("radio", { name: "Disabled" }).check({ force: true });
   await form.getByRole("button", { name: "Save" }).click();
   await expect(form).toContainText(`Disable ${target.username}? Every session of theirs ends`);
   await form.getByRole("button", { name: "Confirm save" }).click();
   await expect(form.getByRole("status")).toHaveText("Saved.");
-  await expect(page.getByRole("definition").filter({ hasText: /^Disabled$/ })).toBeVisible();
+  await expect(form.getByRole("radio", { name: "Disabled" })).toBeChecked();
 
   // The list shows the new status too
   await page.getByRole("link", { name: "Back to users" }).click();
@@ -46,13 +46,13 @@ test("the admin cannot demote themselves", async ({ page }) => {
   await signIn(page, ADMIN);
   await openUser(page, ADMIN);
   const form = page.getByRole("form", { name: "Edit user" });
-  await form.getByLabel("Role").selectOption("USER");
+  await form.getByRole("radio", { name: "USER" }).check({ force: true });
   await form.getByRole("button", { name: "Save" }).click();
   await form.getByRole("button", { name: "Confirm save" }).click();
   await expect(form.getByRole("alert")).toHaveText("You cannot disable or demote yourself.");
 
   await page.reload();
-  await expect(page.getByRole("definition").filter({ hasText: /^ADMIN$/ })).toBeVisible();
+  await expect(page.getByRole("form", { name: "Edit user" }).getByRole("radio", { name: "ADMIN" })).toBeChecked();
 });
 
 /** From the nav's Admin link, filters the list by the exact name and opens that user. */

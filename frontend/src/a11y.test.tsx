@@ -192,7 +192,7 @@ describe("axe", () => {
     expect(await axe(container)).toHaveNoViolations();
     fireEvent.click(screen.getByRole("link", { name: "bob" }));
     await screen.findByRole("heading", { name: "bob" });
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ADMIN" } });
+    fireEvent.click(screen.getByRole("radio", { name: "ADMIN" }));
     expect(await axe(container)).toHaveNoViolations();
   });
 });
@@ -362,7 +362,7 @@ describe("focus around inline confirms", () => {
     signedIn();
     server.use(http.get(`${BASE}/users/u-2`, () => HttpResponse.json({ ...BOB, role: "ADMIN" })));
     await renderAt("/admin/users/u-2", "bob");
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "USER" } });
+    fireEvent.click(screen.getByRole("radio", { name: "USER" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     const cancel = screen.getByRole("button", { name: "Cancel" });
     expect(document.activeElement).toBe(cancel);

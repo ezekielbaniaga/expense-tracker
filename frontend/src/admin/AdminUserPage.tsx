@@ -10,6 +10,8 @@ import { errorMessage } from "../expenses/ExpenseListPage";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { SegmentedControl } from "../ui/Chip";
+import { ChevronLeftIcon } from "../ui/icons";
 import { PageHeading, useRefocusOnClose } from "../ui/focus";
 import { FormAlert } from "../ui/forms";
 import { useToast } from "../ui/Toast";
@@ -43,7 +45,10 @@ export function AdminUserPage() {
   return (
     <section aria-labelledby="user-heading">
       <p>
-        <Link to="/admin/users">Back to users</Link>
+        <Link to="/admin/users" className="back-link">
+          <ChevronLeftIcon size={16} />
+          Back to users
+        </Link>
       </p>
       {query.isPending && <Skeleton label="Loading user..." />}
       {isNotFound(failure) && <PageHeading id="user-heading">Not found</PageHeading>}
@@ -70,18 +75,14 @@ export function AdminUserPage() {
               </p>
             </div>
           </Card>
-          <dl>
-            <dt>Role</dt>
-            <dd>{user.role}</dd>
-            <dt>Status</dt>
-            <dd>{user.enabled ? "Enabled" : "Disabled"}</dd>
-            <dt>Version</dt>
-            <dd>{user.version}</dd>
-            <dt>Created</dt>
-            <dd>{formatLocalDateTime(user.createdAt)}</dd>
-            <dt>Last modified</dt>
-            <dd>{user.lastModified ? formatLocalDateTime(user.lastModified) : "Never"}</dd>
-          </dl>
+          <Card title="Details">
+            <dl>
+              <dt>Created</dt>
+              <dd>{formatLocalDateTime(user.createdAt)}</dd>
+              <dt>Last modified</dt>
+              <dd>{user.lastModified ? formatLocalDateTime(user.lastModified) : "Never"}</dd>
+            </dl>
+          </Card>
           <UserForm user={user} onReload={() => void query.refetch()} />
         </div>
       )}
@@ -173,63 +174,72 @@ function UserForm({ user, onReload }: { user: AdminUserDto; onReload: () => void
         else submit();
       }}
     >
-      <label>
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(event) => {
-            setEnabled(event.target.checked);
-            setConfirming(false);
-          }}
-        />{" "}
-        Enabled
-      </label>{" "}
-      <label htmlFor="user-role">Role</label>
-      <select
-        id="user-role"
-        value={role}
-        onChange={(event) => {
-          setRole(event.target.value as Role);
-          setConfirming(false);
-        }}
-      >
-        <option value="USER">USER</option>
-        <option value="ADMIN">ADMIN</option>
-      </select>
-      {stale && (
-        <p role="alert">
-          This user was changed elsewhere. Reload to get the latest version; your changes are kept.{" "}
-          <button
-            type="button"
-            onClick={() => {
-              setStale(false);
-              onReload();
+      <Card title="Access">
+        <div className="stack">
+          <SegmentedControl
+            legend="Status"
+            name="user-status"
+            options={[
+              { value: "true", label: "Enabled" },
+              { value: "false", label: "Disabled" },
+            ]}
+            value={String(enabled)}
+            onChange={(v) => {
+              setEnabled(v === "true");
+              setConfirming(false);
             }}
-          >
-            Reload
-          </button>
-        </p>
-      )}
-      {message && <FormAlert>{message}</FormAlert>}
-      {saved && <p role="status">Saved.</p>}
-      {confirming ? (
-        <div>
-          <p>
-            {disabling && demoting ? "Disable and demote" : disabling ? "Disable" : "Demote"} {user.username}? Every
-            session of theirs ends, so they have to sign in again.
-          </p>
-          <button type="button" disabled={save.isPending} onClick={submit}>
-            Confirm save
-          </button>{" "}
-          <button type="button" autoFocus onClick={() => setConfirming(false)}>
-            Cancel
-          </button>
+          />
+          <SegmentedControl
+            legend="Role"
+            name="user-role"
+            options={[
+              { value: "USER", label: "USER" },
+              { value: "ADMIN", label: "ADMIN" },
+            ]}
+            value={role}
+            onChange={(v) => {
+              setRole(v as Role);
+              setConfirming(false);
+            }}
+          />
+          {stale && (
+            <p role="alert">
+              This user was changed elsewhere. Reload to get the latest version; your changes are kept.{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setStale(false);
+                  onReload();
+                }}
+              >
+                Reload
+              </button>
+            </p>
+          )}
+          {message && <FormAlert>{message}</FormAlert>}
+          {saved && <p role="status">Saved.</p>}
+          <div className="form-actions">
+            {confirming ? (
+              <div>
+                <p>
+                  {disabling && demoting ? "Disable and demote" : disabling ? "Disable" : "Demote"} {user.username}?
+                  Every session of theirs ends, so they have to sign in again.
+                </p>
+                <button type="button" disabled={save.isPending} onClick={submit}>
+                  Confirm save
+                </button>{" "}
+                <button type="button" autoFocus onClick={() => setConfirming(false)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <Button type="submit" variant="primary" ref={saveButton} pending={save.isPending}>
+                Save
+              </Button>
+            )}
+          </div>
         </div>
-      ) : (
-        <Button type="submit" variant="primary" ref={saveButton} pending={save.isPending}>
-          Save
-        </Button>
-      )}
+      </Card>
     </form>
   );
 }

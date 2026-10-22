@@ -61,4 +61,10 @@ describe("admin user filter bar", () => {
   it("lays the fields and Search out in one row aligned to the input bottoms", () => {
     expect(css).toMatch(/(^|\n)\.filter-bar \{\s*display: flex;\s*flex-wrap: wrap;\s*align-items: end;\s*gap:/);
   });
+
+  // The admin user page: back link with chevron, form-actions row under the Access card
+  it("styles the back link and the form-actions row used by the admin user page", () => {
+    expect(css).toMatch(/\.back-link \{\s*display: inline-flex;\s*align-items: center;/);
+    expect(css).toMatch(/(^|\n)\.form-actions \{\s*position: sticky;/);
+  });
 });
