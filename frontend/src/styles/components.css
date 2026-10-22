@@ -815,6 +815,14 @@ tr.row--new {
   margin-block: var(--sp-2);
 }
 
+.sort-select label {
+  white-space: nowrap;
+}
+
+.sort-select select {
+  width: auto;
+}
+
 @media (max-width: 47.999rem) {
   .expense-table thead {
     display: none;
@@ -844,6 +852,7 @@ tr.row--new {
 
   .expense-table td {
     padding: 0;
+    border-bottom: 0;
   }
 
   .expense-table__description {

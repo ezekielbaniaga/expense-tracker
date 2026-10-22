@@ -21,4 +21,11 @@ describe("components.css", () => {
   it("hides the closed filters panel at every width", () => {
     expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);
   });
+
+  // The global th, td bottom border drew lines inside each phone card
+  it("clears the cell borders inside phone expense cards and keeps Sort by on one line", () => {
+    expect(css).toMatch(/\.expense-table td \{\s*padding: 0;\s*border-bottom: 0;/);
+    expect(css).toMatch(/\.sort-select label \{\s*white-space: nowrap;/);
+    expect(css).toMatch(/\.sort-select select \{\s*width: auto;/);
+  });
 });
