@@ -17,6 +17,15 @@ describe("components.css", () => {
     expect(css).not.toContain(".detail-card");
   });
 
+  // Margins on input/select/button made rows of controls end at different heights; layout spaces them
+  it("gives controls no margin and spaces forms and fields with gap", () => {
+    const controls = css.slice(0, css.indexOf("/* Controls carry no margin"));
+    expect(controls).not.toMatch(/\n(button|input:not\(\[type="checkbox"\]\),\nselect) \{[^}]*margin/);
+    expect(css).toMatch(/(^|\n)form \{\s*display: grid;\s*gap: var\(--sp-4\);/);
+    expect(css).toMatch(/(^|\n)\.field \{\s*display: grid;\s*gap: var\(--sp-1\);/);
+    expect(css).toMatch(/\.filter-bar > button \{\s*flex: 1 1 100%;/);
+  });
+
   // The Filters panel is collapsed at every width, not only on phones
   it("hides the closed filters panel at every width", () => {
     expect(css).toMatch(/(^|\n)\.list-controls__filters\[data-open="false"\] \{\s*display: none;/);

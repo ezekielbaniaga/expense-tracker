@@ -10,7 +10,6 @@ input:not([type="checkbox"]) {
 
 button {
   padding: 0 0.9rem;
-  margin: var(--sp-1) 0;
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
@@ -30,7 +29,6 @@ input:not([type="checkbox"]),
 select {
   width: 100%;
   max-width: 24rem;
-  margin: var(--sp-1) 0 var(--sp-2);
   padding: 0 var(--sp-3);
   background: var(--surface);
   border: 1px solid var(--line-strong);
@@ -63,7 +61,23 @@ select[aria-invalid="true"] {
   color: var(--danger);
 }
 
+/* Controls carry no margin of their own, so rows of them line up. Spacing comes from layout: a form
+   spaces its children with gap, and a field spaces its label, control and error the same way. */
+form {
+  display: grid;
+  gap: var(--sp-4);
+}
+
 /* TextField, SelectField, DateField and AmountField (ui/fields.tsx) */
+.field {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.field > label {
+  margin-top: 0;
+}
+
 .field-label {
   font-size: var(--fs-caps);
   font-weight: 600;
@@ -79,6 +93,13 @@ select[aria-invalid="true"] {
   align-items: end;
   gap: var(--sp-3);
   margin-bottom: var(--sp-4);
+}
+
+/* On phones the action button wraps to its own row: span it instead of hanging on the left */
+@media (max-width: 29.999rem) {
+  .filter-bar > button {
+    flex: 1 1 100%;
+  }
 }
 
 .field-error {
@@ -834,6 +855,10 @@ tr.row--new {
   align-items: center;
   gap: var(--sp-2);
   margin-left: auto;
+}
+
+.pagination__size label {
+  margin-top: 0;
 }
 
 .pagination select {
