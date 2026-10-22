@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 interface Rule {
@@ -114,6 +114,22 @@ const nonTextPairs: [string, string][] = [
 ];
 
 describe("design tokens", () => {
+  it("only references tokens that are defined, without fallbacks", () => {
+    const defined = new Set<string>();
+    const files = readdirSync("src/styles").filter((f) => f.endsWith(".css"));
+    const texts = files.map((f) => readFileSync(`src/styles/${f}`, "utf8").replace(/\/\*[\s\S]*?\*\//g, ""));
+    for (const t of texts) for (const m of t.matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1]);
+    const used: string[] = [];
+    for (const t of texts) {
+      for (const m of t.matchAll(/var\(\s*(--[\w-]+)\s*(,)?/g)) {
+        used.push(m[1]);
+        expect(m[2], `${m[1]} has a fallback`).toBeUndefined();
+      }
+    }
+    expect(used.length).toBeGreaterThan(0);
+    expect(used.filter((name) => !defined.has(name))).toEqual([]);
+  });
+
   it("finds every block it needs", () => {
     expect(rootRule).toBeDefined();
     expect(darkMediaBlock).toBeDefined();

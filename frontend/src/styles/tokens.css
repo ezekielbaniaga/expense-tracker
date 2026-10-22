@@ -80,9 +80,11 @@
   --sp-7: 48px;
 
   --r-sm: 6px;
+  --r-row: 8px;
   --r-md: 12px;
   --r-lg: 20px;
   --r-full: 999px;
+  --size-badge: 56px;
 
   --shadow-1: 0 1px 2px rgb(36 33 47 / 6%), 0 4px 12px rgb(36 33 47 / 6%);
   --shadow-2: 0 8px 32px rgb(36 33 47 / 14%);

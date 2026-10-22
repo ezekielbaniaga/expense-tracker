@@ -300,7 +300,7 @@ export function ExpenseListPage() {
           onChange={(v) => choosePeriod(v as Period)}
         />
         <div className="list-controls__search">
-          <label htmlFor="expense-search">Search descriptions</label>
+          <label htmlFor="expense-search" className="visually-hidden">Search descriptions</label>
           <input
             id="expense-search"
             type="search"
