@@ -751,6 +751,23 @@ describe("archived screen", () => {
     expect(queryClient.getQueryData(["archived"])).toBeTruthy();
   });
 
+  it("right-aligns archived amounts with tabular numbers and keeps amount and date on one line", async () => {
+    server.use(
+      http.get(`${BASE}/api/expense/archived`, () =>
+        HttpResponse.json({
+          expenses: [{ id: "a1", description: "Newest", amount: 2.5, archivedAt: "2026-10-01T08:30:00" }],
+          count: 1,
+        }),
+      ),
+    );
+    renderAt("/archived");
+    await screen.findByText("Newest");
+    const cells = within(screen.getAllByRole("row")[1]).getAllByRole("cell");
+    expect(cells[1].className).toBe("table-narrow table-amount");
+    expect(cells[2].className).toBe("table-narrow");
+    expect(screen.getByRole("columnheader", { name: /Amount/ }).className).toBe("table-narrow table-amount");
+  });
+
   it("sorts in the browser by column, flipping on the second click, nulls last", async () => {
     server.use(
       http.get(`${BASE}/api/expense/archived`, () =>

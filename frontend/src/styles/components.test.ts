@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync("src/styles/components.css", "utf8");
+const layout = readFileSync("src/styles/layout.css", "utf8");
 
 describe("components.css", () => {
   // A bare :has() adds specificity (0,1,2) and beats .chip { display: inline-flex }, so checkbox
@@ -118,5 +119,13 @@ describe("base.css root size", () => {
   it("sizes h1 --fs-md on phones and --fs-lg from 48rem", () => {
     expect(base).toMatch(/\nh1 \{\s*font-size: var\(--fs-md\);/);
     expect(base).toMatch(/@media \(min-width: 48rem\) \{\s*h1 \{\s*font-size: var\(--fs-lg\);/);
+  });
+
+  // anywhere broke short tokens ("Admi/n", "12.5/0"); narrow columns stay on one line, description wraps
+  it("keeps narrow table columns on one line and breaks words only when they must", () => {
+    expect(layout).toMatch(/\btd \{\s*overflow-wrap: break-word;/);
+    expect(css).toMatch(/\.table-narrow \{\s*width: 1%;\s*white-space: nowrap;/);
+    expect(css).toMatch(/\.table-amount \{\s*text-align: right;\s*font-variant-numeric: tabular-nums;/);
+    expect(css).toMatch(/@media \(min-width: 48rem\) \{\s*[^}]*\.expense-table__amount \{\s*width: 1%;\s*white-space: nowrap;/);
   });
 });

@@ -61,8 +61,9 @@ export function ArchivedPage() {
     () => (query.data ? sortRows(query.data, sort.key, sort.dir) : []),
     [query.data, sort],
   );
-  const header = (key: SortKey, label: string, phrases: { asc: string; desc: string }) => (
+  const header = (key: SortKey, label: string, phrases: { asc: string; desc: string }, className?: string) => (
     <SortableHeader
+      className={className}
       label={label}
       announceName={key === "archivedAt" ? "archived date" : label.toLowerCase()}
       active={sort.key === key}
@@ -101,8 +102,8 @@ export function ArchivedPage() {
             <thead>
               <tr>
                 {header("description", "Description", { asc: "A to Z", desc: "Z to A" })}
-                {header("amount", "Amount", { asc: "lowest first", desc: "highest first" })}
-                {header("archivedAt", "Archived at", { asc: "oldest first", desc: "newest first" })}
+                {header("amount", "Amount", { asc: "lowest first", desc: "highest first" }, "table-narrow table-amount")}
+                {header("archivedAt", "Archived at", { asc: "oldest first", desc: "newest first" }, "table-narrow")}
               </tr>
             </thead>
             <tbody>
@@ -111,8 +112,8 @@ export function ArchivedPage() {
                   <td>
                     <ArchiveIcon size={16} />{e.description ?? NO_DESCRIPTION}
                   </td>
-                  <td>{formatMoney(e.amount, currency)}</td>
-                  <td>{formatLocalDateTime(e.archivedAt)}</td>
+                  <td className="table-narrow table-amount">{formatMoney(e.amount, currency)}</td>
+                  <td className="table-narrow">{formatLocalDateTime(e.archivedAt)}</td>
                 </tr>
               ))}
             </tbody>

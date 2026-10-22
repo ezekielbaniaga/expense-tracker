@@ -805,6 +805,16 @@ tr.row--new {
   cursor: pointer;
 }
 
+.table-narrow {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.table-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .archived-row td {
   color: var(--muted);
 }
@@ -1026,6 +1036,15 @@ tr.row--new {
 }
 
 @media (min-width: 48rem) {
+  /* Narrow columns keep their content on one line; the description column takes the slack and wraps.
+     Not on phones: there the cells are grid items of the card. */
+  .expense-table__category,
+  .expense-table__date,
+  .expense-table__amount {
+    width: 1%;
+    white-space: nowrap;
+  }
+
   .sort-select {
     display: none;
   }

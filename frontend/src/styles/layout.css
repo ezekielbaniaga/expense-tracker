@@ -286,8 +286,10 @@ th {
   color: var(--muted);
 }
 
+/* break-word, not anywhere: anywhere also shrinks min-content, so auto table layout squeezed short
+   tokens ("Admi/n", "12.5/0") instead of giving the slack to the long column */
 td {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 td a {

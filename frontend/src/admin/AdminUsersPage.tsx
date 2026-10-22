@@ -238,13 +238,13 @@ export function AdminUsersPage() {
                         <Link to={`/admin/users/${encodeURIComponent(u.id)}`}>{u.username}</Link>
                       </span>
                     </td>
-                    <td>
+                    <td className="table-narrow">
                       <RoleChip role={u.role} />
                     </td>
-                    <td>
+                    <td className="table-narrow">
                       <StatusChip enabled={u.enabled} />
                     </td>
-                    <td>{formatLocalDay(u.createdAt)}</td>
+                    <td className="table-narrow">{formatLocalDay(u.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
