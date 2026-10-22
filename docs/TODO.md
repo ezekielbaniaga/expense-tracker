@@ -26,17 +26,6 @@ do it first and re-measure the rest after it.
    Use `isMobile`/`hasTouch` for the phone run, because `(pointer: coarse)` changes `--fs-input`.
 4. Run `npm test -- --run` and `npm run build`; `components.test.ts` and `tokens.test.ts` guard the CSS.
 
-- [ ] **`rem` is 13px, so the whole UI is about 19% smaller than the spec.** `base.css` sets `:root { font-size:
-      var(--fs-base) }` (0.8125rem), which makes `rem` 13px. All `rem` tokens shrink with it. Measured: caps labels
-      8.53px (spec 10.5), `--fs-sm` text 9.75px (spec 12), explicit `--fs-base` text 10.56px (spec 13), inputs
-      10.6px. On touch screens inputs are 13px (spec: 16px, because iOS zooms the page on a focused input under
-      16px). "44px" targets measure 35.8px, `btn--sm` 29px, segmented items 32.5px, the "Back to …" link 20px, and
-      the top bar's Add expense (32.5px) and avatar (35.8px) differ in height. The spec's scale (line 231) assumes
-      1rem = 16px. Fix: `html { font-size: 100%; }` and `body { font-size: var(--fs-base); line-height: 1.5 }`;
-      leave the tokens alone. Best practice is a root of 100% so the user's browser font setting still applies
-      (WCAG 1.4.4). Then re-check headings against the spec table: `h1` becomes 28px, while the spec wants
-      `--fs-md` on phones and `--fs-lg` from 48rem. Give the top bar items (Add expense, nav links, avatar) one
-      height. Every width changes on purpose here, so compare both against the spec, not against "before".
 - [ ] **Content shifts sideways when the vertical scrollbar appears or goes (desktop).** Measured: 45 users give a
       15px scrollbar, a 2-user search none, and the nav moves 7.5px (379.5 to 387). The same happens between any
       long and short page (Archived, Profile). Fix: `html { scrollbar-gutter: stable; }` in `base.css`. Tested
@@ -359,3 +348,4 @@ do it first and re-measure the rest after it.
 - [x] Slimmed the expense detail page: one Edit, danger-ghost Delete, category chip only, Technical details block (77a18cc)
 - [x] Profile page: header row, RoleChip, .note warning, PasswordField, device divider list; Theme/Accent only in the account menu (a9369ef)
 - [x] Debounced the Min/Max amount filters (300 ms) and made typed filters replace the history entry (dd6c83c)
+- [x] Root font size set to 100% so rem is 16px; h1 sized per spec; desktop top bar items share one height (922a09f)
