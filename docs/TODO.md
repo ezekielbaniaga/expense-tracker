@@ -14,17 +14,6 @@ Found by rendering the Web UI in Chromium at 1280, 800 and 390 px with a mocked 
 `frontend/src/`. jsdom applies no CSS, so most of these need a browser check (`npm run dev`) or an e2e
 assertion, not only a Vitest test. The first five came from the user.
 
-- [ ] **Filters are always open on wide screens, and the Filters button does nothing there.** `styles/
-      components.css` hides `.list-controls__filters[data-open="false"]` only below 48rem. On a desktop the
-      button flips `aria-expanded` but the panel (about 200 px of chips and inputs) always shows above the
-      summary, so the first view is busy. Fix: collapse it at every width by default. The default view is
-      the heading, Period chips, then the search box with a "Filters" button (filter icon, "Filters · n" count)
-      on the same row, then the summary and the list. When open, the panel is a `.card` holding Category,
-      Dates, Amount and a "Clear filters" link in its footer. Keep `Custom` opening it (already does). While it
-      is collapsed with active filters, show them as removable chips under the search ("Food ×",
-      "≥ 10.00 ×"), so the state stays visible. Update `docs/ui-design-proposal.md` (Filters, "on wide screens
-      inline"). Tests in `expenses/expenses.test.tsx` and `a11y.test.tsx` that use the filter controls must
-      press Filters first if the panel leaves the accessibility tree when closed.
 - [ ] **Profile sections touch each other.** `profile/ProfilePage.tsx` renders four sibling `.card`s and
       nothing spaces them, so their borders meet. Other pages patch this case by case (`.summary-card`,
       `.detail-card` `margin-bottom`), and `AdminUserPage` puts a `dl` right under its card. Fix: add a
@@ -283,3 +272,4 @@ assertion, not only a Vitest test. The first five came from the user.
 - [x] Admin area pill moved from the top bar to the admin page headings, nowrap on top bar items (0ec2025)
 - [x] Category filter chips now centre their label like Period chips (`label:where(:has(...))`) (9b76bc7)
 - [x] Min/Max amount and From/To filters laid out as Dates/Amount fieldsets in two columns (0ebad6f)
+- [x] Collapsed the expense Filters panel at every width, with removable active-filter chips (d2e9e0f)
