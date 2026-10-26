@@ -57,17 +57,11 @@ do it first and re-measure the rest after it.
 
 ## Needs you
 
-- [ ] **Check the animated README diagrams on GitHub.** The four SVGs in `docs/diagrams/` (login, request,
-      refresh, logout) were checked in local Chromium through `<img>`, never on github.com. On the README there:
-      - each diagram shows and animates (flowing dashes, a packet walking the success path); also try Firefox
-        and Safari, and a phone
-      - switching GitHub's theme (Settings → Appearance) swaps the light and dark versions
-      - the text is readable at README width, and the flows match the code and the sections around them
-      - the "All flows in one Mermaid chart" block under Authentication Architecture opens and renders
-      Fix anything in `docs/diagrams/build.mjs`, then run `node docs/diagrams/build.mjs`.
+- Nothing right now.
 
 ## Done
 
+- [x] Animated README diagrams checked on GitHub (2026-10-26): login, request, refresh and logout SVGs show, animate and follow the theme
 - [x] Client IP behind nginx checked (2026-10-23): a login through `:8081` stored the host address `172.28.0.1`, not nginx's `172.28.0.10`, and a forged `X-Forwarded-For: 1.2.3.4` was ignored
 - [x] Admin stays a fourth phone tab for admins (decided 2026-10-23); the spec now says so
 - [x] Ran `frontend/run_e2e.sh` and clicked through every screen with the keyboard only and on a narrow window (2026-10-23)
